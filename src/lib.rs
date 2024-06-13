@@ -31,3 +31,13 @@ pub struct TermHeadword {}
 pub struct TermDefinition {}
 
 pub struct TermPronunciation {}
+
+#[allow(dead_code)]
+pub struct PitchAccent {
+    term: TermPronounciationMatchType,
+    position: u8,
+    nasal_positions: u8,
+    devoic_positions: u8,
+    tags: Vec<Tag>
+}
+
