@@ -41,3 +41,15 @@ pub struct PitchAccent {
     tags: Vec<Tag>
 }
 
+/// A tag represents some brief information about part of a dictionary entry.
+#[allow(dead_code)]
+pub struct Tag {
+    name: String,
+    category: String,
+    order: u16,
+    score: u16,
+    content: Vec<String>,
+    dictionaries: Vec<String>,
+    redundant: bool,
+}
+
