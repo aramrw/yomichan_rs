@@ -19,3 +19,8 @@ pub enum TermPronounciationMatchType {
     PhoneticTranscription
 }
 
+pub enum DictionaryEntryType {
+    Kanji,
+    Term
+}
+
