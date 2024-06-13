@@ -53,3 +53,18 @@ pub struct Tag {
     redundant: bool,
 }
 
+pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
+
+pub struct KanjiDictionaryEntry {
+    entry_type: DictionaryEntryType,
+    character: String,
+    dictionary: String,
+    onyomi: Vec<String>,
+    kunyomi: Vec<String>,
+    tags: Vec<Tag>,
+    stats: KanjiStatsGroup, 
+    definitions: Vec<String>,
+    frequencies: Vec<KanjiFrequency>,
+
+}
+
