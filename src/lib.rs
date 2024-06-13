@@ -83,3 +83,19 @@ pub struct TermFrequency {
     display_value_parsed: bool,
 }
 
+#[allow(dead_code)]
+pub struct TermDictionaryEntry {
+    entry_type: TermSourceMatchSource,
+    is_primary: bool,
+    inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+    score: i32,
+    frequency_order: u32,
+    dictionary_index: u32,
+    dictionary_priority: u32,
+    source_term_exact_match_count: u32,
+    max_original_text_length: u32,
+    headwords: Vec<TermHeadword>,
+    definitions: Vec<TermDefinition>,
+    pronunciations: Vec<TermPronunciation>,
+    frequencies: Vec<TermFrequency>,
+}
