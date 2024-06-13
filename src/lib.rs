@@ -7,3 +7,10 @@ pub enum TermSourceMatchSource {
     Reading,
     Sequence,
 }
+/// Enum representing how the search term relates to the final term.
+pub enum TermSourceMatchType {
+    Exact,
+    Prefix,
+    Suffix,
+}
+
