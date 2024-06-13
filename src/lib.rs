@@ -14,3 +14,8 @@ pub enum TermSourceMatchType {
     Suffix,
 }
 
+pub enum TermPronounciationMatchType {
+    PitchAccent,
+    PhoneticTranscription
+}
+
