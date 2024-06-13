@@ -24,3 +24,10 @@ pub enum DictionaryEntryType {
     Term
 }
 
+pub struct InflectionRuleChainCandidate {}
+
+pub struct TermHeadword {}
+
+pub struct TermDefinition {}
+
+pub struct TermPronunciation {}
