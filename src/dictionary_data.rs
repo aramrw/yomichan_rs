@@ -129,3 +129,12 @@ pub struct TermGlossaryStructuredContent {
     content: String,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// TermMeta represents the metadata of a term.
+pub enum TermMeta {
+    Frequency(TermMetaFrequency),
+    Pitch(TermMetaPitch),
+    Phonetic(TermMetaPhonetic),
+}
+
