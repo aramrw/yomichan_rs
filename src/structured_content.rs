@@ -8,3 +8,10 @@ pub enum ImageRendering {
     CrispEdges,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ImageAppearance {
+    Auto,
+    Monochrome,
+}
+
