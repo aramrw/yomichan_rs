@@ -18,3 +18,10 @@ pub enum TermGlossaryType {
     Image,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TermGlossary {
+    Content(TermGlossaryContent),
+    Deinflection(TermGlossaryDeinflection),
+}
+
