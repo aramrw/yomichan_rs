@@ -114,3 +114,11 @@ pub struct TermV3 {
     term_tags: String,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// TermGlossaryDeinflection represents the deinflection information of a term.
+pub struct TermGlossaryDeinflection {
+    uninflected: String,
+    inflection_rule_chain: Vec<String>,
+}
+
