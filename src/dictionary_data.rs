@@ -75,3 +75,9 @@ pub struct Index {
     tag_meta: Option<HashMap<String, IndexTag>>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IndexTagMeta {
+    pub tags: HashMap<String, IndexTag>,
+}
+
