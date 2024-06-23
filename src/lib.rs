@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 mod database;
 mod dictionary;
 mod dictionary_data;
@@ -19,6 +18,7 @@ pub struct Yomichan {
     pub db: Database,
 }
 
+impl Yomichan {
     /// Initializes a new Yomichan Dictionary
     pub fn new(db_path: &str) -> Result<Self, errors::InitError> {
         let db = Database::create(format!("{}.redb", db_path))?;
@@ -39,4 +39,16 @@ pub struct Yomichan {
         Ok(())
     }
 
+    /// Looks up a term in the database
+    pub fn lookup_term(&self, key: &str) -> Result<Option<TermEntry>, Box<dyn Error>> {
+        let tx = self.db.begin_read()?;
+        let table = tx.open_table(TERMS_TABLE)?;
+
+        if let Some(value_guard) = table.get(key)? {
+            let stored_term: TermEntry = bincode::deserialize(value_guard.value())?;
+            Ok(Some(stored_term))
+        } else {
+            Ok(None)
+        }
+    }
 }
