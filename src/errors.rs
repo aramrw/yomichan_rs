@@ -22,3 +22,21 @@ pub enum ImportError {
     LineError(u32, Box<ImportError>),
 }
 
+#[macro_export]
+macro_rules! try_with_line {
+    () => {
+        macro_rules! line_number {
+            () => {
+                line!()
+            };
+        }
+
+        ($expr:expr) => {
+            match $expr {
+                Ok(val) => val,
+                Err(err) => return Err(errors::ImportError::from((line_number!(), err))),
+            }
+        };
+    };
+}
+
