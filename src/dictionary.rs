@@ -152,3 +152,17 @@ pub struct KanjiFrequency {
 
 pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KanjiDictionaryEntry {
+    entry_type: DictionaryEntryType,
+    character: String,
+    dictionary: String,
+    onyomi: Vec<String>,
+    kunyomi: Vec<String>,
+    tags: Vec<Tag>,
+    stats: KanjiStatGroups,
+    definitions: Vec<String>,
+    frequencies: Vec<KanjiFrequency>,
+}
+
