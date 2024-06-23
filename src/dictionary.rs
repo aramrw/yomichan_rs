@@ -23,3 +23,12 @@ pub enum TermSourceMatchSource {
     Sequence,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Enum representing how the search term relates to the final term.
+pub enum TermSourceMatchType {
+    Exact,
+    Prefix,
+    Suffix,
+}
+
