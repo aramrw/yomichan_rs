@@ -233,3 +233,21 @@ pub struct TermDefinition {
     entries: Vec<TermGlossaryContent>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// A term pronunciation represents different ways to pronounce one of the headwords.
+pub struct TermPronunciation {
+    /// The original order of the pronunciation, which is usually used for sorting.
+    index: u16,
+    /// Which headword this pronunciation corresponds to.
+    headword_index: u64,
+    /// The name of the dictionary that the pronunciation information originated from.
+    dictionary: String,
+    /// The index of the dictionary in the original list of dictionaries used for the lookup.
+    dictionary_index: u16,
+    /// The priority of the dictionary.
+    dictionary_priority: u16,
+    /// The pronunciations for the term.
+    pronunciations: Vec<Pronunciation>,
+}
+
