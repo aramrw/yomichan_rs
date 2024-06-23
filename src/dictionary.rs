@@ -150,3 +150,5 @@ pub struct KanjiFrequency {
     display_value_parsed: bool,
 }
 
+pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
+
