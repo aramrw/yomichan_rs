@@ -13,4 +13,6 @@ use crate::dictionary_data::TermEntry;
 use redb::{Database, ReadableTable, TableDefinition};
 use std::error::Error;
 
+const TERMS_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("terms");
+
 }
