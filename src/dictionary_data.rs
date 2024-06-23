@@ -147,3 +147,12 @@ pub struct TermMetaFrequency {
     data: GenericFrequencyData,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// GenericFrequencyData represents the frequency data of a term.
+pub enum GenericFrequencyData {
+    Value(u16),
+    DisplayValue(String),
+    Reading(String),
+}
+
