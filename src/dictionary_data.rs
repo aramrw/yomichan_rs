@@ -56,3 +56,22 @@ pub struct TermImage {
     pub size_units: Option<()>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Index represents the metadata of a dictionary.
+pub struct Index {
+    format: Option<u8>,
+    version: Option<u8>,
+    title: String,
+    revision: String,
+    sequenced: Option<bool>,
+    author: Option<String>,
+    url: Option<String>,
+    description: Option<String>,
+    attribution: Option<String>,
+    source_language: Option<String>,
+    target_language: Option<String>,
+    frequency_mode: Option<String>,
+    tag_meta: Option<HashMap<String, IndexTag>>,
+}
+
