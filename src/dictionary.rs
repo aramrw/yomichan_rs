@@ -39,3 +39,10 @@ pub enum TermPronunciationMatchType {
     PhoneticTranscription,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DictionaryEntryType {
+    Kanji,
+    Term,
+}
+
