@@ -68,3 +68,15 @@ pub enum DictionaryEntry {
     TermDictEntry(TermDictionaryEntry),
 }
 
+// structs
+
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PitchAccent {
+    term: TermPronunciationMatchType,
+    position: u8,
+    nasal_positions: u8,
+    devoic_positions: u8,
+    tags: Vec<Tag>,
+}
+
