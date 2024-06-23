@@ -52,3 +52,9 @@ impl From<(u32, std::io::Error)> for ImportError {
     }
 }
 
+impl From<(u32, zip::result::ZipError)> for ImportError {
+    fn from(err: (u32, zip::result::ZipError)) -> ImportError {
+        ImportError::LineError(err.0, Box::new(ImportError::from(err.1)))
+    }
+}
+
