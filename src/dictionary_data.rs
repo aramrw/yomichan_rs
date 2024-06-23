@@ -164,3 +164,11 @@ pub struct TermMetaPitch {
     data: TermMetaPitchData,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// TermMetaPitchData represents the pitch data of a term.
+pub struct TermMetaPitchData {
+    reading: String,
+    pitches: Vec<Pitch>,
+}
+
