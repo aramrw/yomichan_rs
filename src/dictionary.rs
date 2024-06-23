@@ -88,3 +88,10 @@ pub struct PhoneticTranscription {
     tags: Vec<Tag>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InflectionRuleChainCandidate {
+    source: InflectionSource,
+    inflection_rules: Vec<String>,
+}
+
