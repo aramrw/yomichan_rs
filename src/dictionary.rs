@@ -54,3 +54,10 @@ pub enum InflectionSource {
     Both,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Pronunciation {
+    PitchAccent(PitchAccent),
+    PhoneticTranscription(PhoneticTranscription),
+}
+
