@@ -182,3 +182,21 @@ pub struct TermFrequency {
     display_value_parsed: bool,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// A term headword is a combination of a term, reading, and auxiliary information.
+pub struct TermHeadword {
+    /// The original order of the headword, which is usually used for sorting.
+    index: u16,
+    /// The text for the term.
+    term: String,
+    /// The reading of the term.
+    reading: String,
+    /// The sources of the term.
+    sources: Vec<TermSource>,
+    /// Tags for the headword.
+    tags: Vec<Tag>,
+    /// List of word classes (part of speech) for the headword.
+    word_classes: Vec<String>,
+}
+
