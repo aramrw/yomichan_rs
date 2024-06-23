@@ -40,3 +40,9 @@ macro_rules! try_with_line {
     };
 }
 
+impl From<(u32, redb::DatabaseError)> for ImportError {
+    fn from(err: (u32, redb::DatabaseError)) -> ImportError {
+        ImportError::LineError(err.0, Box::new(ImportError::from(err.1)))
+    }
+}
+
