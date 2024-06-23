@@ -19,4 +19,10 @@ pub struct Yomichan {
     pub db: Database,
 }
 
+    /// Initializes a new Yomichan Dictionary
+    pub fn new(db_path: &str) -> Result<Self, errors::InitError> {
+        let db = Database::create(format!("{}.redb", db_path))?;
+        Ok(Self { db })
+    }
+
 }
