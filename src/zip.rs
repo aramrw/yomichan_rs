@@ -11,3 +11,12 @@ use std::fs;
 use std::io::{self, BufReader, Error as StdIOError, ErrorKind as StdIOErrorKind};
 
 pub type Entries = Vec<Vec<EntryItem>>;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum EntryItem {
+    Str(String),
+    Int(i64),
+    ContentBlock(Vec<serde_json::Value>),
+}
+
