@@ -101,3 +101,16 @@ pub struct Tag {
     score: u16,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TermV3 {
+    expression: String,
+    reading: String,
+    definition_tags: Option<String>,
+    rules: String,
+    score: u16,
+    glossary: Vec<TermGlossary>,
+    sequence: u64,
+    term_tags: String,
+}
+
