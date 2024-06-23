@@ -172,3 +172,13 @@ pub struct TermMetaPitchData {
     pitches: Vec<Pitch>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Pitch represents the pitch of a term.
+pub struct Pitch {
+    position: u16,
+    nasal: Option<Vec<u16>>,
+    devoice: Option<Vec<u16>>,
+    tags: Option<Vec<String>>,
+}
+
