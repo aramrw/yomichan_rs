@@ -61,3 +61,10 @@ pub enum Pronunciation {
     PhoneticTranscription(PhoneticTranscription),
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DictionaryEntry {
+    KanjiDictEntry(KanjiDictionaryEntry),
+    TermDictEntry(TermDictionaryEntry),
+}
+
