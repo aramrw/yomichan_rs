@@ -118,3 +118,15 @@ pub struct Tag {
     redundant: bool,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KanjiStat {
+    name: String,
+    category: String,
+    content: String,
+    order: u16,
+    score: u64,
+    dictionary: String,
+    value: NumOrStr,
+}
+
