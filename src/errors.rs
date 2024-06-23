@@ -58,3 +58,8 @@ impl From<(u32, zip::result::ZipError)> for ImportError {
     }
 }
 
+impl From<(u32, serde_json::error::Error)> for ImportError {
+    fn from(err: (u32, serde_json::error::Error)) -> ImportError {
+        ImportError::LineError(err.0, Box::new(ImportError::from(err.1)))
+    }
+}
