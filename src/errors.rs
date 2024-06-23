@@ -6,3 +6,19 @@ pub enum InitError {
     DatabaseConnectionFailed(#[from] redb::DatabaseError),
 }
 
+#[derive(Error, Debug)]
+pub enum ImportError {
+    #[error("database error")]
+    Database(#[from] redb::DatabaseError),
+    #[error("io error")]
+    IO(#[from] std::io::Error),
+    #[error("zip error")]
+    Zip(#[from] zip::result::ZipError),
+    #[error("json error: {0}")]
+    JSON(#[from] serde_json::error::Error),
+    #[error("json error: {0}")]
+    OtherJSON(String),
+    #[error("error at line {0}: {1}")]
+    LineError(u32, Box<ImportError>),
+}
+
