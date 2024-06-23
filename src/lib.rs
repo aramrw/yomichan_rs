@@ -25,4 +25,18 @@ pub struct Yomichan {
         Ok(Self { db })
     }
 
+    /// Adds a term entry to the database
+    pub fn add_term(&self, key: &str, term: TermEntry) -> Result<(), Box<dyn Error>> {
+        let tx = self.db.begin_write()?;
+        {
+            let mut table = tx.open_table(TERMS_TABLE)?;
+
+            let term_bytes = bincode::serialize(&term)?;
+            table.insert(key, &*term_bytes)?;
+        }
+        tx.commit()?;
+
+        Ok(())
+    }
+
 }
