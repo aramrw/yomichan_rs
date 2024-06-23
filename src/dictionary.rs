@@ -95,3 +95,26 @@ pub struct InflectionRuleChainCandidate {
     inflection_rules: Vec<String>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// A tag represents some brief information about part of a dictionary entry.
+pub struct Tag {
+    /// The name of the tag.
+    name: String,
+    /// The category of the tag.
+    category: String,
+    /// A number indicating the sorting order of the tag.
+    order: u16,
+    /// A score value for the tag.
+    score: u16,
+    /// An array of descriptions for the tag. If there are multiple entries,
+    /// the values will typically have originated from different dictionaries.
+    /// However, there is no correlation between the length of this array and
+    /// the length of the `dictionaries` field, as duplicates are removed.
+    content: Vec<String>,
+    /// An array of dictionary names that contained a tag with this name and category.
+    dictionaries: Vec<String>,
+    /// Whether or not this tag is redundant with previous tags.
+    redundant: bool,
+}
+
