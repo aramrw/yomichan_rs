@@ -130,3 +130,10 @@ pub struct KanjiStat {
     value: NumOrStr,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DictionaryOrder {
+    index: u16,
+    priority: u16,
+}
+
