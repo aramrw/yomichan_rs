@@ -46,3 +46,13 @@ pub struct TermGlossaryImage {
     pub term_image: TermImage,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TermImage {
+    pub image_element_base: ImageElementBase,
+    pub vertical_align: Option<()>,
+    pub border: Option<()>,
+    pub border_radius: Option<()>,
+    pub size_units: Option<()>,
+}
+
