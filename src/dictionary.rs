@@ -80,3 +80,11 @@ pub struct PitchAccent {
     tags: Vec<Tag>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PhoneticTranscription {
+    match_type: TermPronunciationMatchType,
+    ipa: String,
+    tags: Vec<Tag>,
+}
+
