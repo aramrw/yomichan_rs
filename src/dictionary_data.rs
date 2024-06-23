@@ -11,3 +11,10 @@ pub struct TermEntry {
     pub sequence: Option<String>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TermGlossaryType {
+    Text,
+    Image,
+}
+
