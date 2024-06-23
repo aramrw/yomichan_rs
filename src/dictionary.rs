@@ -270,3 +270,35 @@ pub struct TermSource {
     is_primary: bool,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// A dictionary entry for a term or group of terms.
+pub struct TermDictionaryEntry {
+    /// The type of the entry.
+    entry_type: TermSourceMatchSource,
+    /// Whether or not any of the sources is a primary source. Primary sources are derived from the
+    /// original search text, while non-primary sources originate from related terms.
+    is_primary: bool,
+    /// Ways that a looked-up word might be an inflected form of this term.
+    inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+    /// A score for the dictionary entry.
+    score: i32,
+    /// The sorting value based on the determined term frequency.
+    frequency_order: u32,
+    /// The index of the dictionary in the original list of dictionaries used for the lookup.
+    dictionary_index: u32,
+    /// The priority of the dictionary.
+    dictionary_priority: u32,
+    /// The number of primary sources that had an exact text match for the term.
+    source_term_exact_match_count: u32,
+    /// The maximum length of the original text for all primary sources.
+    max_original_text_length: u32,
+    /// Headwords for the entry.
+    headwords: Vec<TermHeadword>,
+    /// Definitions for the entry.
+    definitions: Vec<TermDefinition>,
+    /// Pronunciations for the entry.
+    pronunciations: Vec<TermPronunciation>,
+    /// Frequencies for the entry.
+    frequencies: Vec<TermFrequency>,
+}
