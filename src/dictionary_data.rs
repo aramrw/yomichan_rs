@@ -182,3 +182,11 @@ pub struct Pitch {
     tags: Option<Vec<String>>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// TermMetaPhonetic represents the phonetic metadata of a term.
+pub struct TermMetaPhonetic {
+    expression: String,
+    reading: String,
+    data: String,
+}
