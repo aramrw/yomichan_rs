@@ -122,3 +122,10 @@ pub struct TermGlossaryDeinflection {
     inflection_rule_chain: Vec<String>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// TermGlossaryStructuredContent represents the structured content of a term.
+pub struct TermGlossaryStructuredContent {
+    content: String,
+}
+
