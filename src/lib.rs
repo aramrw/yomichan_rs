@@ -15,4 +15,8 @@ use std::error::Error;
 
 const TERMS_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("terms");
 
+pub struct Yomichan {
+    pub db: Database,
+}
+
 }
