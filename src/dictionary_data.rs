@@ -81,3 +81,13 @@ pub struct IndexTagMeta {
     pub tags: HashMap<String, IndexTag>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// IndexTag represents the metadata of a tag in a dictionary.
+pub struct IndexTag {
+    category: String,
+    order: u16,
+    notes: String,
+    score: u16,
+}
+
