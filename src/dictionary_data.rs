@@ -91,3 +91,13 @@ pub struct IndexTag {
     score: u16,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Tag {
+    name: String,
+    category: String,
+    order: u16,
+    notes: String,
+    score: u16,
+}
+
