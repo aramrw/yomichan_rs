@@ -137,3 +137,16 @@ pub struct DictionaryOrder {
     priority: u16,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KanjiFrequency {
+    index: u64,
+    dictionary: String,
+    dictionary_index: u16,
+    dictionary_priority: u16,
+    character: String,
+    frequency: NumOrStr,
+    display_value: Option<String>,
+    display_value_parsed: bool,
+}
+
