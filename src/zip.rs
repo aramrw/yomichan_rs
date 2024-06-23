@@ -10,3 +10,4 @@ use tempfile::tempdir;
 use std::fs;
 use std::io::{self, BufReader, Error as StdIOError, ErrorKind as StdIOErrorKind};
 
+pub type Entries = Vec<Vec<EntryItem>>;
