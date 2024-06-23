@@ -46,3 +46,9 @@ impl From<(u32, redb::DatabaseError)> for ImportError {
     }
 }
 
+impl From<(u32, std::io::Error)> for ImportError {
+    fn from(err: (u32, std::io::Error)) -> ImportError {
+        ImportError::LineError(err.0, Box::new(ImportError::from(err.1)))
+    }
+}
+
