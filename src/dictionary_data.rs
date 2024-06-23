@@ -32,3 +32,10 @@ pub struct TermGlossaryContent {
     pub term_glossary_text: TermGlossaryText,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TermGlossaryText {
+    pub term_glossary_type: TermGlossaryType,
+    pub text: String,
+}
+
