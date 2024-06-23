@@ -14,3 +14,12 @@ pub enum NumOrStr {
     Str(String),
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Enum representing what database field was used to match the source term.
+pub enum TermSourceMatchSource {
+    Term,
+    Reading,
+    Sequence,
+}
+
