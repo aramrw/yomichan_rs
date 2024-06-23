@@ -200,3 +200,36 @@ pub struct TermHeadword {
     word_classes: Vec<String>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// A dictionary entry for a term or group of terms.
+pub struct TermDefinition {
+    /// The original order of the definition, which is usually used for sorting.
+    index: u16,
+    /// A list of headwords that this definition corresponds to.
+    headword_indices: Vec<u16>,
+    /// The name of the dictionary that the definition information originated from.
+    dictionary: String,
+    /// The index of the dictionary in the original list of dictionaries used for the lookup.
+    dictionary_index: u16,
+    /// The priority of the dictionary.
+    dictionary_priority: u16,
+    /// Database ID for the definition.
+    id: u128,
+    /// A score for the definition.
+    score: u16,
+    /// The sorting value based on the determined term frequency.
+    frequency_order: u16,
+    /// A list of database sequence numbers for the term. A value of `-1` corresponds to no sequence.
+    /// The list can have multiple values if multiple definitions with different sequences have been merged.
+    /// The list should always have at least one item.
+    sequences: Vec<i128>,
+    /// Whether or not any of the sources is a primary source. Primary sources are derived from the
+    /// original search text, while non-primary sources originate from related terms.
+    is_primary: bool,
+    /// Tags for the definition.
+    tags: Vec<Tag>,
+    /// The definition entries.
+    entries: Vec<TermGlossaryContent>,
+}
+
