@@ -251,3 +251,22 @@ pub struct TermPronunciation {
     pronunciations: Vec<Pronunciation>,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// TermSource represents the source of a term in the dictionary.
+pub struct TermSource {
+    /// The original text that was searched.
+    original_text: String,
+    /// The original text after being transformed, but before applying deinflections.
+    transformed_text: String,
+    /// The final text after applying deinflections.
+    deinflected_text: String,
+    /// How the deinflected text matches the value from the database.
+    match_type: TermSourceMatchType,
+    /// Which field was used to match the database entry.
+    match_source: TermSourceMatchSource,
+    /// Whether or not this source is a primary source. Primary sources are derived from the
+    /// original search text, while non-primary sources originate from related terms.
+    is_primary: bool,
+}
+
