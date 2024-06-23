@@ -15,3 +15,21 @@ pub enum ImageAppearance {
     Monochrome,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImageElementBase {
+    path: String,
+    width: u16,
+    height: u16,
+    preferred_width: u16,
+    preferred_height: u16,
+    title: String,
+    alt: String,
+    description: String,
+    pixelated: bool,
+    image_rendering: ImageRendering,
+    appearance: ImageAppearance,
+    background: bool,
+    collapsed: bool,
+    collapsible: bool,
+}
