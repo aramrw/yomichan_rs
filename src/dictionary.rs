@@ -166,3 +166,19 @@ pub struct KanjiDictionaryEntry {
     frequencies: Vec<KanjiFrequency>,
 }
 
+/// Frequency information corresponds to how frequently a term appears in a corpus,
+/// which can be a number of occurrences or an overall rank.
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TermFrequency {
+    index: u32,
+    headword_index: u32,
+    dictionary: String,
+    dictionary_index: u16,
+    dictionary_priority: u16,
+    has_reading: bool,
+    frequency: u32,
+    display_value: Option<String>,
+    display_value_parsed: bool,
+}
+
