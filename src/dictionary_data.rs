@@ -138,3 +138,12 @@ pub enum TermMeta {
     Phonetic(TermMetaPhonetic),
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// TermMetaFrequency represents the frequency metadata of a term.
+pub struct TermMetaFrequency {
+    expression: String,
+    mode: String,
+    data: GenericFrequencyData,
+}
+
