@@ -176,6 +176,7 @@ pub mod db_stores {
     pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
 }
 
+impl Yomichan {
     /// Adds a term entry to the database
     pub fn add_term(&self, key: &str, term: TermEntry) -> Result<(), errors::DBError> {
         let tx = self.db.begin_write()?;
@@ -202,3 +203,4 @@ pub mod db_stores {
             Ok(None)
         }
     }
+}
