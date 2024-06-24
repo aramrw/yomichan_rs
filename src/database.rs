@@ -143,6 +143,9 @@ pub struct DictionaryCounts {
     counts: Vec<DictionaryCountGroup>,
 }
 
+/// Defines each `redb` store, containing serialized `Database` objects.
+/// Each entry in the table is serialized into a byte slice (`&[u8]`) before storage.
+pub mod db_stores {
     use redb::TableDefinition;
 
     pub const DICTIONARIES_STORE: TableDefinition<&str, &[u8]> =
@@ -171,3 +174,5 @@ pub struct DictionaryCounts {
     ///
     /// [`MediaDataArrayBufferContent`]: MediaDataArrayBufferContent
     pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
+}
+
