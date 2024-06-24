@@ -201,6 +201,12 @@ pub struct Pitch {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// TermMetaPhonetic represents the phonetic metadata of a term.
 pub struct TermMetaPhonetic {
+/// The pitch data of a term.
+pub struct TermMetaPitchData {
+    reading: String,
+    pitches: Vec<Pitch>,
+}
+
     expression: String,
     reading: String,
     data: String,
