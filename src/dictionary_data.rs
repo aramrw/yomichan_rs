@@ -207,7 +207,14 @@ pub struct TermMetaPitchData {
     pitches: Vec<Pitch>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// The pitch metadata of a term.
+pub struct TermMetaPitch {
     expression: String,
+    mode: TermMetaModeType,
+    data: TermMetaPitchData,
+}
+
     reading: String,
     data: String,
 }
