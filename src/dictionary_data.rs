@@ -111,6 +111,7 @@ pub struct TermV3 {
     score: u16,
     glossary: Vec<TermGlossary>,
     sequence: u64,
+    sequence: i64,
     term_tags: String,
 }
 

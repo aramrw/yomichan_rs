@@ -1,11 +1,6 @@
 use crate::dictionary_data::TermGlossaryContent;
-use crate::errors;
-use redb::Database;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use std::fs;
-use std::io::{self, BufRead, BufReader};
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -223,7 +218,7 @@ pub struct TermDefinition {
     /// A list of database sequence numbers for the term. A value of `-1` corresponds to no sequence.
     /// The list can have multiple values if multiple definitions with different sequences have been merged.
     /// The list should always have at least one item.
-    sequences: Vec<i128>,
+    sequences: Vec<i64>,
     /// Whether or not any of the sources is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
     is_primary: bool,
