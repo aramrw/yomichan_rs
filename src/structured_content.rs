@@ -170,6 +170,17 @@ pub struct LineBreak {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UnstyledElement {
+    /// `UnstyledElements`' tags are:
+    /// `Ruby`, `RubyTag` `RubyParenthesis`, `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`.
+    tag: HtmlTag,
+    content: Option<Content>,
+    data: Option<HashMap<String, String>>,
+    /// Defines the language of an element in the format defined by RFC 5646.
+    lang: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
