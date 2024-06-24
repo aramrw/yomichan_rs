@@ -224,18 +224,37 @@ pub struct LinkElement {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
+    data: Option<HashMap<String, String>>,
+    /// Path to the image file in the archive.
     path: String,
-    width: u16,
-    height: u16,
-    preferred_width: u16,
-    preferred_height: u16,
-    title: String,
-    alt: String,
-    description: String,
-    pixelated: bool,
-    image_rendering: ImageRendering,
-    appearance: ImageAppearance,
-    background: bool,
-    collapsed: bool,
-    collapsible: bool,
+    /// Preferred width of the image.
+    width: Option<u16>,
+    /// Preferred height of the image.
+    height: Option<u16>,
+    /// Preferred width of the image.
+    /// This is only used in the internal database.
+    preferred_width: Option<u16>,
+    /// Preferred height of the image.
+    /// This is only used in the internal database.
+    preferred_height: Option<u16>,
+    /// Hover text for the image.
+    title: Option<String>,
+    /// Alt text for the image.
+    alt: Option<String>,
+    /// Description of the image.
+    description: Option<String>,
+    /// Whether or not the image should appear pixelated at sizes larger than the image's native resolution.
+    pixelated: Option<bool>,
+    /// Controls how the image is rendered. The value of this field supersedes the pixelated field.
+    image_rendering: Option<ImageRendering>,
+    /// Controls the appearance of the image. The 'monochrome' value will mask the opaque parts of the image using the current text color.
+    appearance: Option<ImageAppearance>,
+    /// Whether or not a background color is displayed behind the image.
+    background: Option<bool>,
+    /// Whether or not the image is collapsed by default.
+    collapsed: Option<bool>,
+    /// Whether or not the image can be collapsed.
+    collapsible: Option<bool>,
+}
+
 }
