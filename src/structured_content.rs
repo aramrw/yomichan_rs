@@ -163,6 +163,13 @@ pub enum Element {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// This element doesn't support children or support language.
+pub struct LineBreak {
+    tag: HtmlTag,
+    data: Option<HashMap<String, String>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
