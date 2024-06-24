@@ -41,3 +41,20 @@ pub struct DatabaseTermEntry {
     dictionary: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TermEntry {
+    index: u16,
+    match_type: TermSourceMatchType,
+    match_source: TermSourceMatchSource,
+    term: String,
+    reading: String,
+    definition_tags: String,
+    term_tags: Vec<String>,
+    rules: Vec<String>,
+    definitions: Vec<TermGlossary>,
+    score: u16,
+    dictionary: String,
+    id: u128,
+    sequence: i64,
+}
+
