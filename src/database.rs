@@ -137,3 +137,9 @@ pub struct DatabaseKanjiMetaFrequency {
 
 pub type DictionaryCountGroup = HashMap<String, u16>;
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DictionaryCounts {
+    total: Option<DictionaryCountGroup>,
+    counts: Vec<DictionaryCountGroup>,
+}
+
