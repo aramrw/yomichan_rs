@@ -109,3 +109,12 @@ pub struct DatabaseTermMetaPitch {
     dictionary: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DatabaseTermMetaPhoneticData {
+    expression: String,
+    /// Is of type `TermMetaModeType::Ipa`
+    mode: TermMetaModeType,
+    data: TermMetaPhoneticData,
+    dictionary: String,
+}
+
