@@ -135,3 +135,5 @@ pub struct DatabaseKanjiMetaFrequency {
     dictionary: String,
 }
 
+pub type DictionaryCountGroup = HashMap<String, u16>;
+
