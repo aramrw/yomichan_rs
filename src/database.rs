@@ -190,3 +190,15 @@ pub mod db_stores {
         Ok(())
     }
 
+    /// Looks up a term in the database
+    pub fn lookup_term(&self, key: &str) -> Result<Option<TermEntry>, errors::DBError> {
+        let tx = self.db.begin_read()?;
+        let table = tx.open_table(db_stores::TERMS_STORE)?;
+
+        if let Some(value_guard) = table.get(key)? {
+            let stored_term: TermEntry = bincode::deserialize(value_guard.value())?;
+            Ok(Some(stored_term))
+        } else {
+            Ok(None)
+        }
+    }
