@@ -9,14 +9,15 @@ pub enum InitError {
 #[derive(Error, Debug)]
 pub enum ImportError {
     #[error("database error")]
+    #[error("database err")]
     Database(#[from] redb::DatabaseError),
-    #[error("io error")]
+    #[error("io err")]
     IO(#[from] std::io::Error),
-    #[error("zip error")]
+    #[error("zip err")]
     Zip(#[from] zip::result::ZipError),
-    #[error("json error: {0}")]
+    #[error("json err: {0}")]
     JSON(#[from] serde_json::error::Error),
-    #[error("json error: {0}")]
+    #[error("json err: {0}")]
     OtherJSON(String),
     #[error("error at line {0}: {1}")]
     LineError(u32, Box<ImportError>),
