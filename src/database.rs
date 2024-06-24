@@ -155,3 +155,7 @@ pub struct DictionaryCounts {
     ///
     /// [`DatabaseTermMeta`]: DatabaseTermMeta
     pub const TERM_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("term_meta");
+    /// Mapped to [`DatabaseKanjiEntry`].
+    ///
+    /// [`DatabaseKanjiEntry`]: DatabaseKanjiEntry
+    pub const KANJI_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("kanji");
