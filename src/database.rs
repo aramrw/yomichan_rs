@@ -176,3 +176,17 @@ pub mod db_stores {
     pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
 }
 
+    /// Adds a term entry to the database
+    pub fn add_term(&self, key: &str, term: TermEntry) -> Result<(), errors::DBError> {
+        let tx = self.db.begin_write()?;
+        {
+            let mut table = tx.open_table(db_stores::TERMS_STORE)?;
+
+            let term_bytes = bincode::serialize(&term)?;
+            table.insert(key, &*term_bytes)?;
+        }
+        tx.commit()?;
+
+        Ok(())
+    }
+
