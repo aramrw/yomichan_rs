@@ -143,3 +143,7 @@ pub struct DictionaryCounts {
     counts: Vec<DictionaryCountGroup>,
 }
 
+    use redb::TableDefinition;
+
+    pub const DICTIONARIES_STORE: TableDefinition<&str, &[u8]> =
+        TableDefinition::new("dictionaries");
