@@ -39,6 +39,13 @@ pub enum HtmlTag {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Content {
+    String(String),
+    Element(Box<Element>),
+    Content(Vec<Content>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
