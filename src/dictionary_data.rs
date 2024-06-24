@@ -221,5 +221,10 @@ pub struct TermMetaPhoneticData {
     transcriptions: Vec<PhoneticTranscription>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TermMetaPhonetic {
+    expression: String,
+    mode: TermMetaModeType,
     data: String,
 }
+
