@@ -147,3 +147,7 @@ pub struct DictionaryCounts {
 
     pub const DICTIONARIES_STORE: TableDefinition<&str, &[u8]> =
         TableDefinition::new("dictionaries");
+    /// Mapped to [`DatabaseTermEntry`].
+    ///
+    /// [`DatabaseTermEntry`]: DatabaseTermEntry
+    pub const TERMS_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("terms");
