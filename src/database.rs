@@ -25,3 +25,19 @@ pub struct MediaDataBase<TContentType> {
     content: TContentType,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DatabaseTermEntry {
+    expression: String,
+    reading: String,
+    expression_reverse: String,
+    reading_reverse: String,
+    definition_tags: Option<String>,
+    tags: String,
+    rules: String,
+    score: u16,
+    glossary: Vec<TermGlossary>,
+    sequence: i64,
+    term_tags: String,
+    dictionary: String,
+}
+
