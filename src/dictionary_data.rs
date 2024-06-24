@@ -176,6 +176,13 @@ pub struct TermMetaPitchData {
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// Pitch represents the pitch of a term.
+/// The frequency metadata of a term.
+pub struct TermMetaFrequency {
+    expression: String,
+    mode: TermMetaModeType,
+    data: TermMetaFrequencyDataType,
+}
+
 pub struct Pitch {
     position: u16,
     nasal: Option<Vec<u16>>,
