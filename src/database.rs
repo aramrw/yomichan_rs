@@ -91,3 +91,12 @@ pub struct Tag {
     dictionary: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DatabaseTermMetaFrequency {
+    expression: String,
+    /// Is of type `TermMetaModeType::Freq`
+    mode: TermMetaModeType,
+    data: TermMetaFrequencyDataType,
+    dictionary: String,
+}
+
