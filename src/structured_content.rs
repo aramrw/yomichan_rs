@@ -209,6 +209,20 @@ pub struct StyledElement {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LinkElement {
+    /// `LinkElement`'s tags are:
+    /// `Anchor`.
+    tag: HtmlTag,
+    content: Option<Content>,
+    /// The URL for the link.
+    /// URLs starting with a `?` are treated as internal links to other dictionary content.
+    href: String,
+    /// Defines the language of an element in the format defined by RFC 5646.
+    ///yomichan_rs will **only** ever support `ja` & `ja-JP`.
+    lang: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
