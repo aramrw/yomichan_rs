@@ -257,4 +257,18 @@ pub struct ImageElementBase {
     collapsible: Option<bool>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImageElement {
+    /// The base properties of the image element.
+    base: ImageElementBase,
+    /// This element doesn't support children.
+    content: Option<()>,
+    /// The vertical alignment of the image.
+    vertical_align: Option<VerticalAlign>,
+    /// Shorthand for border width, style, and color.
+    border: Option<String>,
+    /// Roundness of the corners of the image's outer border edge.
+    border_radius: Option<String>,
+    /// The units for the width and height.
+    size_units: Option<SizeUnits>,
 }
