@@ -8,7 +8,6 @@ pub enum InitError {
 
 #[derive(Error, Debug)]
 pub enum ImportError {
-    #[error("database error")]
     #[error("database err")]
     Database(#[from] redb::DatabaseError),
     #[error("io err")]
@@ -21,6 +20,22 @@ pub enum ImportError {
     OtherJSON(String),
     #[error("error at line {0}: {1}")]
     LineError(u32, Box<ImportError>),
+}
+
+#[derive(Error, Debug)]
+pub enum DBError {
+    #[error("storage err: {0}")]
+    Storage(#[from] redb::StorageError),
+    #[error("tx err: {0}")]
+    Transaction(#[from] redb::TransactionError),
+    #[error("table err: {0}")]
+    Table(#[from] redb::TableError),
+    #[error("commit err: {0}")]
+    Commit(#[from] redb::CommitError),
+    #[error("binary err: {0}")]
+    Binary(#[from] bincode::Error),
+    #[error("generic err: {0}")]
+    Generic(#[from] Box<dyn std::error::Error>),
 }
 
 #[macro_export]
