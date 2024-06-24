@@ -58,3 +58,14 @@ pub struct TermEntry {
     sequence: i64,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DatabaseKanjiEntry {
+    character: String,
+    onyomi: String,
+    kunyomi: String,
+    tags: String,
+    meanings: Vec<String>,
+    dictionary: String,
+    stats: Option<std::collections::HashMap<String, String>>,
+}
+
