@@ -228,3 +228,12 @@ pub struct TermMetaPhonetic {
     data: String,
 }
 
+/************* Kanji Data *************/
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KanjiMetaFrequency {
+    character: String,
+    mode: TermMetaModeType,
+    data: GenericFrequencyData,
+}
+
