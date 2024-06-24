@@ -163,14 +163,21 @@ pub enum GenericFrequencyData {
 pub struct TermMetaPitch {
     expression: String,
     data: TermMetaPitchData,
+/// The metadata of a term.
+pub enum TermMeta {
+    Frequency(TermMetaFrequency),
+    Pitch(TermMetaPitch),
+    Phonetic(TermMetaPhonetic),
 }
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// TermMetaPitchData represents the pitch data of a term.
 pub struct TermMetaPitchData {
+pub struct TermMetaFrequencyDataWithReading {
     reading: String,
     pitches: Vec<Pitch>,
+    frequency: GenericFrequencyData,
 }
 
 #[allow(dead_code)]
