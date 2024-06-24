@@ -153,6 +153,16 @@ pub struct StructuredContentStyle {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Element {
+    LineBreak(LineBreak),
+    UnstyledElement(UnstyledElement),
+    TableElement(TableElement),
+    StyledElement(StyledElement),
+    ImageElement(ImageElement),
+    LinkElement(LinkElement),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
