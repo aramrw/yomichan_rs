@@ -195,6 +195,20 @@ pub struct TableElement {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StyledElement {
+    /// `StyledElement`'s tags are:
+    /// `Span`, `Div`, `OrderedList`, `UnorderedList`, `ListItem`, `Details`, `Summary`.
+    tag: HtmlTag,
+    content: Option<Content>,
+    data: Option<HashMap<String, String>>,
+    style: Option<StructuredContentStyle>,
+    /// Hover text for the element.
+    title: Option<String>,
+    /// Defines the language of an element in the format defined by RFC 5646.
+    lang: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
