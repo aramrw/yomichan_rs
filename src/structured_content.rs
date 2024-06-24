@@ -58,6 +58,13 @@ pub enum VerticalAlign {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextDecorationLine {
+    Underline,
+    Overline,
+    LineThrough,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
