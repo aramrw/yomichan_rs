@@ -81,3 +81,13 @@ pub struct KanjiEntry {
     dictionary: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Tag {
+    name: String,
+    category: String,
+    order: i32,
+    notes: String,
+    score: i32,
+    dictionary: String,
+}
+
