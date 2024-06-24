@@ -69,3 +69,15 @@ pub struct DatabaseKanjiEntry {
     stats: Option<std::collections::HashMap<String, String>>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct KanjiEntry {
+    index: i32,
+    character: String,
+    onyomi: Vec<String>,
+    kunyomi: Vec<String>,
+    tags: Vec<String>,
+    definitions: Vec<String>,
+    stats: std::collections::HashMap<String, String>,
+    dictionary: String,
+}
+
