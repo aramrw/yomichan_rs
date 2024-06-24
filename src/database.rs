@@ -125,3 +125,13 @@ pub enum DatabaseTermMeta {
     Phonetic(DatabaseTermMetaPhoneticData),
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DatabaseKanjiMetaFrequency {
+    index: u16,
+    character: String,
+    /// Is of type `TermMetaModeType::Frequency`
+    mode: TermMetaModeType,
+    data: GenericFrequencyData,
+    dictionary: String,
+}
+
