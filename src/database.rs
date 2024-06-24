@@ -100,3 +100,12 @@ pub struct DatabaseTermMetaFrequency {
     dictionary: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DatabaseTermMetaPitch {
+    expression: String,
+    /// Is of type `TermMetaModeType::Pitch`
+    mode: TermMetaModeType,
+    data: TermMetaPitchData,
+    dictionary: String,
+}
+
