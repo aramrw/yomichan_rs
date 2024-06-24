@@ -17,6 +17,28 @@ pub enum ImageAppearance {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HtmlTag {
+    Ruby,
+    RubyText,
+    RubyParenthesis,
+    Table,
+    TableData,
+    TableHeader,
+    TableBody,
+    TableFooter,
+    TableRow,
+    Anchor,
+    Span,
+    Div,
+    OrderedList,
+    UnorderedList,
+    ListItem,
+    Details,
+    Summary,
+    Break,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
