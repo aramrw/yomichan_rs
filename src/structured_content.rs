@@ -65,6 +65,12 @@ pub enum TextDecorationLine {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextDecorationLineOrNone {
+    None,
+    TextDecorationLine(TextDecorationLine),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
