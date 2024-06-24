@@ -167,3 +167,7 @@ pub struct DictionaryCounts {
     ///
     /// [`Tag`]: Tag
     pub const TAG_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("tag_meta");
+    /// Mapped to [`MediaDataArrayBufferContent`].
+    ///
+    /// [`MediaDataArrayBufferContent`]: MediaDataArrayBufferContent
+    pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
