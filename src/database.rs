@@ -118,3 +118,10 @@ pub struct DatabaseTermMetaPhoneticData {
     dictionary: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum DatabaseTermMeta {
+    Frequency(DatabaseTermMetaFrequency),
+    Pitch(DatabaseTermMetaPitch),
+    Phonetic(DatabaseTermMetaPhoneticData),
+}
+
