@@ -117,6 +117,42 @@ pub enum SizeUnits {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StructuredContentStyle {
+    font_style: Option<FontStyle>,
+    font_weight: Option<FontWeight>,
+    font_size: Option<String>,
+    color: Option<String>,
+    background: Option<String>,
+    background_color: Option<String>,
+    text_decoration_line: Option<TextDecorationLineOrNone>,
+    text_decoration_style: Option<TextDecorationStyle>,
+    text_decoration_color: Option<String>,
+    border_color: Option<String>,
+    border_style: Option<String>,
+    border_radius: Option<String>,
+    border_width: Option<String>,
+    clip_path: Option<String>,
+    vertical_align: Option<VerticalAlign>,
+    text_align: Option<TextAlign>,
+    text_emphasis: Option<String>,
+    text_shadow: Option<String>,
+    margin: Option<String>,
+    margin_top: Option<String>,
+    margin_left: Option<String>,
+    margin_right: Option<String>,
+    margin_bottom: Option<String>,
+    padding: Option<String>,
+    padding_top: Option<String>,
+    padding_left: Option<String>,
+    padding_right: Option<String>,
+    padding_bottom: Option<String>,
+    word_break: Option<WordBreak>,
+    white_space: Option<String>,
+    cursor: Option<String>,
+    list_style_type: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
