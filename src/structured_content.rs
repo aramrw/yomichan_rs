@@ -181,6 +181,20 @@ pub struct UnstyledElement {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TableElement {
+    /// `TableElement`'s tags are:
+    /// `TableData`, `TableHeader` .
+    tag: HtmlTag,
+    content: Option<Content>,
+    data: Option<HashMap<String, String>>,
+    col_span: u16,
+    row_span: u16,
+    style: Option<StructuredContentStyle>,
+    /// Defines the language of an element in the format defined by RFC 5646.
+    lang: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageElementBase {
     path: String,
     width: u16,
