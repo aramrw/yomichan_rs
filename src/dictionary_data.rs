@@ -215,6 +215,11 @@ pub struct TermMetaPitch {
     data: TermMetaPitchData,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TermMetaPhoneticData {
     reading: String,
+    transcriptions: Vec<PhoneticTranscription>,
+}
+
     data: String,
 }
