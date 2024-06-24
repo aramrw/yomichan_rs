@@ -70,5 +70,7 @@ pub fn import_dictionary<P: AsRef<std::path::Path>>(
         }
     }
 
+    dir.close()?;
+
     Ok(())
 }
