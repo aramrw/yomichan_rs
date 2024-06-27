@@ -30,3 +30,21 @@ pub enum FrequencyMode {
     OccuranceBased,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Summary {
+    title: String,
+    revision: String,
+    sequenced: bool,
+    version: u8,
+    import_date: String,
+    prefix_wildcards_supported: bool,
+    counts: SummaryCounts,
+    author: Option<String>,
+    url: Option<String>,
+    description: Option<String>,
+    attribution: Option<String>,
+    source_language: Option<String>,
+    target_language: Option<String>,
+    frequency_mode: Option<FrequencyMode>,
+}
+
