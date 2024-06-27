@@ -1,6 +1,7 @@
 mod database;
 mod dictionary;
 mod dictionary_data;
+mod dictionary_importer;
 mod errors;
 mod freq;
 mod structured_content;
