@@ -18,3 +18,9 @@ pub enum ImportSteps {
     Completed,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImportResult {
+    result: Option<Summary>,
+    //errors: Vec<ImportError>,
+}
+
