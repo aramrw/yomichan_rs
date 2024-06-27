@@ -15,7 +15,7 @@ use std::collections::HashMap;
 // ! Should look up how to map these before continuing
 // ! So media can be displayed (or at least stored) within the lib
 // TODO https://github.com/themoeway/yomitan/blob/8eea3661714c64857aa32a8662f7cca6674dd3a4/types/ext/dictionary-database.d.ts#L41
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaDataBase<TContentType> {
     dictionary: String,
     path: String,
@@ -25,23 +25,23 @@ pub struct MediaDataBase<TContentType> {
     content: TContentType,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseTermEntry {
     expression: String,
     reading: String,
-    expression_reverse: String,
-    reading_reverse: String,
+    expression_reverse: Option<String>,
+    reading_reverse: Option<String>,
     definition_tags: Option<String>,
-    tags: String,
+    tags: Option<String>,
     rules: String,
     score: u16,
     glossary: Vec<TermGlossary>,
-    sequence: i64,
-    term_tags: String,
+    sequence: Option<i64>,
+    term_tags: Option<String>,
     dictionary: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TermEntry {
     index: u16,
     match_type: TermSourceMatchType,
@@ -58,7 +58,7 @@ pub struct TermEntry {
     sequence: i64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseKanjiEntry {
     character: String,
     onyomi: String,
@@ -69,7 +69,7 @@ pub struct DatabaseKanjiEntry {
     stats: Option<std::collections::HashMap<String, String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KanjiEntry {
     index: i32,
     character: String,
@@ -81,7 +81,7 @@ pub struct KanjiEntry {
     dictionary: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tag {
     name: String,
     category: String,
@@ -91,7 +91,7 @@ pub struct Tag {
     dictionary: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaFrequency {
     expression: String,
     /// Is of type `TermMetaModeType::Freq`
@@ -100,7 +100,7 @@ pub struct DatabaseTermMetaFrequency {
     dictionary: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaPitch {
     expression: String,
     /// Is of type `TermMetaModeType::Pitch`
@@ -109,7 +109,7 @@ pub struct DatabaseTermMetaPitch {
     dictionary: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaPhoneticData {
     expression: String,
     /// Is of type `TermMetaModeType::Ipa`
@@ -118,14 +118,14 @@ pub struct DatabaseTermMetaPhoneticData {
     dictionary: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseTermMeta {
     Frequency(DatabaseTermMetaFrequency),
     Pitch(DatabaseTermMetaPitch),
     Phonetic(DatabaseTermMetaPhoneticData),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseKanjiMetaFrequency {
     index: u16,
     character: String,
@@ -137,7 +137,7 @@ pub struct DatabaseKanjiMetaFrequency {
 
 pub type DictionaryCountGroup = HashMap<String, u16>;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DictionaryCounts {
     total: Option<DictionaryCountGroup>,
     counts: Vec<DictionaryCountGroup>,
@@ -148,6 +148,9 @@ pub struct DictionaryCounts {
 pub mod db_stores {
     use redb::TableDefinition;
 
+    /// Mapped to [`DatabaseTermEntry`].
+    ///
+    /// [`DatabaseTermEntry`]: DatabaseTermEntry
     pub const DICTIONARIES_STORE: TableDefinition<&str, &[u8]> =
         TableDefinition::new("dictionaries");
     /// Mapped to [`DatabaseTermEntry`].
