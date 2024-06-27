@@ -20,7 +20,7 @@ pub enum TermGlossaryType {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TermGlossary {
-    Content(TermGlossaryContent),
+    Content(Box<TermGlossaryContent>),
     Deinflection(TermGlossaryDeinflection),
 }
 
@@ -213,4 +213,3 @@ pub struct KanjiMetaFrequency {
     mode: TermMetaModeType,
     data: GenericFrequencyData,
 }
-
