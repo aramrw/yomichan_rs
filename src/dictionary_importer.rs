@@ -58,3 +58,8 @@ pub struct SummaryCounts {
     media: SummaryItemCount,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SummaryItemCount {
+    total: u64,
+}
+
