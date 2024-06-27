@@ -84,3 +84,11 @@ pub struct ImageImportRequirement {
     entry: DatabaseTermEntry,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StructuredContentImageImportRequirement {
+    /// This is of type [`ImageImportType::StructuredContentImage`]
+    image_type: ImageImportMatchType,
+    target: TermGlossaryImage,
+    source: TermGlossaryImage,
+    entry: DatabaseTermEntry,
+}
