@@ -24,3 +24,9 @@ pub struct ImportResult {
     //errors: Vec<ImportError>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FrequencyMode {
+    RankBased,
+    OccuranceBased,
+}
+
