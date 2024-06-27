@@ -63,3 +63,9 @@ pub struct SummaryItemCount {
     total: u64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SummaryMetaCount {
+    total: u64,
+    meta: HashMap<String, u64>,
+}
+
