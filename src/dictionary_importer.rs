@@ -69,3 +69,9 @@ pub struct SummaryMetaCount {
     meta: HashMap<String, u64>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ImageImportMatchType {
+    Image,
+    StructuredContentImage,
+}
+
