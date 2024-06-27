@@ -75,3 +75,12 @@ pub enum ImageImportMatchType {
     StructuredContentImage,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImageImportRequirement {
+    /// This is of type [`ImageImportType::Image`]
+    image_type: ImageImportMatchType,
+    target: TermGlossaryImage,
+    source: TermGlossaryImage,
+    entry: DatabaseTermEntry,
+}
+
