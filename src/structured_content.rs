@@ -38,10 +38,10 @@ pub enum HtmlTag {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Content {
+pub enum ContentMatchType {
     String(String),
     Element(Box<Element>),
-    Content(Vec<Content>),
+    Content(Vec<ContentMatchType>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -173,7 +173,7 @@ pub struct UnstyledElement {
     /// `UnstyledElements`' tags are:
     /// `Ruby`, `RubyTag` `RubyParenthesis`, `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`.
     tag: HtmlTag,
-    content: Option<Content>,
+    content: Option<ContentMatchType>,
     data: Option<HashMap<String, String>>,
     /// Defines the language of an element in the format defined by RFC 5646.
     lang: Option<String>,
@@ -184,7 +184,7 @@ pub struct TableElement {
     /// `TableElement`'s tags are:
     /// `TableData`, `TableHeader` .
     tag: HtmlTag,
-    content: Option<Content>,
+    content: Option<ContentMatchType>,
     data: Option<HashMap<String, String>>,
     col_span: u16,
     row_span: u16,
@@ -198,7 +198,7 @@ pub struct StyledElement {
     /// `StyledElement`'s tags are:
     /// `Span`, `Div`, `OrderedList`, `UnorderedList`, `ListItem`, `Details`, `Summary`.
     tag: HtmlTag,
-    content: Option<Content>,
+    content: Option<ContentMatchType>,
     data: Option<HashMap<String, String>>,
     style: Option<StructuredContentStyle>,
     /// Hover text for the element.
@@ -212,7 +212,7 @@ pub struct LinkElement {
     /// `LinkElement`'s tags are:
     /// `Anchor`.
     tag: HtmlTag,
-    content: Option<Content>,
+    content: Option<ContentMatchType>,
     /// The URL for the link.
     /// URLs starting with a `?` are treated as internal links to other dictionary content.
     href: String,
