@@ -48,3 +48,13 @@ pub struct Summary {
     frequency_mode: Option<FrequencyMode>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SummaryCounts {
+    terms: SummaryItemCount,
+    term_meta: SummaryMetaCount,
+    kanji: SummaryItemCount,
+    kanji_meta: SummaryMetaCount,
+    tag_meta: SummaryItemCount,
+    media: SummaryItemCount,
+}
+
