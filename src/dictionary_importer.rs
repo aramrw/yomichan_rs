@@ -7,3 +7,14 @@ use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ImportSteps {
+    Uninitialized,
+    ValidateIndex,
+    ValidateSchema,
+    FormatDictionary,
+    ImportMedia,
+    ImportData,
+    Completed,
+}
+
