@@ -10,3 +10,8 @@ pub enum DictionaryMessageActionMatchType {
 }
 
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImportDictionaryMessageParams{
+    details: ImportDetails,
+    archive_content: Vec<u8>,
+}
