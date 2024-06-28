@@ -193,3 +193,7 @@ pub struct FindMulitBulkData<TItem> {
     index_index: u64,
 }
 
+pub trait DictionarySet {
+    fn has(&self, value: &str) -> bool;
+}
+
