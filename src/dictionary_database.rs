@@ -154,3 +154,11 @@ pub struct DictionaryCounts {
     counts: Vec<DictionaryCountGroup>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeleteDictionaryProgressData {
+    count: u64,
+    processed: u64,
+    store_count: u16,
+    stores_processed: u64,
+}
+
