@@ -168,3 +168,9 @@ pub enum QueryMatchType {
     Num(i64),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DictionaryAndQueryRequest {
+    query: QueryMatchType,
+    dictionary: String,
+}
+
