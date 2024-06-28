@@ -162,3 +162,9 @@ pub struct DeleteDictionaryProgressData {
     stores_processed: u64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum QueryMatchType {
+    Str(String),
+    Num(i64),
+}
+
