@@ -34,8 +34,8 @@ pub enum DBError {
     Commit(#[from] redb::CommitError),
     #[error("binary err: {0}")]
     Binary(#[from] bincode::Error),
-    #[error("generic err: {0}")]
-    Generic(#[from] Box<dyn std::error::Error>),
+    // #[error("generic err: {0}")]
+    // Generic(#[from] Box<dyn std::error::Error>),
 }
 
 #[macro_export]
