@@ -180,3 +180,9 @@ pub struct TermExactRequest {
     reading: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MediaRequest {
+    path: String,
+    dictionary: String,
+}
+
