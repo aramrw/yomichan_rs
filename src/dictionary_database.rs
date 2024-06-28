@@ -186,3 +186,10 @@ pub struct MediaRequest {
     dictionary: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FindMulitBulkData<TItem> {
+    item: TItem,
+    item_index: u64,
+    index_index: u64,
+}
+
