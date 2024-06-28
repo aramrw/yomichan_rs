@@ -174,3 +174,9 @@ pub struct DictionaryAndQueryRequest {
     dictionary: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TermExactRequest {
+    term: String,
+    reading: String,
+}
+
