@@ -22,3 +22,8 @@ pub struct DeleteDictionaryMessage {
     params: DeleteDictionaryMessageParams,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeleteDictionaryMessageParams {
+    dictionary_title: String,
+}
+
