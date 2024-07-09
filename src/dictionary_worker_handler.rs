@@ -47,3 +47,7 @@ pub struct GetImageDetailsResponseMessage {
     params: DictionaryWorkerMediaLoaderHandleMessageParams,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DictionaryWorkerMediaLoaderHandleMessageParams {
+    // Define the fields of this struct based on the actual fields of the JavaScript object
+}
