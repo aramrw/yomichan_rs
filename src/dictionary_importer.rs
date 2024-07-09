@@ -1,16 +1,22 @@
 use crate::dictionary_data::TermGlossaryImage;
-use crate::dictionary_database::DatabaseTermEntry;
-use crate::dictionary_database::{db_stores, TermEntry};
+use crate::dictionary_database::{
+    db_stores, DatabaseTermEntry, MediaDataArrayBufferContent, TermEntry,
+};
+use crate::structured_content::ContentMatchType;
+
 use crate::errors;
 use crate::Yomichan;
-use serde_json::Deserializer;
-use tempfile::tempdir;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Deserializer;
 use std::collections::HashMap;
+use std::time::Instant;
+use tempfile::tempdir;
 
+use rayon::prelude::*;
 use std::fs;
-use std::io::{self, BufReader};
+use std::io::BufReader;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 //use chrono::{DateTime, Local};
 
@@ -35,7 +41,6 @@ pub struct ImportResult {
 pub struct ImportDetails {
     prefix_wildcards_supported: bool,
 }
-
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FrequencyMode {
@@ -106,6 +111,17 @@ pub struct StructuredContentImageImportRequirement {
     entry: DatabaseTermEntry,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImportRequirementContext {
+    //file_map: ArchiveFileMap,
+    media: HashMap<String, MediaDataArrayBufferContent>,
+}
+
+// #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+// pub struct ArchiveFileMap {
+//     Hashmap<String, >
+// }
+
 impl Yomichan {
     /// Adds a term entry to the database
     pub fn add_term(&self, key: &str, term: TermEntry) -> Result<(), errors::DBError> {
@@ -135,7 +151,6 @@ impl Yomichan {
     }
 }
 
-
 impl Yomichan {
     async fn import_dictionary(&self) -> Result<(), errors::DBError> {
         use db_stores::*;
@@ -146,6 +161,16 @@ impl Yomichan {
         }
         txn.commit()?;
 
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StructuredContent {
+    /// This should **always** have `"type": "structured-content"` inside the json.
+    /// If not, the dictionary is not valid.
+    #[serde(rename = "type")]
+    content_type: String,
+    /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
+    content: ContentMatchType, 
+}
         Ok(())
     }
 }
@@ -156,50 +181,42 @@ pub type Entries = Vec<Vec<EntryItem>>;
 #[serde(untagged)]
 pub enum EntryItem {
     Str(String),
+    /// `i64` because `i128` & `u128` dont work with untagged enums.
+    /// [serde_json/issues/1155](https://github.com/serde-rs/json/issues/1155)
+    /// is an `integer-overflow` so it needs a fix
     Int(i64),
-    ContentBlock(Vec<serde_json::Value>),
+    ContentVec(Vec<StructuredContent>),
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StructuredContent {
+    /// This should **always** have `"type": "structured-content"` inside the json.
+    /// If not, the dictionary is not valid.
+    #[serde(rename = "type")]
+    content_type: String,
+    /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
+    content: ContentMatchType, 
+}
 
-pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
+fn extract_dict_zip<P: AsRef<std::path::Path>>(
     zip_path: P,
-) -> Result<(), errors::ImportError> {
-    let file = fs::File::open(zip_path)?;
-    let mut archive = zip::ZipArchive::new(file)?;
+) -> Result<std::path::PathBuf, errors::ImportError> {
+    let temp_dir = tempdir()?;
+    let temp_dir_path = temp_dir.path().to_owned();
+    let temp_dir_path_clone = temp_dir_path.clone();
 
-    let dir = tempdir()?;
+    {
+        let file = fs::File::open(zip_path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+        let extract_handle = std::thread::spawn(move || archive.extract(temp_dir_path_clone));
 
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
+        extract_handle.join().unwrap().unwrap();
+    }
 
-        let outpath = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
-            None => continue,
-        };
+    temp_dir.close()?;
+    Ok(temp_dir_path)
+}
 
-        if outpath.to_str().unwrap().ends_with('/')
-            || !outpath.to_str().unwrap().starts_with("term")
-        {
-            continue;
-        }
-
-        let outpath = dir.path().join(outpath);
-
-        let mut outfile = fs::File::create(&outpath)?;
-        io::copy(&mut file, &mut outfile)?;
-
-        let file = fs::File::open(&outpath)?;
-        let reader = BufReader::new(file);
-
-        let mut stream = Deserializer::from_reader(reader).into_iter::<Entries>();
-
-        let entries = match stream.next() {
-            Some(Ok(entries)) => entries,
-            Some(Err(err)) => return Err(err.into()),
-            None => {
-                return Err(errors::ImportError::OtherJSON(
-                    "no data in dictionary stream".to_string(),
-                ))
 pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
     zip_path: P,
 ) -> Result<(), errors::ImportError> {
@@ -266,3 +283,17 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
     Ok(())
 }
 
+// fn process_content(content_obj: &Content) {
+//     match &*content_obj.content {
+//         ContentValue::Str(def) => println!("{}", def),
+//         ContentValue::Obj(nest_cont) => {
+//             for entry_section in nest_cont {
+//                 if let Ok(nested_content_obj) =
+//                     serde_json::from_value::<Content>(entry_section.clone())
+//                 {
+//                     process_content(&nested_content_obj);
+//                 }
+//             }
+//         }
+//     }
+// }
