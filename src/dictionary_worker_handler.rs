@@ -6,15 +6,21 @@ pub enum DictionaryMessageActionMatchType {
     ImportDictionary,
     DeleteDictionary,
     GetDictionaryCounts,
-
+    GetImageDetailsResponse,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImportDictionaryMessage {
+    /// This is of type [`DictionaryMessageActionMatchType::ImportDictionary`]
+    action: DictionaryMessageActionMatchType,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ImportDictionaryMessageParams{
+pub struct ImportDictionaryMessageParams {
     details: ImportDetails,
     archive_content: Vec<u8>,
 }
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeleteDictionaryMessage {
     /// This is of type [`DictionaryMessageActionMatchType::DeleteDictionary`]
