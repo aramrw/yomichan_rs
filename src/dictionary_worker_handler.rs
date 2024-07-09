@@ -34,3 +34,9 @@ pub struct GetDictionaryCountsMessage {
     params: GetDictionaryCountsMessageParams,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GetDictionaryCountsMessageParams {
+    dictionary_names: Vec<String>,
+    get_total: bool,
+}
+
