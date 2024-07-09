@@ -19,7 +19,9 @@ pub enum ImportError {
     #[error("json err: {0}")]
     OtherJSON(String),
     #[error("error at line {0}: {1}")]
-    LineError(u32, Box<ImportError>),
+    LineErr(u32, Box<ImportError>),
+    #[error("thread err: {0}")]
+    ThreadErr(#[from] std::thread::AccessError),
 }
 
 #[derive(Error, Debug)]
@@ -58,24 +60,24 @@ macro_rules! try_with_line {
 
 impl From<(u32, redb::DatabaseError)> for ImportError {
     fn from(err: (u32, redb::DatabaseError)) -> ImportError {
-        ImportError::LineError(err.0, Box::new(ImportError::from(err.1)))
+        ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
     }
 }
 
 impl From<(u32, std::io::Error)> for ImportError {
     fn from(err: (u32, std::io::Error)) -> ImportError {
-        ImportError::LineError(err.0, Box::new(ImportError::from(err.1)))
+        ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
     }
 }
 
 impl From<(u32, zip::result::ZipError)> for ImportError {
     fn from(err: (u32, zip::result::ZipError)) -> ImportError {
-        ImportError::LineError(err.0, Box::new(ImportError::from(err.1)))
+        ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
     }
 }
 
 impl From<(u32, serde_json::error::Error)> for ImportError {
     fn from(err: (u32, serde_json::error::Error)) -> ImportError {
-        ImportError::LineError(err.0, Box::new(ImportError::from(err.1)))
+        ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
     }
 }
