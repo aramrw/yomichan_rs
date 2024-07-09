@@ -27,3 +27,10 @@ pub struct DeleteDictionaryMessageParams {
     dictionary_title: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GetDictionaryCountsMessage {
+    /// This is of type [`DictionaryMessageActionMatchType::GetDictionaryCounts`]
+    action: DictionaryMessageActionMatchType,
+    params: GetDictionaryCountsMessageParams,
+}
+
