@@ -16,32 +16,39 @@ pub enum ImageAppearance {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum HtmlTag {
+    #[serde(rename = "r")]
     Ruby,
+    #[serde(rename = "rt")]
     RubyText,
+    #[serde(rename = "rp")]
     RubyParenthesis,
     Table,
+    #[serde(rename = "td")]
     TableData,
+    #[serde(rename = "th")]
     TableHeader,
+    #[serde(rename = "tb")]
     TableBody,
+    #[serde(rename = "tf")]
     TableFooter,
+    #[serde(rename = "tr")]
     TableRow,
+    #[serde(rename = "a")]
     Anchor,
     Span,
     Div,
+    #[serde(rename = "ol")]
     OrderedList,
+    #[serde(rename = "ul")]
     UnorderedList,
+    #[serde(rename = "li")]
     ListItem,
     Details,
     Summary,
+    #[serde(rename = "br")]
     Break,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ContentMatchType {
-    String(String),
-    Element(Box<Element>),
-    Content(Vec<ContentMatchType>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -152,13 +159,23 @@ pub struct StructuredContentStyle {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ContentMatchType {
+    Str(String),
+    Element(Box<Element>),
+    Content(Vec<Element>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum Element {
+    Link(LinkElement),
+    Unstyled(UnstyledElement),
+    Table(TableElement),
+    Styled(StyledElement),
+    Image(ImageElement),
     LineBreak(LineBreak),
-    UnstyledElement(UnstyledElement),
-    TableElement(TableElement),
-    StyledElement(StyledElement),
-    ImageElement(ImageElement),
-    LinkElement(LinkElement),
+    //Other(serde_json::Value),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -222,7 +239,17 @@ pub struct LinkElement {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ImageElementBase {
+pub struct ImageElement {
+    /// This element doesn't support children.
+    content: Option<()>,
+    /// The vertical alignment of the image.
+    vertical_align: Option<VerticalAlign>,
+    /// Shorthand for border width, style, and color.
+    border: Option<String>,
+    /// Roundness of the corners of the image's outer border edge.
+    border_radius: Option<String>,
+    /// The units for the width and height.
+    size_units: Option<SizeUnits>,
     data: Option<HashMap<String, String>>,
     /// Path to the image file in the archive.
     path: String,
@@ -254,20 +281,4 @@ pub struct ImageElementBase {
     collapsed: Option<bool>,
     /// Whether or not the image can be collapsed.
     collapsible: Option<bool>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ImageElement {
-    /// The base properties of the image element.
-    base: ImageElementBase,
-    /// This element doesn't support children.
-    content: Option<()>,
-    /// The vertical alignment of the image.
-    vertical_align: Option<VerticalAlign>,
-    /// Shorthand for border width, style, and color.
-    border: Option<String>,
-    /// Roundness of the corners of the image's outer border edge.
-    border_radius: Option<String>,
-    /// The units for the width and height.
-    size_units: Option<SizeUnits>,
 }
