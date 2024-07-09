@@ -15,3 +15,10 @@ pub struct ImportDictionaryMessageParams{
     details: ImportDetails,
     archive_content: Vec<u8>,
 }
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeleteDictionaryMessage {
+    /// This is of type [`DictionaryMessageActionMatchType::DeleteDictionary`]
+    action: DictionaryMessageActionMatchType,
+    params: DeleteDictionaryMessageParams,
+}
+
