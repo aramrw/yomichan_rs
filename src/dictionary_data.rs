@@ -1,5 +1,5 @@
 use crate::dictionary::PhoneticTranscription;
-use crate::structured_content::ImageElementBase;
+use crate::structured_content::ImageElement;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -46,7 +46,7 @@ pub struct TermGlossaryImage {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TermImage {
-    pub image_element_base: ImageElementBase,
+    pub image_element_base: ImageElement,
     pub vertical_align: Option<()>,
     pub border: Option<()>,
     pub border_radius: Option<()>,
