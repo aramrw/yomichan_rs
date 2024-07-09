@@ -40,3 +40,10 @@ pub struct GetDictionaryCountsMessageParams {
     get_total: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GetImageDetailsResponseMessage {
+    /// This is of type [`DictionaryMessageActionMatchType::GetImageDetailsResponse`]
+    action: DictionaryMessageActionMatchType,
+    params: DictionaryWorkerMediaLoaderHandleMessageParams,
+}
+
