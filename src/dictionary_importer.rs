@@ -200,18 +200,69 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
                 return Err(errors::ImportError::OtherJSON(
                     "no data in dictionary stream".to_string(),
                 ))
+pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
+    zip_path: P,
+) -> Result<(), errors::ImportError> {
+    let instant = Instant::now();
+    let files_read = AtomicUsize::new(0);
+    //let temp_dir_path = extract_dict_zip(zip_path)?;
+
+    fs::read_dir(&zip_path)?
+        .par_bridge()
+        .try_for_each(|entry| {
+            let entry = entry?;
+            let outpath = entry.path();
+
+            if outpath.to_str().unwrap().contains("term_bank")
+                && !outpath.to_str().unwrap().ends_with('/')
+            {
+                let file = fs::File::open(&outpath)?;
+                let reader = BufReader::new(file);
+
+                let mut stream = Deserializer::from_reader(reader).into_iter::<Entries>();
+                let entries = match stream.next() {
+                    Some(Ok(entries)) => entries,
+                    Some(Err(err)) => {
+                        return Err(errors::ImportError::OtherJSON(format!(
+                            "File: {} | Err: {}",
+                            &outpath.to_str().unwrap(),
+                            err
+                        )))
+                    }
+                    None => {
+                        return Err(errors::ImportError::OtherJSON(
+                            "no data in dictionary stream".to_string(),
+                        ))
+                    }
+                };
+
+                // Beginning of each word/phrase/expression (entry)
+                // ie: ["headword","reading","","",u128,[{/* main */}]]];
+                for entry in entries {
+                    //println!("{:#?}", entry);
+                    let (headword, reading) = match (&entry[0], &entry[1]) {
+                        (EntryItem::Str(headword), EntryItem::Str(reading)) => (headword, reading),
+                        _ => continue,
+                    };
+
+                    if let EntryItem::ContentVec(content) = &entry[5] {
+                        let struct_cont = &content[0];
+                        //println!("{:#?}", struct_cont);
+                    }
+                }
+
+                files_read.fetch_add(1, Ordering::SeqCst);
+                println!("{:?}", files_read);
             }
-        };
+            Ok(())
+        })?;
 
-        for entry in entries {
-            let (headword, reading) = match (&entry[0], &entry[1]) {
-                (EntryItem::Str(headword), EntryItem::Str(reading)) => (headword, reading),
-                _ => continue,
-            };
-        }
-    }
-
-    dir.close()?;
+    println!(
+        "{} files read in {}s",
+        files_read.load(Ordering::SeqCst),
+        instant.elapsed().as_secs_f32()
+    );
 
     Ok(())
 }
+
