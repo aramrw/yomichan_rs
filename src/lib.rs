@@ -1,3 +1,4 @@
+#![allow(unused)]
 mod dictionary;
 mod dictionary_data;
 mod dictionary_database;
