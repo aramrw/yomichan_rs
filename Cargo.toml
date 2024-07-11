@@ -16,5 +16,10 @@ tempfile = "3.10.1"
 chrono = "0.4.38"
 rayon = "1.10.0"
 
+# pprof is linux only
+[target.'cfg(unix)'.dependencies]
+pprof = { version = "0.13", features = ["flamegraph"] }
+
+# compiles the test with --release 
 [profile.test]
 inherits = "release"
