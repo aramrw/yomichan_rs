@@ -143,18 +143,24 @@ impl Yomichan {
 /// Deserializable type mapping a `term_bank_$i.json` file.
 pub type TermBank = Vec<Vec<EntryItemMatchType>>;
 
+/// An `untagged` match type to generically match
+/// the `header`, `reading`, and `structured-content`
+/// of a `term_bank_$i.json` entry item.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum EntryItem {
 pub enum EntryItemMatchType {
     Str(String),
-    /// `i64` because `i128` & `u128` dont work with untagged enums.
-    /// [serde_json/issues/1155](https://github.com/serde-rs/json/issues/1155)
-    /// is an `integer-overflow` so it needs a fix
+    /// `i64` is used because `i128` & `u128` dont work with untagged enums.
+    /// [serde_json/issues/1155](https://github.com/serde-rs/json/issues/1155).
+    /// Is an `integer-overflow` so it needs a fix.
     Int(i64),
+    /// The array holding the main `structured-content` object.
+    /// There is only 1 per entry.
     ContentVec(Vec<StructuredContent>),
 }
 
+/// The object holding all html & information about an entry.
+/// There is only 1 per entry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StructuredContent {
     /// This should **always** have `"type": "structured-content"` inside the json.
@@ -203,7 +209,7 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
                 let file = fs::File::open(&outpath)?;
                 let reader = BufReader::new(file);
 
-                let mut stream = Deserializer::from_reader(reader).into_iter::<Entries>();
+                let mut stream = Deserializer::from_reader(reader).into_iter::<TermBank>();
                 let entries = match stream.next() {
                     Some(Ok(entries)) => entries,
                     Some(Err(err)) => {
@@ -225,11 +231,13 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
                 for entry in entries {
                     //println!("{:#?}", entry);
                     let (headword, reading) = match (&entry[0], &entry[1]) {
-                        (EntryItem::Str(headword), EntryItem::Str(reading)) => (headword, reading),
+                        (EntryItemMatchType::Str(headword), EntryItemMatchType::Str(reading)) => {
+                            (headword, reading)
+                        }
                         _ => continue,
                     };
 
-                    if let EntryItem::ContentVec(content) = &entry[5] {
+                    if let EntryItemMatchType::ContentVec(content) = &entry[5] {
                         let structured_content = &content[0];
                     }
                 }
