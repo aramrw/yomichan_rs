@@ -7,8 +7,10 @@ use crate::structured_content::ContentMatchType;
 use crate::errors;
 use crate::Yomichan;
 
-use serde::{Deserialize, Serialize};
-use serde_json::Deserializer;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Deserializer as JsonDeserializer;
+use serde_untagged::UntaggedEnumVisitor;
+
 use std::collections::HashMap;
 use std::time::Instant;
 use tempfile::tempdir;
@@ -31,14 +33,13 @@ pub enum ImportSteps {
     Completed,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompiledSchemaNames {
     TermBank,
     TermMetaBank,
     KanjiBank,
     KanjiMetaBank,
-    TagBank
+    TagBank,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -127,8 +128,6 @@ pub struct ImportRequirementContext {
     media: HashMap<String, MediaDataArrayBufferContent>,
 }
 
-
-
 impl Yomichan {
     async fn import_dictionary(&self) -> Result<(), errors::DBError> {
         use db_stores::*;
@@ -158,17 +157,33 @@ pub type TermBank = Vec<Vec<EntryItemMatchType>>;
 /// An `untagged` match type to generically match
 /// the `header`, `reading`, and `structured-content`
 /// of a `term_bank_$i.json` entry item.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum EntryItemMatchType {
-    Str(String),
+    String(String),
     /// `i64` is used because `i128` & `u128` dont work with untagged enums.
     /// [serde_json/issues/1155](https://github.com/serde-rs/json/issues/1155).
     /// Is an `integer-overflow` so it needs a fix.
-    Int(i64),
+    Integer(i64),
     /// The array holding the main `structured-content` object.
     /// There is only 1 per entry.
     StructuredContentVec(Vec<StructuredContent>),
+}
+
+impl<'de> Deserialize<'de> for EntryItemMatchType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .string(|single| Ok(EntryItemMatchType::String(single.to_string())))
+            .i64(|int| Ok(EntryItemMatchType::Integer(int)))
+            .seq(|seq| {
+                seq.deserialize()
+                    .map(EntryItemMatchType::StructuredContentVec)
+            })
+            .deserialize(deserializer)
+    }
 }
 
 /// The object holding all html & information about an entry.
@@ -183,7 +198,7 @@ pub struct StructuredContent {
     content_type: String,
     /// Contains the main content of the entry.
     /// _(see: [`ContentMatchType`] )_.
-    /// 
+    ///
     /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
     content: ContentMatchType,
 }
@@ -226,7 +241,7 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
                 let file = fs::File::open(&outpath)?;
                 let reader = BufReader::new(file);
 
-                let mut stream = Deserializer::from_reader(reader).into_iter::<TermBank>();
+                let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
                 let entries = match stream.next() {
                     Some(Ok(entries)) => entries,
                     Some(Err(err)) => {
@@ -245,10 +260,11 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
 
                 // Beginning of each word/phrase/expression (entry)
                 // ie: ["headword","reading","","",u128,[{/* main */}]]];
+                #[cfg(feature = "disabled")]
                 for entry in entries {
                     //println!("{:#?}", entry);
                     let (headword, reading) = match (&entry[0], &entry[1]) {
-                        (EntryItemMatchType::Str(headword), EntryItemMatchType::Str(reading)) => {
+                        (EntryItemMatchType::String(headword), EntryItemMatchType::String(reading)) => {
                             (headword, reading)
                         }
                         _ => continue,
@@ -257,15 +273,12 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
                     if let EntryItemMatchType::StructuredContentVec(content) = &entry[5] {
                         let structured_content = &content[0].content;
                         match structured_content {
-                            ContentMatchType::Element(html_elem) => {
-                                
-                            },
+                            ContentMatchType::Element(html_elem) => {}
                             ContentMatchType::Content(elem_vec) => {
                                 todo!();
-                            },
+                            }
                             ContentMatchType::String(_) => unreachable!(),
                         }
-                        
                     }
                 }
 
