@@ -165,7 +165,15 @@ pub struct StructuredContentStyle {
 #[serde(untagged)]
 pub enum ContentMatchType {
     String(String),
+    /// A single html element.
+    /// See: [`HtmlTag`]. 
+    ///
+    /// Most likely a [`HtmlTag::Anchor`] element.
+    /// If so, the definition contains a reference to another entry.
     Element(Box<Element>),
+    /// An array of html elements.
+    /// See: [`HtmlTag`]. 
+    ///
     Content(Vec<Element>),
 }
 
