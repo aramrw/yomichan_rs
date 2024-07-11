@@ -256,18 +256,3 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
 
     Ok(())
 }
-
-// fn process_content(content_obj: &Content) {
-//     match &*content_obj.content {
-//         ContentValue::Str(def) => println!("{}", def),
-//         ContentValue::Obj(nest_cont) => {
-//             for entry_section in nest_cont {
-//                 if let Ok(nested_content_obj) =
-//                     serde_json::from_value::<Content>(entry_section.clone())
-//                 {
-//                     process_content(&nested_content_obj);
-//                 }
-//             }
-//         }
-//     }
-// }
