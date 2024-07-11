@@ -15,6 +15,7 @@ zip = "2.1.3"
 tempfile = "3.10.1"
 chrono = "0.4.38"
 rayon = "1.10.0"
+serde-untagged = "0.1.6"
 
 # pprof is linux only
 [target.'cfg(unix)'.dependencies]
