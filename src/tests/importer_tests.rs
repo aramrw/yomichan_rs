@@ -4,8 +4,21 @@ use crate::structured_content::ContentMatchType;
 
 #[test]
 fn dict() {
+    #[cfg(target_os = "linux")]
+    let guard = pprof::ProfilerGuardBuilder::default()
+        .frequency(1000)
+        .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+        .build()
+        .unwrap();
+
     let path = std::path::Path::new("./大辞林第四版");
     prepare_dictionary(path).unwrap();
+
+    #[cfg(target_os = "linux")]
+    if let Ok(report) = guard.report().build() {
+        let file = std::fs::File::create("flamegraph.svg").unwrap();
+        report.flamegraph(file).unwrap();
+    };
 }
 
 #[test]
@@ -124,4 +137,3 @@ fn hardcoded() {
 
     prepare_dictionary(std::path::Path::new(dir_path)).unwrap();
 }
-
