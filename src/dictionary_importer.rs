@@ -140,7 +140,8 @@ impl Yomichan {
     }
 }
 
-pub type Entries = Vec<Vec<EntryItem>>;
+/// Deserializable type mapping a `term_bank_$i.json` file.
+pub type TermBank = Vec<Vec<EntryItemMatchType>>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
