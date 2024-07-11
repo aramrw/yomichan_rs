@@ -127,6 +127,8 @@ pub struct ImportRequirementContext {
     media: HashMap<String, MediaDataArrayBufferContent>,
 }
 
+
+
 impl Yomichan {
     async fn import_dictionary(&self) -> Result<(), errors::DBError> {
         use db_stores::*;
@@ -166,17 +168,22 @@ pub enum EntryItemMatchType {
     Int(i64),
     /// The array holding the main `structured-content` object.
     /// There is only 1 per entry.
-    ContentVec(Vec<StructuredContent>),
+    StructuredContentVec(Vec<StructuredContent>),
 }
 
 /// The object holding all html & information about an entry.
 /// There is only 1 per entry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StructuredContent {
-    /// This should **always** have `"type": "structured-content"` inside the json.
+    /// Identifier to mark the start of each entry.
+    ///
+    /// This should **always** be `"type": "structured-content"` in the file.
     /// If not, the dictionary is not valid.
     #[serde(rename = "type")]
     content_type: String,
+    /// Contains the main content of the entry.
+    /// _(see: [`ContentMatchType`] )_.
+    /// 
     /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
     content: ContentMatchType,
 }
@@ -247,8 +254,18 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
                         _ => continue,
                     };
 
-                    if let EntryItemMatchType::ContentVec(content) = &entry[5] {
-                        let structured_content = &content[0];
+                    if let EntryItemMatchType::StructuredContentVec(content) = &entry[5] {
+                        let structured_content = &content[0].content;
+                        match structured_content {
+                            ContentMatchType::Element(html_elem) => {
+                                
+                            },
+                            ContentMatchType::Content(elem_vec) => {
+                                todo!();
+                            },
+                            ContentMatchType::String(_) => unreachable!(),
+                        }
+                        
                     }
                 }
 
