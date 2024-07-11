@@ -161,16 +161,15 @@ impl Yomichan {
         }
         txn.commit()?;
 
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct StructuredContent {
-    /// This should **always** have `"type": "structured-content"` inside the json.
-    /// If not, the dictionary is not valid.
-    #[serde(rename = "type")]
-    content_type: String,
-    /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
-    content: ContentMatchType, 
-}
+        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+        pub struct StructuredContent {
+            /// This should **always** have `"type": "structured-content"` inside the json.
+            /// If not, the dictionary is not valid.
+            #[serde(rename = "type")]
+            content_type: String,
+            /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
+            content: ContentMatchType,
+        }
         Ok(())
     }
 }
@@ -195,7 +194,7 @@ pub struct StructuredContent {
     #[serde(rename = "type")]
     content_type: String,
     /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
-    content: ContentMatchType, 
+    content: ContentMatchType,
 }
 
 fn extract_dict_zip<P: AsRef<std::path::Path>>(
@@ -263,8 +262,7 @@ pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
                     };
 
                     if let EntryItem::ContentVec(content) = &entry[5] {
-                        let struct_cont = &content[0];
-                        //println!("{:#?}", struct_cont);
+                        let structured_content = &content[0];
                     }
                 }
 
