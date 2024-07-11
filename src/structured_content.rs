@@ -203,7 +203,23 @@ pub enum Element {
     Image(ImageElement),
     LineBreak(LineBreak),
 }
-
+//
+// impl<'de> Deserialize<'de> for Element {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>
+//     {
+//         UntaggedEnumVisitor::new()
+//             .map(|map| {
+//                 // Custom Deserialization logic
+//                 // based on the struct 
+//
+//                 // Element::Link for example will always 
+//                 // have `"tag": "a"` in the json, 
+//                 // therefore there is no need to check anything else
+//             })
+//     }
+// }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// This element doesn't support children or support language.
