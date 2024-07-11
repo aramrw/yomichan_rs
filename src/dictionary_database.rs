@@ -233,3 +233,33 @@ pub mod db_stores {
     pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
 }
 
+impl Yomichan {
+    /// Adds a term entry to the database
+    pub fn add_term(&self, key: &str, term: TermEntry) -> Result<(), errors::DBError> {
+        let tx = self.ycdatabase.db.begin_write()?;
+        {
+            let mut table = tx.open_table(db_stores::TERMS_STORE)?;
+
+            let term_bytes = bincode::serialize(&term)?;
+            table.insert(key, &*term_bytes)?;
+        }
+        tx.commit()?;
+
+        Ok(())
+    }
+
+    /// Looks up a term in the database
+    pub fn lookup_term(&self, key: &str) -> Result<Option<TermEntry>, errors::DBError> {
+        let tx = self.ycdatabase.db.begin_read()?;
+        let table = tx.open_table(db_stores::TERMS_STORE)?;
+
+        if let Some(value_guard) = table.get(key)? {
+            let stored_term: TermEntry = bincode::deserialize(value_guard.value())?;
+            Ok(Some(stored_term))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+
