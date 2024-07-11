@@ -1,5 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
+use serde_untagged::UntaggedEnumVisitor;
 use std::collections::HashMap;
+
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImageRendering {
@@ -158,25 +160,42 @@ pub struct StructuredContentStyle {
     list_style_type: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// A match type to deserialize any `Content` type. 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 pub enum ContentMatchType {
-    Str(String),
+    String(String),
     Element(Box<Element>),
     Content(Vec<Element>),
 }
 
+impl<'de> Deserialize<'de> for ContentMatchType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> 
+    where 
+        D: Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .string(|single| Ok(ContentMatchType::String(single.to_string())))
+            .map(|map| map.deserialize().map(ContentMatchType::Element))
+            .seq(|seq| seq.deserialize().map(ContentMatchType::Content))
+            .deserialize(deserializer)
+    }
+}
+
+
+/// Represents All `Content` elements that can 
+/// appear within a `"content":` section.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Element {
-    Link(LinkElement),
     Unstyled(UnstyledElement),
-    Table(TableElement),
+    Link(LinkElement),
     Styled(StyledElement),
+    Table(TableElement),
     Image(ImageElement),
     LineBreak(LineBreak),
-    //Other(serde_json::Value),
 }
+
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// This element doesn't support children or support language.
