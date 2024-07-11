@@ -146,6 +146,7 @@ pub type TermBank = Vec<Vec<EntryItemMatchType>>;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum EntryItem {
+pub enum EntryItemMatchType {
     Str(String),
     /// `i64` because `i128` & `u128` dont work with untagged enums.
     /// [serde_json/issues/1155](https://github.com/serde-rs/json/issues/1155)
