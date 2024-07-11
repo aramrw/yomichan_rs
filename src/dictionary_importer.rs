@@ -31,6 +31,16 @@ pub enum ImportSteps {
     Completed,
 }
 
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CompiledSchemaNames {
+    TermBank,
+    TermMetaBank,
+    KanjiBank,
+    KanjiMetaBank,
+    TagBank
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImportResult {
     result: Option<Summary>,
