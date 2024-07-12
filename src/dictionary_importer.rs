@@ -3,6 +3,7 @@ use crate::dictionary_database::{
     db_stores, DatabaseTermEntry, MediaDataArrayBufferContent, TermEntry,
 };
 use crate::structured_content::ContentMatchType;
+use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
 use crate::errors;
 use crate::Yomichan;
@@ -13,16 +14,21 @@ use serde_untagged::UntaggedEnumVisitor;
 
 use std::collections::HashMap;
 use std::time::Instant;
+use rayon::prelude::*;
+
 use tempfile::tempdir;
 
-use rayon::prelude::*;
+use std::collections::HashMap;
+use std::time::Instant;
+use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::BufReader;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::rc::Rc;
 
 //use chrono::{DateTime, Local};
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ImportSteps {
     Uninitialized,
     ValidateIndex,
@@ -33,7 +39,8 @@ pub enum ImportSteps {
     Completed,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(clippy::enum_variant_names)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CompiledSchemaNames {
     TermBank,
     TermMetaBank,
@@ -42,24 +49,24 @@ pub enum CompiledSchemaNames {
     TagBank,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImportResult {
     result: Option<Summary>,
     //errors: Vec<ImportError>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImportDetails {
     prefix_wildcards_supported: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum FrequencyMode {
     RankBased,
     OccuranceBased,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Summary {
     title: String,
     revision: String,
@@ -77,7 +84,7 @@ pub struct Summary {
     frequency_mode: Option<FrequencyMode>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryCounts {
     terms: SummaryItemCount,
     term_meta: SummaryMetaCount,
@@ -87,24 +94,24 @@ pub struct SummaryCounts {
     media: SummaryItemCount,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryItemCount {
     total: u64,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryMetaCount {
     total: u64,
     meta: HashMap<String, u64>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ImageImportMatchType {
     Image,
     StructuredContentImage,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImageImportRequirement {
     /// This is of type [`ImageImportType::Image`]
     image_type: ImageImportMatchType,
@@ -113,7 +120,7 @@ pub struct ImageImportRequirement {
     entry: DatabaseTermEntry,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StructuredContentImageImportRequirement {
     /// This is of type [`ImageImportType::StructuredContentImage`]
     image_type: ImageImportMatchType,
@@ -122,7 +129,7 @@ pub struct StructuredContentImageImportRequirement {
     entry: DatabaseTermEntry,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImportRequirementContext {
     //file_map: ArchiveFileMap,
     media: HashMap<String, MediaDataArrayBufferContent>,
