@@ -2,25 +2,25 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_untagged::UntaggedEnumVisitor;
 use std::collections::HashMap;
 
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ImageRendering {
     Auto,
     Pixelated,
     CrispEdges,
 }
 
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ImageAppearance {
     Auto,
     Monochrome,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HtmlTag {
-    #[serde(rename = "r")]
+    #[serde(rename = "ruby")]
     Ruby,
     #[serde(rename = "rt")]
     RubyText,
@@ -53,7 +53,8 @@ pub enum HtmlTag {
     Break,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum VerticalAlign {
     Baseline,
     Sub,
@@ -65,20 +66,22 @@ pub enum VerticalAlign {
     Bottom,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum TextDecorationLine {
     Underline,
     Overline,
     LineThrough,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TextDecorationLineOrNone {
     None,
     TextDecorationLine(TextDecorationLine),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum TextDecorationStyle {
     Solid,
     Double,
@@ -87,26 +90,29 @@ pub enum TextDecorationStyle {
     Wavy,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum FontStyle {
     Normal,
     Italic,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum FontWeight {
     Normal,
     Bold,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum WordBreak {
     Normal,
     BreakAll,
     KeepAll,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TextAlign {
     Start,
     End,
@@ -118,13 +124,13 @@ pub enum TextAlign {
     MatchParent,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum SizeUnits {
     Px,
     Em,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StructuredContentStyle {
     font_style: Option<FontStyle>,
     font_weight: Option<FontWeight>,
@@ -160,26 +166,26 @@ pub struct StructuredContentStyle {
     list_style_type: Option<String>,
 }
 
-/// A match type to deserialize any `Content` type. 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+/// A match type to deserialize any `Content` type.
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum ContentMatchType {
     String(String),
     /// A single html element.
-    /// See: [`HtmlTag`]. 
+    /// See: [`HtmlTag`].
     ///
     /// Most likely a [`HtmlTag::Anchor`] element.
     /// If so, the definition contains a reference to another entry.
     Element(Box<Element>),
     /// An array of html elements.
-    /// See: [`HtmlTag`]. 
+    /// See: [`HtmlTag`].
     ///
     Content(Vec<Element>),
 }
 
 impl<'de> Deserialize<'de> for ContentMatchType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> 
-    where 
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
         D: Deserializer<'de>,
     {
         UntaggedEnumVisitor::new()
