@@ -256,17 +256,41 @@ impl<'de> Deserialize<'de> for Element {
     }
 }
 
-/// Represents All `Content` elements that can 
+/// Represents All `Content` elements that can
 /// appear within a `"content":` section.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
+//#[serde(tag = "tag")]
 #[serde(untagged)]
 pub enum Element {
-    Unstyled(UnstyledElement),
+    UnknownString(String),
+    #[serde(rename = "a")]
     Link(LinkElement),
+    // #[serde(
+    //     alias = "div",
+    //     alias = "span",
+    //     alias = "ol",
+    //     alias = "ul",
+    //     alias = "li",
+    //     alias = "details",
+    //     alias = "summary",
+    //     alias = "th",
+    //     alias = "td"
+    // )]
     Styled(StyledElement),
+    //     alias = "rt",
+    //     alias = "rp",
+    //     alias = "t",
+    //     alias = "tb",
+    //     alias = "tf",
+    //     alias = "tr"
+    // )]
+    Unstyled(UnstyledElement),
+    //#[serde(alias = "td", alias = "th")]
     Table(TableElement),
-    Image(ImageElement),
+    //#[serde(rename = "br")]
     LineBreak(LineBreak),
+    //#[serde(rename = "img")]
+    Image(ImageElement),
 }
 //
 // impl<'de> Deserialize<'de> for Element {
