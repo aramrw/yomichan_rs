@@ -2,7 +2,6 @@ use crate::dictionary_data::TermGlossaryImage;
 use crate::dictionary_database::{
     db_stores, DatabaseTermEntry, MediaDataArrayBufferContent, TermEntry,
 };
-use crate::structured_content::ContentMatchType;
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
 use crate::errors;
@@ -12,8 +11,6 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
 use serde_untagged::UntaggedEnumVisitor;
 
-use std::collections::HashMap;
-use std::time::Instant;
 use rayon::prelude::*;
 
 use tempfile::tempdir;
@@ -168,10 +165,6 @@ pub type TermBank = Vec<Vec<EntryItemMatchType>>;
 #[serde(untagged)]
 pub enum EntryItemMatchType {
     String(String),
-    /// `i64` is used because `i128` & `u128` dont work with untagged enums.
-    /// [serde_json/issues/1155](https://github.com/serde-rs/json/issues/1155).
-    /// Is an `integer-overflow` so it needs a fix.
-    Integer(i64),
     Integer(i128),
     /// The array holding the main `structured-content` object.
     /// There is only 1 per entry.
@@ -185,7 +178,6 @@ impl<'de> Deserialize<'de> for EntryItemMatchType {
     {
         UntaggedEnumVisitor::new()
             .string(|single| Ok(EntryItemMatchType::String(single.to_string())))
-            .i64(|int| Ok(EntryItemMatchType::Integer(int)))
             .i128(|int| Ok(EntryItemMatchType::Integer(int)))
             .seq(|seq| {
                 seq.deserialize()
@@ -231,77 +223,101 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
     Ok(temp_dir_path)
 }
 
-pub fn prepare_dictionary<P: AsRef<std::path::Path>>(
+pub fn prepare_dictionary<P: AsRef<Path>>(
     zip_path: P,
 ) -> Result<(), errors::ImportError> {
     let instant = Instant::now();
-    let files_read = AtomicUsize::new(0);
     //let temp_dir_path = extract_dict_zip(zip_path)?;
 
-    fs::read_dir(&zip_path)?
-        .par_bridge()
-        .try_for_each(|entry| {
-            let entry = entry?;
-            let outpath = entry.path();
+    let mut index_path = PathBuf::new();
+    let mut tag_bank_paths: Vec<PathBuf> = Vec::new();
+    let mut term_bank_paths: Vec<PathBuf> = Vec::new();
 
-            if outpath.to_str().unwrap().contains("term_bank")
-                && !outpath.to_str().unwrap().ends_with('/')
-            {
-                let file = fs::File::open(&outpath)?;
-                let reader = BufReader::new(file);
+    fs::read_dir(&zip_path)?.try_for_each(|entry| -> Result<(), std::io::Error> {
+        let entry = entry?;
+        let outpath_buf = entry.path();
+        let outpath = outpath_buf.to_str().unwrap();
 
-                let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
-                let entries = match stream.next() {
-                    Some(Ok(entries)) => entries,
-                    Some(Err(err)) => {
-                        return Err(errors::ImportError::OtherJSON(format!(
-                            "File: {} | Err: {}",
-                            &outpath.to_str().unwrap(),
-                            err
-                        )))
-                    }
-                    None => {
-                        return Err(errors::ImportError::OtherJSON(
-                            "no data in dictionary stream".to_string(),
-                        ))
-                    }
-                };
-
-                // Beginning of each word/phrase/expression (entry)
-                // ie: ["headword","reading","","",u128,[{/* main */}]]];
-                #[cfg(feature = "disabled")]
-                for entry in entries {
-                    //println!("{:#?}", entry);
-                    let (headword, reading) = match (&entry[0], &entry[1]) {
-                        (EntryItemMatchType::String(headword), EntryItemMatchType::String(reading)) => {
-                            (headword, reading)
-                        }
-                        _ => continue,
-                    };
-
-                    if let EntryItemMatchType::StructuredContentVec(content) = &entry[5] {
-                        let structured_content = &content[0].content;
-                        match structured_content {
-                            ContentMatchType::Element(html_elem) => {}
-                            ContentMatchType::Content(elem_vec) => {
-                                todo!();
-                            }
-                            ContentMatchType::String(_) => unreachable!(),
-                        }
-                    }
-                }
-
-                files_read.fetch_add(1, Ordering::SeqCst);
-                println!("{:?}", files_read);
+        if !outpath.ends_with('/') {
+            if outpath.contains("term_bank") {
+                term_bank_paths.push(outpath_buf);
+            } else if outpath == "index.json" {
+                index_path = outpath_buf;
+            } else if outpath.contains("tag_bank") {
+                tag_bank_paths.push(outpath_buf);
             }
-            Ok(())
-        })?;
+        }
 
-    println!(
-        "{} files read in {}s",
-        files_read.load(Ordering::SeqCst),
-        instant.elapsed().as_secs_f32()
-    );
+        Ok(())
+    })?;
+
+    // println!(
+    //     "{} files read in {}s",
+    //     instant.elapsed().as_secs_f32()
+    // );
 
     Ok(())
 }
+
+// fn convert_term_bank_file() {
+//         let file = fs::File::open(&outpath)?;
+//                 let reader = BufReader::new(file);
+//
+//                 let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
+//                 let entries = match stream.next() {
+//                     Some(Ok(entries)) => entries,
+//                     Some(Err(err)) => {
+//                         return Err(errors::ImportError::OtherJSON(format!(
+//                             "File: {} | Err: {}",
+//                             &outpath.to_str().unwrap(),
+//                             err
+//                         )))
+//                     }
+//                     None => {
+//                         return Err(errors::ImportError::OtherJSON(
+//                             "no data in dictionary stream".to_string(),
+//                         ))
+//                     }
+//                 };
+//
+//                 let
+//
+//                 // Beginning of each word/phrase/expression (entry)
+//                 // ie: ["headword","reading","","",u128,[{/* main */}]]];
+//                 //#[cfg(feature = "disabled")]
+//                 for entry in entries {
+//                     let (headword, reading) = match (&entry[0], &entry[1]) {
+//                         (
+//                             EntryItemMatchType::String(headword),
+//                             EntryItemMatchType::String(reading),
+//                         ) => (headword, reading),
+//                         _ => continue,
+//                     };
+//
+//                     if let EntryItemMatchType::StructuredContentVec(content) = &entry[5] {
+//                         let structured_content = &content[0].content;
+//                         match structured_content {
+//                             ContentMatchType::Element(html_element) => {
+//                                 //println!("{:#?}", html_elem);
+//                                 match html_element.as_ref() {
+//                                     Element::Link(link_element) => {
+//
+//                                     }
+//                                     Element::Unstyled(unstyled_element) => {
+//
+//                                     }
+//                                     _ => {}
+//                                 }
+//                             }
+//                             ContentMatchType::Content(elem_vec) => {
+//                                 //println!("{:#?}", elem_vec);
+//                             }
+//                             ContentMatchType::String(_) => unreachable!(),
+//                         }
+//                     }
+//                 }
+//
+//                 files_read.fetch_add(1, Ordering::SeqCst);
+//                 println!("{:?}", files_read);
+//
+// }
