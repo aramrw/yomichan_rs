@@ -196,6 +196,65 @@ impl<'de> Deserialize<'de> for ContentMatchType {
     }
 }
 
+impl<'de> Deserialize<'de> for Element {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        serde_untagged::UntaggedEnumVisitor::new()
+            .map(|map| {
+                let value = map.deserialize::<serde_json::Value>()?;
+                let tag = match value.get("tag") {
+                    Some(tag) => tag
+                        .as_str()
+                        .ok_or_else(|| serde::de::Error::custom("tag is not a string")),
+                    None => Err(serde::de::Error::custom("missing tag")),
+                }?;
+
+                let element = match tag {
+                    "a" => serde_json::from_value(value).map(Element::Link),
+                    "div" => serde_json::from_value(value).map(Element::Styled),
+                    "span" => serde_json::from_value(value).map(Element::Styled),
+                    "br" => serde_json::from_value(value).map(Element::LineBreak),
+                    "img" => serde_json::from_value(value).map(Element::Image),
+                    "ruby" => serde_json::from_value(value).map(Element::Unstyled),
+                    "rt" => serde_json::from_value(value).map(Element::Unstyled),
+                    "rp" => serde_json::from_value(value).map(Element::Unstyled),
+                    "t" => serde_json::from_value(value).map(Element::Unstyled),
+                    "th" => serde_json::from_value(value).map(Element::Unstyled),
+                    "tb" => serde_json::from_value(value).map(Element::Unstyled),
+                    "tf" => serde_json::from_value(value).map(Element::Unstyled),
+                    "ol" => serde_json::from_value(value).map(Element::Styled),
+                    "ul" => serde_json::from_value(value).map(Element::Styled),
+                    "li" => serde_json::from_value(value).map(Element::Styled),
+                    "details" => serde_json::from_value(value).map(Element::Styled),
+                    "summary" => serde_json::from_value(value).map(Element::Styled),
+                    "table" => serde_json::from_value(value).map(Element::Unstyled),
+                    "thead" => serde_json::from_value(value).map(Element::Unstyled),
+                    "tbody" => serde_json::from_value(value).map(Element::Unstyled),
+                    "tfoot" => serde_json::from_value(value).map(Element::Unstyled),
+                    "tr" => serde_json::from_value(value).map(Element::Unstyled),
+                    "td" => serde_json::from_value(value).map(Element::Table),
+                    "th" => serde_json::from_value(value).map(Element::Table),
+                    _ => {
+                        if let serde_json::Value::String(s) = value {
+                            Ok(Element::UnknownString(s.to_string()))
+                        } else {
+                            Err(serde::de::Error::custom(format!(
+                                "unexpected value: {tag};"
+                            )))
+                        }
+                    }
+                };
+
+                element.map_err(|err| {
+                    serde::de::Error::custom(format!("failed to deserialize element: {}", err))
+                })
+            })
+            .string(|unkown_string| Ok(Element::UnknownString(unkown_string.to_string())))
+            .deserialize(deserializer)
+    }
+}
 
 /// Represents All `Content` elements that can 
 /// appear within a `"content":` section.
