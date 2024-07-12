@@ -292,35 +292,29 @@ pub enum Element {
     //#[serde(rename = "img")]
     Image(ImageElement),
 }
-//
-// impl<'de> Deserialize<'de> for Element {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>
-//     {
-//         UntaggedEnumVisitor::new()
-//             .map(|map| {
-//                 // Custom Deserialization logic
-//                 // based on the struct 
-//
-//                 // Element::Link for example will always 
-//                 // have `"tag": "a"` in the json, 
-//                 // therefore there is no need to check anything else
-//             })
-//     }
-// }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// This element doesn't support children or support language.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LineBreak {
+    /// The `LineBreak`' tag is:
+    ///
+    /// [`HtmlTag::Break`] | `"br"`.
     tag: HtmlTag,
     data: Option<HashMap<String, String>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UnstyledElement {
-    /// `UnstyledElements`' tags are:
-    /// `Ruby`, `RubyTag` `RubyParenthesis`, `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`.
+    /// `UnstyledElements`'s' tags could be the following:
+    ///
+    /// [`HtmlTag::Ruby`],
+    /// [`HtmlTag::RubyText`],
+    /// [`HtmlTag::RubyParenthesis`],
+    /// [`HtmlTag::Table`],
+    /// [`HtmlTag::TableHeader`],
+    /// [`HtmlTag::TableBody`],
+    /// [`HtmlTag::TableFooter`],
+    /// [`HtmlTag::TableRow`].
     tag: HtmlTag,
     content: Option<ContentMatchType>,
     data: Option<HashMap<String, String>>,
@@ -328,10 +322,12 @@ pub struct UnstyledElement {
     lang: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TableElement {
-    /// `TableElement`'s tags are:
-    /// `TableData`, `TableHeader` .
+    /// `TableElement`'s tags could be the following:
+    ///
+    /// [`HtmlTag::TableData`],
+    /// [`HtmlTag::TableHeader`].
     tag: HtmlTag,
     content: Option<ContentMatchType>,
     data: Option<HashMap<String, String>>,
@@ -342,10 +338,17 @@ pub struct TableElement {
     lang: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StyledElement {
     /// `StyledElement`'s tags are:
-    /// `Span`, `Div`, `OrderedList`, `UnorderedList`, `ListItem`, `Details`, `Summary`.
+    ///
+    /// [`HtmlTag::Span`],
+    /// [`HtmlTag::Div`],
+    /// [`HtmlTag::OrderedList`],
+    /// [`HtmlTag::UnorderedList`],
+    /// [`HtmlTag::ListItem`],
+    /// [`HtmlTag::Details`],
+    /// [`HtmlTag::Summary`].
     tag: HtmlTag,
     content: Option<ContentMatchType>,
     data: Option<HashMap<String, String>>,
@@ -353,13 +356,14 @@ pub struct StyledElement {
     /// Hover text for the element.
     title: Option<String>,
     /// Defines the language of an element in the format defined by RFC 5646.
-    lang: String,
+    lang: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LinkElement {
-    /// `LinkElement`'s tags are:
-    /// `Anchor`.
+    /// The `LinkElement`'s tag is:
+    ///
+    /// [`HtmlTag::Anchor`] | `"a"`.
     tag: HtmlTag,
     content: Option<ContentMatchType>,
     /// The URL for the link.
@@ -370,7 +374,7 @@ pub struct LinkElement {
     lang: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImageElement {
     /// This element doesn't support children.
     content: Option<()>,
@@ -386,15 +390,15 @@ pub struct ImageElement {
     /// Path to the image file in the archive.
     path: String,
     /// Preferred width of the image.
-    width: Option<u16>,
+    width: Option<f32>,
     /// Preferred height of the image.
-    height: Option<u16>,
+    height: Option<f32>,
     /// Preferred width of the image.
     /// This is only used in the internal database.
-    preferred_width: Option<u16>,
+    preferred_width: Option<f32>,
     /// Preferred height of the image.
     /// This is only used in the internal database.
-    preferred_height: Option<u16>,
+    preferred_height: Option<f32>,
     /// Hover text for the image.
     title: Option<String>,
     /// Alt text for the image.
