@@ -172,6 +172,7 @@ pub enum EntryItemMatchType {
     /// [serde_json/issues/1155](https://github.com/serde-rs/json/issues/1155).
     /// Is an `integer-overflow` so it needs a fix.
     Integer(i64),
+    Integer(i128),
     /// The array holding the main `structured-content` object.
     /// There is only 1 per entry.
     StructuredContentVec(Vec<StructuredContent>),
@@ -185,6 +186,7 @@ impl<'de> Deserialize<'de> for EntryItemMatchType {
         UntaggedEnumVisitor::new()
             .string(|single| Ok(EntryItemMatchType::String(single.to_string())))
             .i64(|int| Ok(EntryItemMatchType::Integer(int)))
+            .i128(|int| Ok(EntryItemMatchType::Integer(int)))
             .seq(|seq| {
                 seq.deserialize()
                     .map(EntryItemMatchType::StructuredContentVec)
