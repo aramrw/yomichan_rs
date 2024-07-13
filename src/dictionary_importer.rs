@@ -1,10 +1,10 @@
-use crate::dictionary_data::TermGlossaryImage;
+use crate::dictionary_data::{Index, TermGlossaryImage, TermV3, TermV4};
 use crate::dictionary_database::{
     db_stores, DatabaseTermEntry, MediaDataArrayBufferContent, TermEntry,
 };
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
-use crate::errors;
+use crate::errors::{DBError, ImportError};
 use crate::Yomichan;
 
 use serde::{Deserialize, Deserializer, Serialize};
@@ -16,12 +16,12 @@ use rayon::prelude::*;
 use tempfile::tempdir;
 
 use std::collections::HashMap;
-use std::time::Instant;
-use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::BufReader;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Instant;
 
 //use chrono::{DateTime, Local};
 
@@ -133,7 +133,7 @@ pub struct ImportRequirementContext {
 }
 
 impl Yomichan {
-    async fn import_dictionary(&self) -> Result<(), errors::DBError> {
+    async fn import_dictionary(&self) -> Result<(), DBError> {
         use db_stores::*;
         let txn = self.ycdatabase.db.begin_write()?;
         {
@@ -206,7 +206,7 @@ pub struct StructuredContent {
 
 fn extract_dict_zip<P: AsRef<std::path::Path>>(
     zip_path: P,
-) -> Result<std::path::PathBuf, errors::ImportError> {
+) -> Result<std::path::PathBuf, ImportError> {
     let temp_dir = tempdir()?;
     let temp_dir_path = temp_dir.path().to_owned();
     let temp_dir_path_clone = temp_dir_path.clone();
@@ -223,9 +223,7 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
     Ok(temp_dir_path)
 }
 
-pub fn prepare_dictionary<P: AsRef<Path>>(
-    zip_path: P,
-) -> Result<(), errors::ImportError> {
+pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<(), ImportError> {
     let instant = Instant::now();
     //let temp_dir_path = extract_dict_zip(zip_path)?;
 
@@ -241,7 +239,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         if !outpath.ends_with('/') {
             if outpath.contains("term_bank") {
                 term_bank_paths.push(outpath_buf);
-            } else if outpath == "index.json" {
+            } else if outpath.contains("index.json") {
                 index_path = outpath_buf;
             } else if outpath.contains("tag_bank") {
                 tag_bank_paths.push(outpath_buf);
@@ -251,76 +249,21 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(())
     })?;
 
-    // println!(
-    //     "{} files read in {}s",
-    //     instant.elapsed().as_secs_f32()
-    // );
+    let index = convert_index_file(index_path)?;
+    let paths_len = tag_bank_paths.len() + term_bank_paths.len();
+
+    let term_banks: Result<Vec<TermV3>, ImportError> = term_bank_paths
+        .into_par_iter()
+        .map(convert_term_bank_file)
+        .collect::<Result<Vec<Vec<TermV3>>, ImportError>>() // Collect nested results
+        .map(|nested| nested.into_iter().flatten().collect()); // Flatten nested Vecs
+
+    let files_len = paths_len;
+    print_timer(instant, files_len);
 
     Ok(())
 }
 
-// fn convert_term_bank_file() {
-//         let file = fs::File::open(&outpath)?;
-//                 let reader = BufReader::new(file);
-//
-//                 let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
-//                 let entries = match stream.next() {
-//                     Some(Ok(entries)) => entries,
-//                     Some(Err(err)) => {
-//                         return Err(errors::ImportError::OtherJSON(format!(
-//                             "File: {} | Err: {}",
-//                             &outpath.to_str().unwrap(),
-//                             err
-//                         )))
-//                     }
-//                     None => {
-//                         return Err(errors::ImportError::OtherJSON(
-//                             "no data in dictionary stream".to_string(),
-//                         ))
-//                     }
-//                 };
-//
-//                 let
-//
-//                 // Beginning of each word/phrase/expression (entry)
-//                 // ie: ["headword","reading","","",u128,[{/* main */}]]];
-//                 //#[cfg(feature = "disabled")]
-//                 for entry in entries {
-//                     let (headword, reading) = match (&entry[0], &entry[1]) {
-//                         (
-//                             EntryItemMatchType::String(headword),
-//                             EntryItemMatchType::String(reading),
-//                         ) => (headword, reading),
-//                         _ => continue,
-//                     };
-//
-//                     if let EntryItemMatchType::StructuredContentVec(content) = &entry[5] {
-//                         let structured_content = &content[0].content;
-//                         match structured_content {
-//                             ContentMatchType::Element(html_element) => {
-//                                 //println!("{:#?}", html_elem);
-//                                 match html_element.as_ref() {
-//                                     Element::Link(link_element) => {
-//
-//                                     }
-//                                     Element::Unstyled(unstyled_element) => {
-//
-//                                     }
-//                                     _ => {}
-//                                 }
-//                             }
-//                             ContentMatchType::Content(elem_vec) => {
-//                                 //println!("{:#?}", elem_vec);
-//                             }
-//                             ContentMatchType::String(_) => unreachable!(),
-//                         }
-//                     }
-//                 }
-//
-//                 files_read.fetch_add(1, Ordering::SeqCst);
-//                 println!("{:?}", files_read);
-//
-// }
 fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     let index_str = fs::read_to_string(outpath)
         .map_err(|e| ImportError::Custom(format!("Failed to convert index | Err: {e}")))?;
