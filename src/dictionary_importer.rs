@@ -328,6 +328,83 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     Ok(index)
 }
 
+fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV3>, ImportError> {
+    let file = fs::File::open(&outpath).map_err(|e| {
+        ImportError::Custom(format!("File: {:?} | Err: {e}", outpath.to_string_lossy()))
+    })?;
+    let reader = BufReader::new(file);
+
+    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
+    let entries = match stream.next() {
+        Some(Ok(entries)) => entries,
+        Some(Err(err)) => {
+            return Err(ImportError::Custom(format!(
+                "File: {} | Err: {}",
+                &outpath.to_string_lossy(),
+                err
+            )))
+        }
+        None => {
+            return Err(ImportError::Custom(
+                "no data in dictionary stream".to_string(),
+            ))
+        }
+    };
+
+    // Beginning of each word/phrase/expression (entry)
+    // ie: ["headword","reading","","",u128,[{/* main */}]]];
+
+    //#[cfg(feature = "disabled")]
+    let terms: Vec<TermV3> = entries
+        .into_iter()
+        .filter_map(|entry| {
+            let (headword, reading) = match (entry[0].clone(), entry[1].clone()) {
+                (EntryItemMatchType::String(headword), EntryItemMatchType::String(reading)) => {
+                    (headword, reading)
+                }
+                _ => return None,
+            };
+
+            #[cfg(feature = "termv3")]
+            let mut v3_term = TermV3 {
+                expression: headword.to_string(),
+                reading: reading.to_string(),
+                ..Default::default()
+            };
+
+            let mut v4_term = TermV4 {
+                expression: headword,
+                reading,
+                ..Default::default()
+            };
+
+            if let EntryItemMatchType::StructuredContentVec(content) = &entry[5] {
+                let structured_content = &content[0].content;
+                match structured_content {
+                    ContentMatchType::Element(html_element) => {
+                        //println!("{:#?}", html_elem);
+                        match html_element.as_ref() {
+                            Element::Link(link_element) => {
+                                return None;
+                            }
+                            Element::Unstyled(unstyled_element) => return None,
+                            _ => return None,
+                        }
+                    }
+                    ContentMatchType::Content(elem_vec) => {
+                        //println!("{:#?}", elem_vec);
+                        return None;
+                    }
+                    ContentMatchType::String(_) => unreachable!(),
+                }
+            }
+            None
+        })
+        .collect();
+
+    Ok(terms)
+}
+
 fn print_timer<T>(inst: Instant, print: T)
 where
     T: std::fmt::Debug,
