@@ -1,8 +1,12 @@
 use crate::dictionary::PhoneticTranscription;
 use crate::structured_content::ImageElement;
+use crate::dictionary_importer::StructuredContent;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+
+use std::string::String;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TermEntry {
@@ -18,25 +22,6 @@ pub enum TermGlossaryType {
     Image,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum TermGlossary {
-    Content(Box<TermGlossaryContent>),
-    Deinflection(TermGlossaryDeinflection),
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermGlossaryContent {
-    pub term_glossary_string: String,
-    pub term_glossary_text: TermGlossaryText,
-    pub term_glossary_image: TermGlossaryImage,
-    pub term_glossary_structured_content: TermGlossaryStructuredContent,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermGlossaryText {
-    pub term_glossary_type: TermGlossaryType,
-    pub text: String,
-}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermGlossaryImage {
@@ -95,6 +80,25 @@ pub struct Tag {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum TermGlossary {
+    Content(Box<TermGlossaryContent>),
+    Deinflection(TermGlossaryDeinflection),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TermGlossaryContent {
+    pub term_glossary_string: String,
+    pub term_glossary_text: TermGlossaryText,
+    pub term_glossary_image: TermGlossaryImage,
+    pub term_glossary_structured_content: TermGlossaryStructuredContent,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TermGlossaryText {
+    pub term_glossary_type: TermGlossaryType,
+    pub text: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Represents the structured content of a term.
 ///
@@ -152,11 +156,6 @@ pub struct TermGlossaryDeinflection {
     inflection_rule_chain: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// TermGlossaryStructuredContent represents the structured content of a term.
-pub struct TermGlossaryStructuredContent {
-    content: String,
-}
 
 /************* Term Meta *************/
 
