@@ -129,6 +129,20 @@ pub struct TermV3 {
     pub term_tags: String,
 }
 
+/// Custom `Yomichan.rs`-unique term model.
+///
+/// Allows access to `entry` data as values instead of HTML.
+/// See: [`TermV3`]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct TermV4 { 
+    pub expression: String,
+    pub reading: String,
+    pub definition_tags: Option<String>,
+    pub rules: String,
+    pub score: i128,
+    pub definitions: Vec<String>,
+    pub sequence: i64,
+    pub term_tags: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
