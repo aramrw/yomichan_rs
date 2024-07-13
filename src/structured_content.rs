@@ -364,14 +364,16 @@ pub struct LinkElement {
     /// The `LinkElement`'s tag is:
     ///
     /// [`HtmlTag::Anchor`] | `"a"`.
-    tag: HtmlTag,
-    content: Option<ContentMatchType>,
+    pub tag: HtmlTag,
+    pub content: Option<ContentMatchType>,
     /// The URL for the link.
+    ///
     /// URLs starting with a `?` are treated as internal links to other dictionary content.
-    href: String,
+    pub href: String,
     /// Defines the language of an element in the format defined by RFC 5646.
-    ///yomichan_rs will **only** ever support `ja` & `ja-JP`.
-    lang: Option<String>,
+    ///
+    ///yomichan_rs will currently only support `ja` & `ja-JP`.
+    pub lang: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
