@@ -106,15 +106,29 @@ pub struct Tag {
 pub struct TermGlossaryStructuredContent {
     content: String,
 }
+
+
+/// Yomichan-like term model.
+///
+/// Because of how Yomichan is designed, the definition's HTML is contained in
+/// [`TermGlossaryContent::term_glossary_structured_content`]/`content` as a String.
+///
+/// If the application is unable/unwilling to render HTML:
+/// See: [`TermV4`]
+///
+/// Related: [`TermGlossaryContent`]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct TermV3 {
-    expression: String,
-    reading: String,
-    definition_tags: Option<String>,
-    rules: String,
-    score: u16,
-    glossary: Vec<TermGlossary>,
-    sequence: i64,
-    term_tags: String,
+    pub expression: String,
+    pub reading: String,
+    pub definition_tags: Option<String>,
+    pub rules: String,
+    pub score: i128,
+    pub glossary: Vec<TermGlossary>,
+    pub sequence: i64,
+    pub term_tags: String,
+}
+
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
