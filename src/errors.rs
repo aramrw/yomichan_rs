@@ -17,7 +17,7 @@ pub enum ImportError {
     #[error("json err: {0}")]
     JSON(#[from] serde_json::error::Error),
     #[error("json err: {0}")]
-    OtherJSON(String),
+    Custom(String),
     #[error("error at line {0}: {1}")]
     LineErr(u32, Box<ImportError>),
     #[error("thread err: {0}")]

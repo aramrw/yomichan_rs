@@ -1,8 +1,12 @@
 use crate::dictionary::PhoneticTranscription;
 use crate::structured_content::ImageElement;
+use crate::dictionary_importer::StructuredContent;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+
+use std::string::String;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TermEntry {
@@ -12,39 +16,20 @@ pub struct TermEntry {
     pub sequence: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TermGlossaryType {
     Text,
     Image,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TermGlossary {
-    Content(Box<TermGlossaryContent>),
-    Deinflection(TermGlossaryDeinflection),
-}
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TermGlossaryContent {
-    pub term_glossary_string: String,
-    pub term_glossary_text: TermGlossaryText,
-    pub term_glossary_image: TermGlossaryImage,
-    pub term_glossary_structured_content: TermGlossaryStructuredContent,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TermGlossaryText {
-    pub term_glossary_type: TermGlossaryType,
-    pub text: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermGlossaryImage {
     pub term_glossary_type: TermGlossaryType,
     pub term_image: TermImage,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermImage {
     pub image_element_base: ImageElement,
     pub vertical_align: Option<()>,
@@ -53,7 +38,7 @@ pub struct TermImage {
     pub size_units: Option<()>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Index represents the metadata of a dictionary.
 pub struct Index {
     format: Option<u8>,
@@ -71,12 +56,12 @@ pub struct Index {
     tag_meta: Option<HashMap<String, IndexTag>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IndexTagMeta {
     pub tags: HashMap<String, IndexTag>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// IndexTag represents the metadata of a tag in a dictionary.
 pub struct IndexTag {
     category: String,
@@ -85,7 +70,7 @@ pub struct IndexTag {
     score: u16,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Tag {
     name: String,
     category: String,
@@ -94,35 +79,88 @@ pub struct Tag {
     score: u16,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TermV3 {
-    expression: String,
-    reading: String,
-    definition_tags: Option<String>,
-    rules: String,
-    score: u16,
-    glossary: Vec<TermGlossary>,
-    sequence: i64,
-    term_tags: String,
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum TermGlossary {
+    Content(Box<TermGlossaryContent>),
+    Deinflection(TermGlossaryDeinflection),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TermGlossaryContent {
+    pub term_glossary_string: String,
+    pub term_glossary_text: TermGlossaryText,
+    pub term_glossary_image: TermGlossaryImage,
+    pub term_glossary_structured_content: TermGlossaryStructuredContent,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TermGlossaryText {
+    pub term_glossary_type: TermGlossaryType,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Represents the structured content of a term.
+///
+/// An entry's entire [`StructuredContent`]is [`Deserialize`]d into a String and pushed into `content`.
+/// As such, it is up to the application to render `content` properly.
+///
+/// If the application is unable/unwilling to render html:
+/// See: [`TermV4`]
+pub struct TermGlossaryStructuredContent {
+    content: String,
+}
+
+
+/// Yomichan-like term model.
+///
+/// Because of how Yomichan is designed, the definition's HTML is contained in
+/// [`TermGlossaryContent::term_glossary_structured_content`]/`content` as a String.
+///
+/// If the application is unable/unwilling to render HTML:
+/// See: [`TermV4`]
+///
+/// Related: [`TermGlossaryContent`]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct TermV3 {
+    pub expression: String,
+    pub reading: String,
+    pub definition_tags: Option<String>,
+    pub rules: String,
+    pub score: i128,
+    pub glossary: Vec<TermGlossary>,
+    pub sequence: i64,
+    pub term_tags: String,
+}
+
+/// Custom `Yomichan.rs`-unique term model.
+///
+/// Allows access to `entry` data as values instead of HTML.
+/// See: [`TermV3`]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct TermV4 { 
+    pub expression: String,
+    pub reading: String,
+    pub definition_tags: Option<String>,
+    pub rules: String,
+    pub score: i128,
+    pub definitions: Vec<String>,
+    pub sequence: i64,
+    pub term_tags: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// TermGlossaryDeinflection represents the deinflection information of a term.
 pub struct TermGlossaryDeinflection {
     uninflected: String,
     inflection_rule_chain: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-/// TermGlossaryStructuredContent represents the structured content of a term.
-pub struct TermGlossaryStructuredContent {
-    content: String,
-}
 
 /************* Term Meta *************/
 
 /// A helper Enum to select the mode for TermMeta data structures.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TermMetaModeType {
     Pitch,
     Freq,
@@ -130,13 +168,13 @@ pub enum TermMetaModeType {
 }
 
 /// A helper Enum to select the type of data for TermMetaFrequency data.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TermMetaFrequencyDataType {
     Generic(GenericFrequencyData),
     WithReading(TermMetaFrequencyDataWithReading),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// GenericFrequencyData represents the frequency data of a term.
 pub enum GenericFrequencyData {
     Value(u16),
@@ -144,7 +182,7 @@ pub enum GenericFrequencyData {
     Reading(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// The metadata of a term.
 pub enum TermMeta {
     Frequency(TermMetaFrequency),
@@ -152,13 +190,13 @@ pub enum TermMeta {
     Phonetic(TermMetaPhonetic),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermMetaFrequencyDataWithReading {
     reading: String,
     frequency: GenericFrequencyData,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// The frequency metadata of a term.
 pub struct TermMetaFrequency {
     expression: String,
@@ -168,7 +206,7 @@ pub struct TermMetaFrequency {
 
 /************* Pitch / Speech Data *************/
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Represents the pitch of a term.
 pub struct Pitch {
     position: u16,
@@ -177,14 +215,14 @@ pub struct Pitch {
     tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// The pitch data of a term.
 pub struct TermMetaPitchData {
     reading: String,
     pitches: Vec<Pitch>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// The pitch metadata of a term.
 pub struct TermMetaPitch {
     expression: String,
@@ -192,13 +230,13 @@ pub struct TermMetaPitch {
     data: TermMetaPitchData,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermMetaPhoneticData {
     reading: String,
     transcriptions: Vec<PhoneticTranscription>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermMetaPhonetic {
     expression: String,
     mode: TermMetaModeType,
@@ -207,7 +245,7 @@ pub struct TermMetaPhonetic {
 
 /************* Kanji Data *************/
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiMetaFrequency {
     character: String,
     mode: TermMetaModeType,

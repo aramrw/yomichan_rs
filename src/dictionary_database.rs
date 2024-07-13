@@ -11,7 +11,7 @@ use crate::Yomichan;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MediaDataBase<TContentType> {
     dictionary: String,
     path: String,
@@ -24,19 +24,19 @@ pub struct MediaDataBase<TContentType> {
 pub type MediaDataArrayBufferContent = MediaDataBase<Vec<u8>>;
 pub type MediaDataStringContent = MediaDataBase<String>;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum MediaType {
     ArrayBuffer(Vec<u8>),
     String(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Media<T = MediaType> {
     index: usize,
     data: T,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermEntry {
     expression: String,
     reading: String,
@@ -52,7 +52,7 @@ pub struct DatabaseTermEntry {
     dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermEntry {
     index: u16,
     match_type: TermSourceMatchType,
@@ -69,7 +69,7 @@ pub struct TermEntry {
     sequence: i64,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseKanjiEntry {
     character: String,
     onyomi: String,
@@ -80,7 +80,7 @@ pub struct DatabaseKanjiEntry {
     stats: Option<std::collections::HashMap<String, String>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiEntry {
     index: i32,
     character: String,
@@ -92,7 +92,7 @@ pub struct KanjiEntry {
     dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Tag {
     name: String,
     category: String,
@@ -102,7 +102,7 @@ pub struct Tag {
     dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaFrequency {
     expression: String,
     /// Is of type `TermMetaModeType::Freq`
@@ -111,7 +111,7 @@ pub struct DatabaseTermMetaFrequency {
     dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaPitch {
     expression: String,
     /// Is of type `TermMetaModeType::Pitch`
@@ -120,7 +120,7 @@ pub struct DatabaseTermMetaPitch {
     dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaPhoneticData {
     expression: String,
     /// Is of type `TermMetaModeType::Ipa`
@@ -129,14 +129,14 @@ pub struct DatabaseTermMetaPhoneticData {
     dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DatabaseTermMeta {
     Frequency(DatabaseTermMetaFrequency),
     Pitch(DatabaseTermMetaPitch),
     Phonetic(DatabaseTermMetaPhoneticData),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseKanjiMetaFrequency {
     index: u16,
     character: String,
@@ -148,13 +148,13 @@ pub struct DatabaseKanjiMetaFrequency {
 
 pub type DictionaryCountGroup = HashMap<String, u16>;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DictionaryCounts {
     total: Option<DictionaryCountGroup>,
     counts: Vec<DictionaryCountGroup>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DeleteDictionaryProgressData {
     count: u64,
     processed: u64,
@@ -162,31 +162,31 @@ pub struct DeleteDictionaryProgressData {
     stores_processed: u64,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum QueryMatchType {
     Str(String),
     Num(i64),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DictionaryAndQueryRequest {
     query: QueryMatchType,
     dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermExactRequest {
     term: String,
     reading: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MediaRequest {
     path: String,
     dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FindMulitBulkData<TItem> {
     item: TItem,
     item_index: u64,
@@ -232,4 +232,34 @@ pub mod db_stores {
     /// [`MediaDataArrayBufferContent`]: MediaDataArrayBufferContent
     pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
 }
+
+impl Yomichan {
+    /// Adds a term entry to the database
+    pub fn add_term(&self, key: &str, term: TermEntry) -> Result<(), errors::DBError> {
+        let tx = self.ycdatabase.db.begin_write()?;
+        {
+            let mut table = tx.open_table(db_stores::TERMS_STORE)?;
+
+            let term_bytes = bincode::serialize(&term)?;
+            table.insert(key, &*term_bytes)?;
+        }
+        tx.commit()?;
+
+        Ok(())
+    }
+
+    /// Looks up a term in the database
+    pub fn lookup_term(&self, key: &str) -> Result<Option<TermEntry>, errors::DBError> {
+        let tx = self.ycdatabase.db.begin_read()?;
+        let table = tx.open_table(db_stores::TERMS_STORE)?;
+
+        if let Some(value_guard) = table.get(key)? {
+            let stored_term: TermEntry = bincode::deserialize(value_guard.value())?;
+            Ok(Some(stored_term))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 

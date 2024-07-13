@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum NumOrStr {
     Num(u64),
     Str(String),
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Enum representing what database field was used to match the source term.
 pub enum TermSourceMatchSource {
     Term,
@@ -19,7 +19,7 @@ pub enum TermSourceMatchSource {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Enum representing how the search term relates to the final term.
 pub enum TermSourceMatchType {
     Exact,
@@ -28,21 +28,21 @@ pub enum TermSourceMatchType {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TermPronunciationMatchType {
     PitchAccent,
     PhoneticTranscription,
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DictionaryEntryType {
     Kanji,
     Term,
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum InflectionSource {
     Algorithm,
     Dictionary,
@@ -50,14 +50,14 @@ pub enum InflectionSource {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Pronunciation {
     PitchAccent(PitchAccent),
     PhoneticTranscription(PhoneticTranscription),
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DictionaryEntry {
     KanjiDictEntry(KanjiDictionaryEntry),
     TermDictEntry(TermDictionaryEntry),
@@ -66,7 +66,7 @@ pub enum DictionaryEntry {
 // structs
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PitchAccent {
     term: TermPronunciationMatchType,
     position: u8,
@@ -76,7 +76,7 @@ pub struct PitchAccent {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhoneticTranscription {
     match_type: TermPronunciationMatchType,
     ipa: String,
@@ -84,14 +84,14 @@ pub struct PhoneticTranscription {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InflectionRuleChainCandidate {
     source: InflectionSource,
     inflection_rules: Vec<String>,
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A tag represents some brief information about part of a dictionary entry.
 pub struct Tag {
     /// The name of the tag.
@@ -114,7 +114,7 @@ pub struct Tag {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiStat {
     name: String,
     category: String,
@@ -126,14 +126,14 @@ pub struct KanjiStat {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DictionaryOrder {
     index: u16,
     priority: u16,
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiFrequency {
     index: u64,
     dictionary: String,
@@ -148,7 +148,7 @@ pub struct KanjiFrequency {
 pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiDictionaryEntry {
     entry_type: DictionaryEntryType,
     character: String,
@@ -164,7 +164,7 @@ pub struct KanjiDictionaryEntry {
 /// Frequency information corresponds to how frequently a term appears in a corpus,
 /// which can be a number of occurrences or an overall rank.
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermFrequency {
     index: u32,
     headword_index: u32,
@@ -178,7 +178,7 @@ pub struct TermFrequency {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A term headword is a combination of a term, reading, and auxiliary information.
 pub struct TermHeadword {
     /// The original order of the headword, which is usually used for sorting.
@@ -196,7 +196,7 @@ pub struct TermHeadword {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A dictionary entry for a term or group of terms.
 pub struct TermDefinition {
     /// The original order of the definition, which is usually used for sorting.
@@ -229,7 +229,7 @@ pub struct TermDefinition {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A term pronunciation represents different ways to pronounce one of the headwords.
 pub struct TermPronunciation {
     /// The original order of the pronunciation, which is usually used for sorting.
@@ -247,7 +247,7 @@ pub struct TermPronunciation {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// TermSource represents the source of a term in the dictionary.
 pub struct TermSource {
     /// The original text that was searched.
@@ -266,7 +266,7 @@ pub struct TermSource {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A dictionary entry for a term or group of terms.
 pub struct TermDictionaryEntry {
     /// The type of the entry.
