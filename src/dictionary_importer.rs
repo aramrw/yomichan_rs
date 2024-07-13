@@ -328,3 +328,33 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     Ok(index)
 }
 
+fn print_timer<T>(inst: Instant, print: T)
+where
+    T: std::fmt::Debug,
+{
+    let duration = inst.elapsed();
+    #[allow(unused_assignments)]
+    let mut time = String::new();
+    {
+        let dur_sec = duration.as_secs();
+        let dur_mill = duration.as_millis();
+        let dur_nan = duration.as_nanos();
+
+        if dur_sec == 0 {
+            if dur_mill == 0 {
+                time = format!("{}ns", dur_mill);
+            } else {
+                time = format!("{}ms", dur_nan);
+            }
+        } else if dur_sec > 60 {
+            let min = dur_sec / 60;
+            let sec = dur_sec % 60;
+            time = format!("{}m{}s", min, sec);
+        } else {
+            time = format!("{}s", dur_sec);
+        }
+    }
+
+    println!("{:?} files", print);
+    println!("in {}", time);
+}
