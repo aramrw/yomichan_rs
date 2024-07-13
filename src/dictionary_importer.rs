@@ -300,7 +300,7 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV3>, ImportError> 
     //#[cfg(feature = "disabled")]
     let terms: Vec<TermV3> = entries
         .into_iter()
-        .filter_map(|entry| {
+        .filter_map(|mut entry| {
             let (headword, reading) = match (entry[0].clone(), entry[1].clone()) {
                 (EntryItemMatchType::String(headword), EntryItemMatchType::String(reading)) => {
                     (headword, reading)
@@ -321,30 +321,46 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV3>, ImportError> 
                 ..Default::default()
             };
 
-            if let EntryItemMatchType::StructuredContentVec(content) = &entry[5] {
-                let structured_content = &content[0].content;
-                match structured_content {
-                    ContentMatchType::Element(html_element) => {
-                        //println!("{:#?}", html_elem);
-                        match html_element.as_ref() {
-                            Element::Link(link_element) => {
-                                return None;
+            if let EntryItemMatchType::StructuredContentVec(mut content) = entry.swap_remove(5) {
+                // Now we own content and can move it
+                if let Some(structured_content) = content.get_mut(0).map(|c| {
+                    std::mem::replace(&mut c.content, ContentMatchType::String(String::new()))
+                }) {
+                    match structured_content {
+                        ContentMatchType::Element(html_element) => {
+                            match *html_element {
+                                Element::Link(mut link_element) => {
+                                    // a link has 2 import parts
+                                    // a reference word (relates to the
+                                    // main word) & the href.
+                                    // Should figure out what I should do to combine
+                                    // these two properly.
+                                    if let Some(content) = std::mem::take(&mut link_element.content)
+                                    {
+                                        match content {
+                                            ContentMatchType::String(ref_word) => {
+                                                v4_term.definitions.push(ref_word);
+                                            }
+                                            _ => { /* todo */ }
+                                        }
+                                    }
+                                }
+                                Element::Unstyled(_) => return None,
+                                _ => return None,
                             }
-                            Element::Unstyled(unstyled_element) => return None,
-                            _ => return None,
                         }
+                        ContentMatchType::Content(elem_vec) => {
+                            // Handle ContentMatchType::Content case
+                            // println!("{:#?}", elem_vec);
+                            return None;
+                        }
+                        ContentMatchType::String(_) => unreachable!(),
                     }
-                    ContentMatchType::Content(elem_vec) => {
-                        //println!("{:#?}", elem_vec);
-                        return None;
-                    }
-                    ContentMatchType::String(_) => unreachable!(),
                 }
             }
             None
         })
         .collect();
-
     Ok(terms)
 }
 
