@@ -321,3 +321,10 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
 //                 println!("{:?}", files_read);
 //
 // }
+fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
+    let index_str = fs::read_to_string(outpath)
+        .map_err(|e| ImportError::Custom(format!("Failed to convert index | Err: {e}")))?;
+    let index: Index = serde_json::from_str(&index_str)?;
+    Ok(index)
+}
+
