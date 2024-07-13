@@ -95,6 +95,17 @@ pub struct Tag {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Represents the structured content of a term.
+///
+/// An entry's entire [`StructuredContent`]is [`Deserialize`]d into a String and pushed into `content`.
+/// As such, it is up to the application to render `content` properly.
+///
+/// If the application is unable/unwilling to render html:
+/// See: [`TermV4`]
+pub struct TermGlossaryStructuredContent {
+    content: String,
+}
 pub struct TermV3 {
     expression: String,
     reading: String,
