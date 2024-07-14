@@ -315,9 +315,9 @@ pub struct UnstyledElement {
     /// [`HtmlTag::TableBody`],
     /// [`HtmlTag::TableFooter`],
     /// [`HtmlTag::TableRow`].
-    tag: HtmlTag,
-    content: Option<ContentMatchType>,
-    data: Option<HashMap<String, String>>,
+    pub tag: HtmlTag,
+    pub content: Option<ContentMatchType>,
+    pub data: Option<HashMap<String, String>>,
     /// Defines the language of an element in the format defined by RFC 5646.
     lang: Option<String>,
 }
@@ -328,12 +328,12 @@ pub struct TableElement {
     ///
     /// [`HtmlTag::TableData`],
     /// [`HtmlTag::TableHeader`].
-    tag: HtmlTag,
-    content: Option<ContentMatchType>,
-    data: Option<HashMap<String, String>>,
-    col_span: u16,
-    row_span: u16,
-    style: Option<StructuredContentStyle>,
+    pub tag: HtmlTag,
+    pub content: Option<ContentMatchType>,
+    pub data: Option<HashMap<String, String>>,
+    pub col_span: u16,
+    pub row_span: u16,
+    pub style: Option<StructuredContentStyle>,
     /// Defines the language of an element in the format defined by RFC 5646.
     lang: Option<String>,
 }
@@ -349,12 +349,12 @@ pub struct StyledElement {
     /// [`HtmlTag::ListItem`],
     /// [`HtmlTag::Details`],
     /// [`HtmlTag::Summary`].
-    tag: HtmlTag,
-    content: Option<ContentMatchType>,
-    data: Option<HashMap<String, String>>,
-    style: Option<StructuredContentStyle>,
+    pub tag: HtmlTag,
+    pub content: Option<ContentMatchType>,
+    pub data: Option<HashMap<String, String>>,
+    pub style: Option<StructuredContentStyle>,
     /// Hover text for the element.
-    title: Option<String>,
+    pub title: Option<String>,
     /// Defines the language of an element in the format defined by RFC 5646.
     lang: Option<String>,
 }
@@ -379,38 +379,38 @@ pub struct LinkElement {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImageElement {
     /// This element doesn't support children.
-    content: Option<()>,
+    pub content: Option<()>,
     /// The vertical alignment of the image.
-    vertical_align: Option<VerticalAlign>,
+    pub vertical_align: Option<VerticalAlign>,
     /// Shorthand for border width, style, and color.
-    border: Option<String>,
+    pub border: Option<String>,
     /// Roundness of the corners of the image's outer border edge.
-    border_radius: Option<String>,
+    pub border_radius: Option<String>,
     /// The units for the width and height.
-    size_units: Option<SizeUnits>,
-    data: Option<HashMap<String, String>>,
+    pub size_units: Option<SizeUnits>,
+    pub data: Option<HashMap<String, String>>,
     /// Path to the image file in the archive.
-    path: String,
+    pub path: String,
     /// Preferred width of the image.
-    width: Option<f32>,
+    pub width: Option<f32>,
     /// Preferred height of the image.
-    height: Option<f32>,
+    pub height: Option<f32>,
     /// Preferred width of the image.
     /// This is only used in the internal database.
-    preferred_width: Option<f32>,
+    pub preferred_width: Option<f32>,
     /// Preferred height of the image.
     /// This is only used in the internal database.
-    preferred_height: Option<f32>,
+    pub preferred_height: Option<f32>,
     /// Hover text for the image.
-    title: Option<String>,
+    pub title: Option<String>,
     /// Alt text for the image.
-    alt: Option<String>,
+    pub alt: Option<String>,
     /// Description of the image.
-    description: Option<String>,
+    pub description: Option<String>,
     /// Whether or not the image should appear pixelated at sizes larger than the image's native resolution.
-    pixelated: Option<bool>,
+    pub pixelated: Option<bool>,
     /// Controls how the image is rendered. The value of this field supersedes the pixelated field.
-    image_rendering: Option<ImageRendering>,
+    pub image_rendering: Option<ImageRendering>,
     /// Controls the appearance of the image. The 'monochrome' value will mask the opaque parts of the image using the current text color.
     appearance: Option<ImageAppearance>,
     /// Whether or not a background color is displayed behind the image.
