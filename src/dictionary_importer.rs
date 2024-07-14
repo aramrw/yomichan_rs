@@ -252,7 +252,6 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<(), ImportError
     let index = convert_index_file(index_path)?;
     let paths_len = tag_bank_paths.len() + term_bank_paths.len();
 
-    let term_banks: Result<Vec<TermV3>, ImportError> = term_bank_paths
     let term_banks: Result<Vec<TermV4>, ImportError> = term_bank_paths
         .into_par_iter()
         .map(convert_term_bank_file)
@@ -279,7 +278,7 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     Ok(index)
 }
 
-fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV3>, ImportError> {
+fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:?} | Err: {e}", outpath.to_string_lossy()))
     })?;
@@ -306,7 +305,7 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV3>, ImportError> 
     // ie: ["headword","reading","","",u128,[{/* main */}]]];
 
     //#[cfg(feature = "disabled")]
-    let terms: Vec<TermV3> = entries
+    let terms: Vec<TermV4> = entries
         .into_iter()
         .filter_map(|mut entry| {
             let (headword, reading) = match (entry[0].clone(), entry[1].clone()) {
@@ -330,43 +329,15 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV3>, ImportError> 
             };
 
             if let EntryItemMatchType::StructuredContentVec(mut content) = entry.swap_remove(5) {
-                // Now we own content and can move it
                 if let Some(structured_content) = content.get_mut(0).map(|c| {
                     std::mem::replace(&mut c.content, ContentMatchType::String(String::new()))
                 }) {
-                    match structured_content {
-                        ContentMatchType::Element(html_element) => {
-                            match *html_element {
-                                Element::Link(mut link_element) => {
-                                    // a link has 2 import parts
-                                    // a reference word (relates to the
-                                    // main word) & the href.
-                                    // Should figure out what I should do to combine
-                                    // these two properly.
-                                    if let Some(content) = std::mem::take(&mut link_element.content)
-                                    {
-                                        match content {
-                                            ContentMatchType::String(ref_word) => {
-                                                v4_term.definitions.push(ref_word);
-                                            }
-                                            _ => { /* todo */ }
-                                        }
-                                    }
-                                }
-                                Element::Unstyled(_) => return None,
-                                _ => return None,
-                            }
-                        }
-                        ContentMatchType::Content(elem_vec) => {
-                            // Handle ContentMatchType::Content case
-                            // println!("{:#?}", elem_vec);
-                            return None;
-                        }
-                        ContentMatchType::String(_) => unreachable!(),
-                    }
+                    let defs = get_string_content(structured_content);
+                    v4_term.definitions = defs;
                 }
             }
-            None
+
+            Some(v4_term)
         })
         .collect();
     Ok(terms)
