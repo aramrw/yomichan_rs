@@ -364,6 +364,14 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV3>, ImportError> 
     Ok(terms)
 }
 
+fn get_string_content(c_match_type: ContentMatchType) -> Vec<String> {
+    match c_match_type {
+        ContentMatchType::String(string) => vec![string],
+        ContentMatchType::Element(element) => handle_content_match_type(vec![*element]),
+        ContentMatchType::Content(vec) => handle_content_match_type(vec),
+    }
+}
+
 fn print_timer<T>(inst: Instant, print: T)
 where
     T: std::fmt::Debug,
