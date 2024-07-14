@@ -253,10 +253,18 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<(), ImportError
     let paths_len = tag_bank_paths.len() + term_bank_paths.len();
 
     let term_banks: Result<Vec<TermV3>, ImportError> = term_bank_paths
+    let term_banks: Result<Vec<TermV4>, ImportError> = term_bank_paths
         .into_par_iter()
         .map(convert_term_bank_file)
-        .collect::<Result<Vec<Vec<TermV3>>, ImportError>>() // Collect nested results
-        .map(|nested| nested.into_iter().flatten().collect()); // Flatten nested Vecs
+        .collect::<Result<Vec<Vec<TermV4>>, ImportError>>() 
+        .map(|nested| nested.into_iter().flatten().collect());
+    
+    let term_banks = match term_banks {
+        Ok(tb) => tb,
+        Err(e) => return Err(ImportError::Custom(format!("Failed to convert term banks | {}", e)))
+    };
+
+    println!("{}", term_banks.len());
 
     let files_len = paths_len;
     print_timer(instant, files_len);
