@@ -372,6 +372,42 @@ fn get_string_content(c_match_type: ContentMatchType) -> Vec<String> {
     }
 }
 
+fn handle_content_match_type(content: Vec<Element>) -> Vec<String> {
+    let mut content_strings: Vec<String> = Vec::new();
+
+    for e in content {
+        match e {
+            Element::UnknownString(string) => content_strings.push(string),
+            Element::Link(mut element) => {
+                if let Some(content) = std::mem::take(&mut element.content) {
+                    content_strings.extend(get_string_content(content));
+                }
+            }
+            Element::Styled(mut element) => {
+                if let Some(content) = std::mem::take(&mut element.content) {
+                    content_strings.extend(get_string_content(content));
+                }
+            }
+            Element::Unstyled(mut element) => {
+                if let Some(content) = std::mem::take(&mut element.content) {
+                    content_strings.extend(get_string_content(content));
+                }
+            }
+            Element::Table(mut element) => {
+                if let Some(content) = std::mem::take(&mut element.content) {
+                    content_strings.extend(get_string_content(content));
+                }
+            }
+            // img elements don't have children
+            Element::Image(_) => {}
+            // br elements don't have children
+            Element::LineBreak(_) => {}
+        }
+    }
+
+    content_strings
+}
+
 fn print_timer<T>(inst: Instant, print: T)
 where
     T: std::fmt::Debug,
