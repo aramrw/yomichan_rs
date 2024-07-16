@@ -15,7 +15,7 @@ use rayon::prelude::*;
 
 use tempfile::tempdir;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
@@ -156,7 +156,7 @@ impl Yomichan {
 }
 
 /// Deserializable type mapping a `term_bank_$i.json` file.
-pub type TermBank = Vec<Vec<EntryItemMatchType>>;
+pub type TermBank = Vec<EntryItem>;
 
 /// An `untagged` match type to generically match
 /// the `header`, `reading`, and `structured-content`
@@ -235,7 +235,7 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
     Ok(temp_dir_path)
 }
 
-pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<(), ImportError> {
+pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, ImportError> {
     let instant = Instant::now();
     //let temp_dir_path = extract_dict_zip(zip_path)?;
 
@@ -267,12 +267,17 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<(), ImportError
     let term_banks: Result<Vec<TermV4>, ImportError> = term_bank_paths
         .into_par_iter()
         .map(convert_term_bank_file)
-        .collect::<Result<Vec<Vec<TermV4>>, ImportError>>() 
+        .collect::<Result<Vec<Vec<TermV4>>, ImportError>>()
         .map(|nested| nested.into_iter().flatten().collect());
-    
+
     let term_banks = match term_banks {
         Ok(tb) => tb,
-        Err(e) => return Err(ImportError::Custom(format!("Failed to convert term banks | {}", e)))
+        Err(e) => {
+            return Err(ImportError::Custom(format!(
+                "Failed to convert term banks | {}",
+                e
+            )))
+        }
     };
 
     println!("{}", term_banks.len());
@@ -280,7 +285,11 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<(), ImportError
     let files_len = paths_len;
     print_timer(instant, files_len);
 
-    Ok(())
+    // for term in term_banks {
+    //     println!("{:#?}", term);
+    // }
+
+    Ok(term_banks)
 }
 
 fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
@@ -319,39 +328,33 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> 
     //#[cfg(feature = "disabled")]
     let terms: Vec<TermV4> = entries
         .into_iter()
-        .filter_map(|mut entry| {
-            let (headword, reading) = match (entry[0].clone(), entry[1].clone()) {
-                (EntryItemMatchType::String(headword), EntryItemMatchType::String(reading)) => {
-                    (headword, reading)
-                }
-                _ => return None,
-            };
-
-            #[cfg(feature = "termv3")]
-            let mut v3_term = TermV3 {
-                expression: headword.to_string(),
-                reading: reading.to_string(),
-                ..Default::default()
-            };
-
+        .map(|mut entry| {
             let mut v4_term = TermV4 {
-                expression: headword,
-                reading,
+                expression: entry.expression,
+                reading: entry.reading,
+                definition_tags: entry.def_tags,
+                rules: entry.rules,
+                score: entry.score,
+                sequence: entry.sequence,
+                term_tags: entry.term_tags,
                 ..Default::default()
             };
 
-            if let EntryItemMatchType::StructuredContentVec(mut content) = entry.swap_remove(5) {
-                if let Some(structured_content) = content.get_mut(0).map(|c| {
-                    std::mem::replace(&mut c.content, ContentMatchType::String(String::new()))
-                }) {
-                    let defs = get_string_content(structured_content);
-                    v4_term.definitions = defs;
-                }
-            }
+            let structured_content = entry.structured_content.swap_remove(0);
+            let defs = get_string_content(structured_content.content);
+            v4_term.definition = defs.concat();
 
-            Some(v4_term)
+            // let [structured_content] = entry.structured_content;
+            // let defs = get_string_content(structured_content.content);
+            // v4_term.definition = defs.concat();
+
+            // let defs = get_string_content(entry.structured_content.0.content);
+            // v4_term.definition = defs.concat();
+
+            v4_term
         })
         .collect();
+
     Ok(terms)
 }
 
