@@ -171,6 +171,18 @@ pub enum EntryItemMatchType {
     StructuredContentVec(Vec<StructuredContent>),
 }
 
+#[derive(Deserialize)]
+pub struct EntryItem {
+    pub expression: String,
+    pub reading: String,
+    pub def_tags: Option<String>,
+    pub rules: String,
+    pub score: i8,
+    pub structured_content: Vec<StructuredContent>,
+    pub sequence: i128,
+    pub term_tags: String,
+}
+
 impl<'de> Deserialize<'de> for EntryItemMatchType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
