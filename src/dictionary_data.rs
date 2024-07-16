@@ -143,9 +143,9 @@ pub struct TermV4 {
     pub reading: String,
     pub definition_tags: Option<String>,
     pub rules: String,
-    pub score: i128,
-    pub definitions: Vec<String>,
-    pub sequence: i64,
+    pub score: i8,
+    pub definition: String,
+    pub sequence: i128,
     pub term_tags: String,
 }
 
