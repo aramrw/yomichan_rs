@@ -208,10 +208,17 @@ pub struct TermMetaFrequency {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Represents the pitch of a term.
+/// List of different pitch accent information for the term and reading combination.
 pub struct Pitch {
-    position: u16,
-    nasal: Option<Vec<u16>>,
-    devoice: Option<Vec<u16>>,
+    /// Mora position of the pitch accent downstep. 
+    /// A value of 0 indicates that the word does not have a downstep (heiban).
+    position: u8,
+    /// Positions of a morae with nasal sound.
+    nasal: Option<VecNumOrNum>,
+    /// Positions of morae with devoiced sound.
+    devoice: Option<VecNumOrNum>,
+    /// List of tags for this pitch accent.
+    /// This typically corresponds to a certain type of part of speech.
     tags: Option<Vec<String>>,
 }
 
