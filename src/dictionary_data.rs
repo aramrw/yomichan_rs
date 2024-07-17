@@ -241,6 +241,7 @@ pub struct TermMetaPitch {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermMetaPhoneticData {
     reading: String,
+    /// List of different IPA transcription information for the term and reading combination.
     transcriptions: Vec<PhoneticTranscription>,
 }
 
