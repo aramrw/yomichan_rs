@@ -330,6 +330,17 @@ pub struct TermDictionaryEntry {
     /// Frequencies for the entry.
     frequencies: Vec<TermFrequency>,
 }
+
+/*************** Pitch Accent & Pronunciation ***************/
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum TermPronunciationMatchType {
+    #[serde(rename = "lowercase")]
+    PitchAccent,
+    #[serde(rename = "phonetic-transcription")]
+    PhoneticTranscription,
+}
+
 pub struct PitchAccent {
     /// Type of the pronunciation, for disambiguation between union type members.
     /// Should be `"pitch-accent"` in the json.
