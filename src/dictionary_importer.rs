@@ -262,6 +262,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
 
     let mut index_path = PathBuf::new();
     let mut tag_bank_paths: Vec<PathBuf> = Vec::new();
+    let mut kanji_meta_bank_paths: Vec<PathBuf> = Vec::new();
     let mut term_meta_bank_paths: Vec<PathBuf> = Vec::new();
     let mut term_bank_paths: Vec<PathBuf> = Vec::new();
 
@@ -274,9 +275,27 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
     );
 
     let paths_len = tag_bank_paths.len() + term_bank_paths.len() + 1;
+    let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title;
     let tag_list: Vec<Vec<Tag>> = convert_tag_bank_files(tag_bank_paths)?;
+
+    let kanji_meta_banks: Result<Vec<DatabaseKanjiMetaFrequency>, ImportError> =
+        kanji_meta_bank_paths
+            .into_par_iter()
+            .map(|path| convert_kanji_meta_file(path, dict_name.clone()))
+            .collect::<Result<Vec<Vec<DatabaseKanjiMetaFrequency>>, ImportError>>()
+            .map(|v| v.into_iter().flatten().collect());
+
+    let kanji_meta_list = match kanji_meta_banks {
+        Ok(tml) => tml,
+        Err(e) => {
+            return Err(ImportError::Custom(format!(
+                "Failed to convert kanji_meta_banks | {}",
+                e
+            )))
+        }
+    };
 
     let term_meta_banks: Result<Vec<DatabaseTermMeta>, ImportError> = term_meta_bank_paths
         .into_par_iter()
