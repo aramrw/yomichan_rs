@@ -169,6 +169,20 @@ pub struct DatabaseKanjiEntry {
     stats: Option<std::collections::HashMap<String, String>>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct KanjiEntry {
+    index: i32,
+    character: String,
+    onyomi: Vec<String>,
+    kunyomi: Vec<String>,
+    tags: Vec<String>,
+    definitions: Vec<String>,
+    stats: std::collections::HashMap<String, String>,
+    dictionary: String,
+}
+
+/*************** Database Dictionary ***************/
+
 pub type DictionaryCountGroup = HashMap<String, u16>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
