@@ -341,6 +341,14 @@ pub enum TermPronunciationMatchType {
     PhoneticTranscription,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum InflectionSource {
+    Algorithm,
+    Dictionary,
+    Both,
+}
+
 pub struct PitchAccent {
     /// Type of the pronunciation, for disambiguation between union type members.
     /// Should be `"pitch-accent"` in the json.
