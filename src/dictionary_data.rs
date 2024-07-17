@@ -338,6 +338,35 @@ pub enum GenericFrequencyData {
     },
 }
 
+impl<'de> Deserialize<'de> for GenericFrequencyData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        serde_untagged::UntaggedEnumVisitor::new()
+            .string(|str| Ok(GenericFrequencyData::String(str.to_string())))
+            .u32(|int| Ok(GenericFrequencyData::Integer(int)))
+            .map(|map| {
+                let obj = map.deserialize::<serde_json::Value>()?;
+                let value: u32 =
+                    obj.get("value").and_then(|v| v.as_u64()).ok_or_else(|| {
+                        serde::de::Error::custom("Missing or invalid 'value' field")
+                    })? as u32;
+
+                let display_value = if let Some(display_value) = obj.get("displayValue") {
+                    display_value.as_str().map(String::from)
+                } else {
+                    None
+                };
+
+                Ok(GenericFrequencyData::Object {
+                    value,
+                    display_value,
+                })
+            })
+            .deserialize(deserializer)
+    }
+}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermMetaFrequencyDataWithReading {
     reading: String,
