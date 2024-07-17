@@ -202,6 +202,7 @@ impl<'de> Deserialize<'de> for Element {
         D: Deserializer<'de>,
     {
         serde_untagged::UntaggedEnumVisitor::new()
+            .string(|unkown_string| Ok(Element::UnknownString(unkown_string.to_string())))
             .map(|map| {
                 let value = map.deserialize::<serde_json::Value>()?;
                 let tag = match value.get("tag") {
@@ -251,7 +252,6 @@ impl<'de> Deserialize<'de> for Element {
                     serde::de::Error::custom(format!("failed to deserialize element: {}", err))
                 })
             })
-            .string(|unkown_string| Ok(Element::UnknownString(unkown_string.to_string())))
             .deserialize(deserializer)
     }
 }
