@@ -189,14 +189,23 @@ pub struct KanjiDictionaryEntry {
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermFrequency {
+    /// The original order of the frequency, which is usually used for sorting.
     index: u32,
+    /// Which headword this frequency corresponds to.
     headword_index: u32,
+    /// The name of the dictionary that the frequency information originated from.
     dictionary: String,
+    /// The index of the dictionary in the original list of dictionaries used for the lookup.
     dictionary_index: u16,
+    /// The priority of the dictionary.
     dictionary_priority: u16,
+    /// Whether or not the frequency had an explicit reading specified.
     has_reading: bool,
+    /// The frequency for the term, as a number of occurrences or an overall rank.
     frequency: u32,
+    /// A display value to show to the user.
     display_value: Option<String>,
+    /// Whether or not the displayValue string was parsed to determine the frequency value.
     display_value_parsed: bool,
 }
 
