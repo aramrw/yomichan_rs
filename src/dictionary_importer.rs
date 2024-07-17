@@ -309,6 +309,83 @@ fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<Tag>>, Impor
         .collect()
 }
 
+/****************** Term Meta Functions ******************/
+
+fn convert_term_meta_file(
+    outpath: PathBuf,
+    mut dict_name: String,
+) -> Result<Vec<DatabaseTermMeta>, ImportError> {
+    let file = fs::File::open(&outpath).map_err(|e| {
+        ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
+    })?;
+    let reader = BufReader::new(file);
+
+    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermMetaBank>();
+    let entries: TermMetaBank = match stream.next() {
+        Some(Ok(entries)) => entries,
+        Some(Err(e)) => {
+            return Err(ImportError::Custom(format!(
+                "File: {} | Err: {e}",
+                &outpath.to_string_lossy(),
+            )))
+        }
+        None => {
+            return Err(ImportError::Custom(String::from(
+                "no data in term_meta_bank stream",
+            )))
+        }
+    };
+
+    let term_metas: Vec<DatabaseTermMeta> = entries
+        .into_iter()
+        .map(|entry| {
+            let mut meta = DatabaseTermMeta {
+                frequency: None,
+                pitch: None,
+                phonetic: None,
+            };
+
+            match entry.mode {
+                TermMetaModeType::Freq => {
+                    if let TermMetaDataMatchType::Frequency(data) = entry.data {
+                        meta.frequency = Some(DatabaseTermMetaFrequency {
+                            expression: entry.expression,
+                            mode: TermMetaModeType::Freq,
+                            data,
+                            dictionary: mem::take(&mut dict_name),
+                        });
+                    }
+                }
+                TermMetaModeType::Pitch => {
+                    if let TermMetaDataMatchType::Pitch(data) = entry.data {
+                        meta.pitch = Some(DatabaseTermMetaPitch {
+                            expression: entry.expression,
+                            mode: TermMetaModeType::Pitch,
+                            data,
+                            dictionary: mem::take(&mut dict_name),
+                        });
+                    }
+                }
+                TermMetaModeType::Ipa => {
+                    if let TermMetaDataMatchType::Phonetic(data) = entry.data {
+                        meta.phonetic = Some(DatabaseTermMetaPhonetic {
+                            expression: entry.expression,
+                            mode: TermMetaModeType::Freq,
+                            data,
+                            dictionary: mem::take(&mut dict_name),
+                        });
+                    }
+                }
+            }
+
+            meta
+        })
+        .collect();
+    Ok(term_metas)
+}
+
+/****************** Term Bank Functions ******************/
+
 fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:?} | Err: {e}", outpath.to_string_lossy()))
