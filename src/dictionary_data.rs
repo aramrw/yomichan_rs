@@ -293,6 +293,41 @@ pub enum TermMetaFrequencyDataType {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+impl<'de> Deserialize<'de> for TermMetaFrequencyDataType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        serde_untagged::UntaggedEnumVisitor::new()
+            .string(|str| {
+                Ok(TermMetaFrequencyDataType::Generic(
+                    GenericFrequencyData::String(str.to_string()),
+                ))
+            })
+            .u32(|int| {
+                Ok(TermMetaFrequencyDataType::Generic(
+                    GenericFrequencyData::Integer(int),
+                ))
+            })
+            .map(|map| {
+                let value = map.deserialize::<serde_json::Value>()?;
+                if value.get("reading").is_some() {
+                    serde_json::from_value(value)
+                        .map(TermMetaFrequencyDataType::WithReading)
+                        .map_err(serde::de::Error::custom)
+                } else if value.get("value").is_some() {
+                    serde_json::from_value(value)
+                        .map(TermMetaFrequencyDataType::Generic)
+                        .map_err(serde::de::Error::custom)
+                } else {
+                    Err(serde::de::Error::custom("Unknown term meta data type"))
+                }
+            })
+            .deserialize(deserializer)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum GenericFrequencyData {
     Integer(u32),
