@@ -344,3 +344,14 @@ pub struct PitchAccent {
     tags: Vec<Tag>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PhoneticTranscription {
+    /// Type of the pronunciation, for disambiguation between union type members.
+    /// Should be `"phonetic-transcription"` in the json.
+    match_type: TermPronunciationMatchType,
+    /// IPA transcription for the term.
+    ipa: String,
+    /// List of tags for this IPA transcription.
+    tags: Vec<Tag>,
+}
+
