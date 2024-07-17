@@ -1,6 +1,11 @@
-use crate::dictionary_data::{Index, Tag, TermGlossaryImage, TermV3, TermV4};
+use crate::dictionary_data::{
+    GenericFrequencyData, Index, Tag, TermGlossaryImage, TermMeta, TermMetaDataMatchType,
+    TermMetaFrequency, TermMetaFrequencyDataType, TermMetaMatchType, TermMetaModeType,
+    TermMetaPitchData, TermV3, TermV4,
+};
 use crate::dictionary_database::{
-    db_stores, DatabaseTermEntry, MediaDataArrayBufferContent, TermEntry,
+    db_stores, DatabaseTermEntry, DatabaseTermMeta, DatabaseTermMetaFrequency,
+    DatabaseTermMetaPhonetic, DatabaseTermMetaPitch, MediaDataArrayBufferContent, TermEntry,
 };
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
@@ -19,9 +24,13 @@ use std::collections::{HashMap, VecDeque};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+
 use std::time::Instant;
-use std::{fs, io};
+use std::{fs, io, mem};
 
 //use chrono::{DateTime, Local};
 
@@ -195,6 +204,7 @@ impl Yomichan {
 
 /// Deserializable type mapping a `term_bank_$i.json` file.
 pub type TermBank = Vec<EntryItem>;
+pub type TermMetaBank = Vec<TermMeta>;
 
 /// the 'header', and `structured-content`
 /// of a `term_bank_$i.json` entry item.
@@ -252,19 +262,20 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
 
     let mut index_path = PathBuf::new();
     let mut tag_bank_paths: Vec<PathBuf> = Vec::new();
-    let mut term_meta_banks: Vec<PathBuf> = Vec::new();
+    let mut term_meta_bank_paths: Vec<PathBuf> = Vec::new();
     let mut term_bank_paths: Vec<PathBuf> = Vec::new();
 
     read_dir_helper(
         zip_path,
         &mut index_path,
         &mut tag_bank_paths,
-        &mut term_meta_banks,
+        &mut term_meta_bank_paths,
         &mut term_bank_paths,
     );
 
     let paths_len = tag_bank_paths.len() + term_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
+    let dict_name = index.title;
     let tag_list: Vec<Vec<Tag>> = convert_tag_bank_files(tag_bank_paths)?;
 
     let term_meta_banks: Result<Vec<DatabaseTermMeta>, ImportError> = term_meta_bank_paths
@@ -299,7 +310,11 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
         }
     };
 
-    let counts = (term_list.len(), tag_list.len());
+    for t in &term_meta_list {
+        println!("{:#?}", t);
+    }
+
+    let counts = (tag_list.len(), term_meta_list.len(), term_list.len());
     print_timer(instant, paths_len);
 
     Ok(term_list)
@@ -312,8 +327,9 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     Ok(index)
 }
 
-//fn convert_term_meta_files(outpaths: Vec<PathBuf>) -> Result<Vec<Term
-
+// this one should probabaly be refactored to:
+// 1. include the file and err if it throws like the rest of the converts
+// 2. only handle one file and have the iteration be handled in the caller function
 fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<Tag>>, ImportError> {
     outpaths
         .into_iter()
@@ -404,24 +420,23 @@ fn convert_term_meta_file(
 
 fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
-        ImportError::Custom(format!("File: {:?} | Err: {e}", outpath.to_string_lossy()))
+        ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
     })?;
     let reader = BufReader::new(file);
 
     let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
-    let entries = match stream.next() {
+    let entries: Vec<EntryItem> = match stream.next() {
         Some(Ok(entries)) => entries,
-        Some(Err(err)) => {
+        Some(Err(e)) => {
             return Err(ImportError::Custom(format!(
-                "File: {} | Err: {}",
+                "File: {} | Err: {e}",
                 &outpath.to_string_lossy(),
-                err
             )))
         }
         None => {
-            return Err(ImportError::Custom(
-                "no data in dictionary stream".to_string(),
-            ))
+            return Err(ImportError::Custom(String::from(
+                "no data in term_bank stream",
+            )))
         }
     };
 
