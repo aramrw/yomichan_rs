@@ -160,16 +160,27 @@ pub struct KanjiFrequency {
 pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
 
 #[allow(dead_code)]
+/// A dictionary entry for a kanji character.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiDictionaryEntry {
+    /// The type of the entry.
+    /// Should be `"kanji"` in the json.
     entry_type: DictionaryEntryType,
+    /// The kanji character that was looked up.
     character: String,
+    /// The name of the dictionary that the information originated from.
     dictionary: String,
+    /// Onyomi readings for the kanji character.
     onyomi: Vec<String>,
+    /// Kunyomi readings for the kanji character.
     kunyomi: Vec<String>,
+    /// Tags for the kanji character.
     tags: Vec<Tag>,
+    /// An object containing stats about the kanji character.
     stats: KanjiStatGroups,
+    /// Definitions for the kanji character.
     definitions: Vec<String>,
+    /// Frequency information for the kanji character.
     frequencies: Vec<KanjiFrequency>,
 }
 
