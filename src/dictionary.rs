@@ -120,12 +120,19 @@ pub struct Tag {
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiStat {
+    /// The name of the stat.
     name: String,
+    /// The category of the stat.
     category: String,
+    /// A description of the stat.
     content: String,
+    /// A number indicating the sorting order of the stat.
     order: u16,
+    /// A score value for the stat.
     score: u64,
+    /// The name of the dictionary that the stat originated from.
     dictionary: String,
+    /// A value for the stat.
     value: NumOrStr,
 }
 
