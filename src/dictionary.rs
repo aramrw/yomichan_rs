@@ -3,9 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[allow(dead_code)]
+/// Helper enum to match expected schema types more accurately.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum NumOrStr {
-    Num(u64),
+    Num(i128),
     Str(String),
 }
 
