@@ -1,10 +1,9 @@
-use crate::dictionary::PhoneticTranscription;
+use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
+use crate::dictionary_importer::{FrequencyMode, StructuredContent};
 use crate::structured_content::ImageElement;
-use crate::dictionary_importer::StructuredContent;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
 
 use std::string::String;
 
@@ -22,7 +21,6 @@ pub enum TermGlossaryType {
     Image,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermGlossaryImage {
     pub term_glossary_type: TermGlossaryType,
@@ -39,7 +37,6 @@ pub struct TermImage {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Index represents the metadata of a dictionary.
 /// Represents the metadata of a dictionary.
 pub struct Index {
     /// Title of the dictionary.
@@ -138,8 +135,6 @@ pub struct TermGlossaryText {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Represents the structured content of a term.
 ///
-/// An entry's entire [`StructuredContent`]is [`Deserialize`]d into a String and pushed into `content`.
-/// As such, it is up to the application to render `content` properly.
 /// An entry's entire HTML [`StructuredContent`]is [`Deserialize`]d into a String and pushed into `content`.
 /// As such, it is up to the program to render `content` properly.
 ///
@@ -149,10 +144,8 @@ pub struct TermGlossaryStructuredContent {
     content: String,
 }
 
-
 /// Yomichan-like term model.
 ///
-/// Because of how Yomichan is designed, the definition's HTML is contained in
 /// Because of how Yomichan is designed, the definition's raw HTML is contained in
 /// [`TermGlossaryContent::term_glossary_structured_content`]/`content` as a String.
 ///
@@ -200,14 +193,12 @@ pub struct TermGlossaryDeinflection {
     inflection_rule_chain: Vec<String>,
 }
 
-
 /************* Term Meta *************/
 
 /// A helper Enum to select the mode for TermMeta data structures.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermMetaModeType {
-    Pitch,
     Freq,
     Pitch,
     Ipa,
@@ -221,7 +212,6 @@ pub enum TermMetaFrequencyDataType {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// GenericFrequencyData represents the frequency data of a term.
 /// Represents the frequency data of a term.
 pub enum GenericFrequencyData {
     Value(u16),
@@ -254,7 +244,6 @@ pub struct TermMetaFrequency {
 /************* Pitch / Speech Data *************/
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Represents the pitch of a term.
 /// List of different pitch accent information for the term and reading combination.
 pub struct Pitch {
     /// Mora position of the pitch accent downstep. 
