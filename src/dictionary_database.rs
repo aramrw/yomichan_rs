@@ -158,6 +158,17 @@ pub struct DatabaseKanjiMetaFrequency {
     dictionary: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DatabaseKanjiEntry {
+    character: String,
+    onyomi: String,
+    kunyomi: String,
+    tags: String,
+    meanings: Vec<String>,
+    dictionary: String,
+    stats: Option<std::collections::HashMap<String, String>>,
+}
+
 pub type DictionaryCountGroup = HashMap<String, u16>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
