@@ -64,8 +64,11 @@ pub struct IndexTagMeta {
     pub tags: HashMap<String, IndexTag>,
 }
 
+#[deprecated(since="0.0.1", note="individual tag files should be used instead")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// IndexTag represents the metadata of a tag in a dictionary.
+/// Tag information for terms and kanji. 
+///
+/// This object is deprecated, and individual tag files should be used instead.
 pub struct IndexTag {
     category: String,
     order: u16,
