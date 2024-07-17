@@ -218,6 +218,51 @@ pub enum TermMetaMatchType {
     Frequency(TermMetaFrequency),
     Pitch(TermMetaPitch),
     Phonetic(TermMetaPhonetic),
+impl<'de> Deserialize<'de> for TermMetaDataMatchType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        serde_untagged::UntaggedEnumVisitor::new()
+            .string(|str| {
+                Ok(TermMetaDataMatchType::Frequency(
+                    TermMetaFrequencyDataType::Generic(GenericFrequencyData::String(
+                        str.to_string(),
+                    )),
+                ))
+            })
+            .u32(|int| {
+                Ok(TermMetaDataMatchType::Frequency(
+                    TermMetaFrequencyDataType::Generic(GenericFrequencyData::Integer(int)),
+                ))
+            })
+            .map(|map| {
+                let value = map.deserialize::<serde_json::Value>()?;
+                #[allow(clippy::if_same_then_else)]
+                if value.get("frequency").is_some() {
+                    serde_json::from_value(value)
+                        .map(TermMetaDataMatchType::Frequency)
+                        .map_err(serde::de::Error::custom)
+                } else if value.get("value").is_some() {
+                    serde_json::from_value(value)
+                        .map(TermMetaDataMatchType::Frequency)
+                        .map_err(serde::de::Error::custom)
+                } else if value.get("pitches").is_some() {
+                    serde_json::from_value(value)
+                        .map(TermMetaDataMatchType::Pitch)
+                        .map_err(serde::de::Error::custom)
+                } else if value.get("transcriptions").is_some() {
+                    serde_json::from_value(value)
+                        .map(TermMetaDataMatchType::Phonetic)
+                        .map_err(serde::de::Error::custom)
+                } else {
+                    Err(serde::de::Error::custom(format!(
+                        "Unknown term meta data type: {:?}",
+                        value
+                    )))
+                }
+            })
+            .deserialize(deserializer)
 }
 
 /// A helper Enum to select the mode for TermMeta data structures.
