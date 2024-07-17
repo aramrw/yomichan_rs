@@ -335,6 +335,19 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     Ok(index)
 }
 
+//fn convert_term_meta_files(outpaths: Vec<PathBuf>) -> Result<Vec<Term
+
+fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<Tag>>, ImportError> {
+    outpaths
+        .into_iter()
+        .map(|p| {
+            let tag_str = fs::read_to_string(p)?;
+            let tag: Vec<Tag> = serde_json::from_str(&tag_str)?;
+            Ok(tag)
+        })
+        .collect()
+}
+
 fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:?} | Err: {e}", outpath.to_string_lossy()))
