@@ -139,6 +139,19 @@ pub struct ImportRequirementContext {
     media: HashMap<String, MediaDataArrayBufferContent>,
 }
 
+/// An `untagged` match type to generically match
+/// the `header`, `reading`, and `structured-content`
+/// of a `term_bank_$i.json` entry item.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+enum EntryItemMatchType {
+    String(String),
+    Integer(i128),
+    /// The array holding the main `structured-content` object.
+    /// There is only 1 per entry.
+    StructuredContentVec(Vec<StructuredContent>),
+}
+
 impl Yomichan {
     async fn import_dictionary(&self) -> Result<(), DBError> {
         use db_stores::*;
