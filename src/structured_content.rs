@@ -331,8 +331,8 @@ pub struct TableElement {
     pub tag: HtmlTag,
     pub content: Option<ContentMatchType>,
     pub data: Option<HashMap<String, String>>,
-    pub col_span: u16,
-    pub row_span: u16,
+    pub col_span: Option<u16>,
+    pub row_span: Option<u16>,
     pub style: Option<StructuredContentStyle>,
     /// Defines the language of an element in the format defined by RFC 5646.
     lang: Option<String>,
