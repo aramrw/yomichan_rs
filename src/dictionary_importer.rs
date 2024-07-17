@@ -1,11 +1,12 @@
 use crate::dictionary_data::{
     GenericFrequencyData, Index, Tag, TermGlossaryImage, TermMeta, TermMetaDataMatchType,
-    TermMetaFrequency, TermMetaFrequencyDataType, TermMetaMatchType, TermMetaModeType,
-    TermMetaPitchData, TermV3, TermV4,
+    TermMetaFrequency, TermMetaFrequencyDataType, TermMetaModeType, TermMetaPitchData, TermV3,
+    TermV4,
 };
 use crate::dictionary_database::{
-    db_stores, DatabaseTermEntry, DatabaseTermMeta, DatabaseTermMetaFrequency,
-    DatabaseTermMetaPhonetic, DatabaseTermMetaPitch, MediaDataArrayBufferContent, TermEntry,
+    db_stores, DatabaseKanjiMetaFrequency, DatabaseTermEntry, DatabaseTermMeta,
+    DatabaseTermMetaFrequency, DatabaseTermMetaPhonetic, DatabaseTermMetaPitch,
+    MediaDataArrayBufferContent, TermEntry,
 };
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
@@ -175,16 +176,10 @@ impl<'de> Deserialize<'de> for EntryItemMatchType {
     }
 }
 
-// NEXT STEP BEFORE ADDING TO DB IS TO FINISH ALL THE SCHEMAS + MEDIA
-// TERM BANKS + INDEX IS DONE HOWEVER
-// THE BEST IDEA IS TO MAKE SURE I SUPPORT ALL FILE TYPES AND THEN I CAN IGNORE
-// THEM WHEN IT COMES TO PUSHING TO THE db
-//
-//
 //  terms: {total: termList.length}, // FINISHED
-//  termMeta: this._getMetaCounts(termMetaList),
+//  termMeta: this._getMetaCounts(termMetaList), // FINISHED
 //  kanji: {total: kanjiList.length},
-//  kanjiMeta: this._getMetaCounts(kanjiMetaList),
+//  kanjiMeta: this._getMetaCounts(kanjiMetaList), // FINISHED
 //  tagMeta: {total: tagList.length}, // FINISHED
 //  media: {total: media.length},
 impl Yomichan {
@@ -270,11 +265,11 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
         zip_path,
         &mut index_path,
         &mut tag_bank_paths,
+        &mut kanji_meta_bank_paths,
         &mut term_meta_bank_paths,
         &mut term_bank_paths,
     );
 
-    let paths_len = tag_bank_paths.len() + term_bank_paths.len() + 1;
     let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title;
@@ -329,11 +324,10 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
         }
     };
 
-    for t in &term_meta_list {
+    for t in &kanji_meta_list {
         println!("{:#?}", t);
     }
 
-    let counts = (tag_list.len(), term_meta_list.len(), term_list.len());
     let counts = (
         tag_list.len(),
         term_meta_list.len(),
@@ -577,6 +571,7 @@ fn read_dir_helper<P: AsRef<Path>>(
     zip_path: P,
     index: &mut PathBuf,
     tag_banks: &mut Vec<PathBuf>,
+    kanji_meta_banks: &mut Vec<PathBuf>,
     term_meta_banks: &mut Vec<PathBuf>,
     term_banks: &mut Vec<PathBuf>,
 ) -> Result<(), io::Error> {
@@ -596,6 +591,8 @@ fn read_dir_helper<P: AsRef<Path>>(
                 *index = outpath_buf;
             } else if contains(outpath, b"term_meta_bank") {
                 term_meta_banks.push(outpath_buf);
+            } else if contains(outpath, b"kanji_meta_bank") {
+                kanji_meta_banks.push(outpath_buf);
             } else if contains(outpath, b"tag_bank") {
                 tag_banks.push(outpath_buf);
             }
