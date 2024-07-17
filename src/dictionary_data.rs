@@ -40,51 +40,51 @@ pub struct TermImage {
 /// Represents the metadata of a dictionary.
 pub struct Index {
     /// Title of the dictionary.
-    title: String,
-    /// Revision of the dictionary. 
+    pub title: String,
+    /// Revision of the dictionary.
     ///
     /// This value is only used for displaying information.
-    revision: String,
+    pub revision: String,
     /// Whether or not this dictionary contains sequencing information for related terms.
-    sequenced: Option<bool>,
+    pub sequenced: Option<bool>,
     /// Format of data found in the JSON data files.
-    format: Option<u8>,
+    pub format: Option<u8>,
     /// Alias for format.
     ///
     /// Versions can include: `1 - 3`.
-    version: Option<u8>,
+    pub version: Option<u8>,
     /// Creator of the dictionary.
-    author: Option<String>,
+    pub author: Option<String>,
     /// URL for the source of the dictionary.
-    url: Option<String>,
+    pub url: Option<String>,
     /// Description of the dictionary data.
-    description: Option<String>,
+    pub description: Option<String>,
     /// Attribution information for the dictionary data.
-    attribution: Option<String>,
+    pub attribution: Option<String>,
     /// Language of the terms in the dictionary.
     ///
     /// See: [iso639 code list](https://www.loc.gov/standards/iso639-2/php/code_list.php).
-    source_language: Option<String>,
+    pub source_language: Option<String>,
     /// Main language of the definitions in the dictionary.
     ///
     /// See: [iso639 code list](https://www.loc.gov/standards/iso639-2/php/code_list.php).
-    target_language: Option<String>,
-    frequency_mode: Option<FrequencyMode>,
-    tag_meta: Option<HashMap<String, IndexTag>>,
+    pub target_language: Option<String>,
+    pub frequency_mode: Option<FrequencyMode>,
+    pub tag_meta: Option<HashMap<String, IndexTag>>,
 }
 
-#[deprecated(since="0.0.1", note="individual tag files should be used instead")]
+#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Tag information for terms and kanji. 
+/// Tag information for terms and kanji.
 ///
 /// This object is deprecated, and individual tag files should be used instead.
 pub struct IndexTagMeta {
     pub tags: HashMap<String, IndexTag>,
 }
 
-#[deprecated(since="0.0.1", note="individual tag files should be used instead")]
+#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Tag information for terms and kanji. 
+/// Tag information for terms and kanji.
 ///
 /// This object is deprecated, and individual tag files should be used instead.
 pub struct IndexTag {
@@ -172,7 +172,7 @@ pub struct TermV3 {
 /// The String data is simply extracted and concatenated-
 /// meaning that there is _no_ formatting; A single string of continuous text.
 ///
-/// If the program _is_ able to render html, this may be preferable: 
+/// If the program _is_ able to render html, this may be preferable:
 /// See: [`TermV3`]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct TermV4 {
@@ -229,27 +229,33 @@ pub enum TermMetaModeType {
     Ipa,
 }
 
-/// A helper Enum to select the type of data for TermMetaFrequency data.
+/************* Frequency *************/
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// The frequency metadata of a term.
+pub struct TermMetaFrequency {
+    expression: String,
+    /// This will be `"freq"` in the json.
+    mode: TermMetaModeType,
+    data: TermMetaFrequencyDataType,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum TermMetaFrequencyDataType {
     Generic(GenericFrequencyData),
     WithReading(TermMetaFrequencyDataWithReading),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Represents the frequency data of a term.
+#[serde(untagged)]
 pub enum GenericFrequencyData {
-    Value(u16),
-    DisplayValue(String),
-    Reading(String),
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// The metadata of a term.
-pub enum TermMeta {
-    Frequency(TermMetaFrequency),
-    Pitch(TermMetaPitch),
-    Phonetic(TermMetaPhonetic),
+    Integer(u32),
+    String(String),
+    Object {
+        value: u32,
+        displayValue: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -258,20 +264,21 @@ pub struct TermMetaFrequencyDataWithReading {
     frequency: GenericFrequencyData,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// The frequency metadata of a term.
-pub struct TermMetaFrequency {
-    expression: String,
-    mode: TermMetaModeType,
-    data: TermMetaFrequencyDataType,
-}
-
 /************* Pitch / Speech Data *************/
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// The pitch metadata of a term.
+pub struct TermMetaPitch {
+    expression: String,
+    /// This will be `"pitch"` in the json.
+    mode: TermMetaModeType,
+    data: TermMetaPitchData,
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// List of different pitch accent information for the term and reading combination.
 pub struct Pitch {
-    /// Mora position of the pitch accent downstep. 
+    /// Mora position of the pitch accent downstep.
     /// A value of 0 indicates that the word does not have a downstep (heiban).
     position: u8,
     /// Positions of a morae with nasal sound.
@@ -286,16 +293,8 @@ pub struct Pitch {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// The pitch data of a term.
 pub struct TermMetaPitchData {
-    reading: String,
-    pitches: Vec<Pitch>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// The pitch metadata of a term.
-pub struct TermMetaPitch {
-    expression: String,
-    mode: TermMetaModeType,
-    data: TermMetaPitchData,
+    pub reading: String,
+    pub pitches: Vec<Pitch>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
