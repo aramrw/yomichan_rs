@@ -202,6 +202,24 @@ pub struct TermMeta {
     pub data: TermMetaDataMatchType,
 }
 
+/// The metadata of a term.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TermMetaDataMatchType {
+    Frequency(TermMetaFrequencyDataType),
+    Pitch(TermMetaPitchData),
+    Phonetic(TermMetaPhoneticData),
+}
+
+/// The metadata of a term.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TermMetaMatchType {
+    Frequency(TermMetaFrequency),
+    Pitch(TermMetaPitch),
+    Phonetic(TermMetaPhonetic),
+}
+
 /// A helper Enum to select the mode for TermMeta data structures.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
