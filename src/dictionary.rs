@@ -349,6 +349,14 @@ pub enum InflectionSource {
     Both,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum Pronunciation {
+    PitchAccent(PitchAccent),
+    PhoneticTranscription(PhoneticTranscription),
+}
+
+/// Pitch accent information for a term, represented as the position of the downstep.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PitchAccent {
     /// Type of the pronunciation, for disambiguation between union type members.
     /// Should be `"pitch-accent"` in the json.
