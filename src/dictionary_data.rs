@@ -176,6 +176,7 @@ pub enum TermMetaFrequencyDataType {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// GenericFrequencyData represents the frequency data of a term.
+/// Represents the frequency data of a term.
 pub enum GenericFrequencyData {
     Value(u16),
     DisplayValue(String),
