@@ -281,6 +281,7 @@ pub struct TermPronunciation {
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// TermSource represents the source of a term in the dictionary.
+/// Source information represents how the original text was transformed to get to the final term.
 pub struct TermSource {
     /// The original text that was searched.
     original_text: String,
