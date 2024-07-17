@@ -2,7 +2,6 @@ use crate::dictionary_data::TermGlossaryContent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[allow(dead_code)]
 /// Helper enum to match expected schema types more accurately.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum NumOrStr {
@@ -10,91 +9,13 @@ pub enum NumOrStr {
     Str(String),
 }
 
-#[allow(dead_code)]
+/// Helper enum to match expected schema types more accurately.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Enum representing what database field was used to match the source term.
-pub enum TermSourceMatchSource {
-    Term,
-    Reading,
-    Sequence,
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Enum representing how the search term relates to the final term.
-pub enum TermSourceMatchType {
-    Exact,
-    Prefix,
-    Suffix,
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum TermPronunciationMatchType {
-    PitchAccent,
-    PhoneticTranscription,
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum DictionaryEntryType {
-    Kanji,
-    Term,
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum InflectionSource {
-    Algorithm,
-    Dictionary,
-    Both,
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Pronunciation {
-    PitchAccent(PitchAccent),
-    PhoneticTranscription(PhoneticTranscription),
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum DictionaryEntry {
-    KanjiDictEntry(KanjiDictionaryEntry),
-    TermDictEntry(TermDictionaryEntry),
-}
-
-// structs
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PitchAccent {
-    term: TermPronunciationMatchType,
-    position: u8,
-    nasal_positions: u8,
-    devoic_positions: u8,
-    tags: Vec<Tag>,
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PhoneticTranscription {
-    match_type: TermPronunciationMatchType,
-    ipa: String,
-    tags: Vec<Tag>,
-}
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct InflectionRuleChainCandidate {
-    source: InflectionSource,
-    inflection_rules: Vec<String>,
 pub enum VecNumOrNum {
     Vec(u8),
     Str(String),
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A tag represents some brief information about part of a dictionary entry.
 pub struct Tag {
@@ -117,7 +38,22 @@ pub struct Tag {
     redundant: bool,
 }
 
-#[allow(dead_code)]
+/*************** Kanji ***************/
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum DictionaryEntry {
+    KanjiDictEntry(KanjiDictionaryEntry),
+    TermDictEntry(TermDictionaryEntry),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DictionaryEntryType {
+    Kanji,
+    Term,
+}
+
+/// A stat represents a generic piece of information about a kanji character.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiStat {
     /// The name of the stat.
@@ -136,14 +72,7 @@ pub struct KanjiStat {
     value: NumOrStr,
 }
 
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DictionaryOrder {
-    index: u16,
-    priority: u16,
-}
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiFrequency {
     index: u64,
@@ -159,7 +88,6 @@ pub struct KanjiFrequency {
 /// An object with groups of stats about a kanji character.
 pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
 
-#[allow(dead_code)]
 /// A dictionary entry for a kanji character.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiDictionaryEntry {
@@ -184,9 +112,34 @@ pub struct KanjiDictionaryEntry {
     frequencies: Vec<KanjiFrequency>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DictionaryOrder {
+    index: u16,
+    priority: u16,
+}
+
+/*************** Term ***************/
+
+/// Enum representing what database field was used to match the source term.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TermSourceMatchSource {
+    Term,
+    Reading,
+    Sequence,
+}
+
+/// Enum representing how the search term relates to the final term.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TermSourceMatchType {
+    Exact,
+    Prefix,
+    Suffix,
+}
+
 /// Frequency information corresponds to how frequently a term appears in a corpus,
 /// which can be a number of occurrences or an overall rank.
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermFrequency {
     /// The original order of the frequency, which is usually used for sorting.
@@ -209,7 +162,6 @@ pub struct TermFrequency {
     display_value_parsed: bool,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A term headword is a combination of a term, reading, and auxiliary information.
 pub struct TermHeadword {
@@ -227,7 +179,6 @@ pub struct TermHeadword {
     word_classes: Vec<String>,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A dictionary entry for a term or group of terms.
 pub struct TermDefinition {
@@ -260,7 +211,6 @@ pub struct TermDefinition {
     entries: Vec<TermGlossaryContent>,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A term pronunciation represents different ways to pronounce one of the headwords.
 pub struct TermPronunciation {
@@ -278,9 +228,7 @@ pub struct TermPronunciation {
     pronunciations: Vec<Pronunciation>,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// TermSource represents the source of a term in the dictionary.
 /// Source information represents how the original text was transformed to get to the final term.
 pub struct TermSource {
     /// The original text that was searched.
@@ -298,7 +246,6 @@ pub struct TermSource {
     is_primary: bool,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A dictionary entry for a term or group of terms.
 pub struct TermDictionaryEntry {
@@ -380,5 +327,11 @@ pub struct PhoneticTranscription {
     ipa: String,
     /// List of tags for this IPA transcription.
     tags: Vec<Tag>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct InflectionRuleChainCandidate {
+    source: InflectionSource,
+    inflection_rules: Vec<String>,
 }
 
