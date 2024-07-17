@@ -267,6 +267,22 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
     let index: Index = convert_index_file(index_path)?;
     let tag_list: Vec<Vec<Tag>> = convert_tag_bank_files(tag_bank_paths)?;
 
+    let term_meta_banks: Result<Vec<DatabaseTermMeta>, ImportError> = term_meta_bank_paths
+        .into_par_iter()
+        .map(|path| convert_term_meta_file(path, dict_name.clone()))
+        .collect::<Result<Vec<Vec<DatabaseTermMeta>>, ImportError>>()
+        .map(|v| v.into_iter().flatten().collect());
+
+    let term_meta_list = match term_meta_banks {
+        Ok(tml) => tml,
+        Err(e) => {
+            return Err(ImportError::Custom(format!(
+                "Failed to convert term_meta_banks | {}",
+                e
+            )))
+        }
+    };
+
     let term_banks: Result<Vec<TermV4>, ImportError> = term_bank_paths
         .into_par_iter()
         .map(convert_term_bank_file)
