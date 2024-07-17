@@ -156,6 +156,7 @@ pub struct KanjiFrequency {
     display_value_parsed: bool,
 }
 
+/// An object with groups of stats about a kanji character.
 pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
 
 #[allow(dead_code)]
