@@ -11,7 +11,7 @@ fn dict() {
         .build()
         .unwrap();
 
-    let path = std::path::Path::new("./大辞林第四版");
+    let path = std::path::Path::new("./test_dicts/四字熟語辞典オンライン");
     prepare_dictionary(path).unwrap();
 
     #[cfg(target_os = "linux")]
