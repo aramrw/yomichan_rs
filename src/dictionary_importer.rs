@@ -63,6 +63,9 @@ pub struct ImportDetails {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum FrequencyMode {
+    #[serde(rename = "occurrence-based")]
+    OccurrenceBased,
+    #[serde(rename = "rank-based")]
     RankBased,
     OccuranceBased,
 }
