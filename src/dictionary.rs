@@ -89,6 +89,9 @@ pub struct PhoneticTranscription {
 pub struct InflectionRuleChainCandidate {
     source: InflectionSource,
     inflection_rules: Vec<String>,
+pub enum VecNumOrNum {
+    Vec(u8),
+    Str(String),
 }
 
 #[allow(dead_code)]
