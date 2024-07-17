@@ -334,6 +334,12 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
     }
 
     let counts = (tag_list.len(), term_meta_list.len(), term_list.len());
+    let counts = (
+        tag_list.len(),
+        term_meta_list.len(),
+        kanji_meta_list.len(),
+        term_list.len(),
+    );
     print_timer(instant, paths_len);
 
     Ok(term_list)
