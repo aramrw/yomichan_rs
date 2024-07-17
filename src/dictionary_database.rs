@@ -123,7 +123,7 @@ pub struct DatabaseTermMetaPitch {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaPhoneticData {
     expression: String,
-    /// Is of type `TermMetaModeType::Ipa`
+    /// Is of type [`TermMetaModeType::Ipa`]
     mode: TermMetaModeType,
     data: TermMetaPhoneticData,
     dictionary: String,
