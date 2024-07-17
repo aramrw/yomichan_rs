@@ -40,22 +40,43 @@ pub struct TermImage {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Index represents the metadata of a dictionary.
+/// Represents the metadata of a dictionary.
 pub struct Index {
-    format: Option<u8>,
-    version: Option<u8>,
+    /// Title of the dictionary.
     title: String,
+    /// Revision of the dictionary. 
+    ///
+    /// This value is only used for displaying information.
     revision: String,
+    /// Whether or not this dictionary contains sequencing information for related terms.
     sequenced: Option<bool>,
+    /// Format of data found in the JSON data files.
+    format: Option<u8>,
+    /// Alias for format.
+    ///
+    /// Versions can include: `1 - 3`.
+    version: Option<u8>,
+    /// Creator of the dictionary.
     author: Option<String>,
+    /// URL for the source of the dictionary.
     url: Option<String>,
+    /// Description of the dictionary data.
     description: Option<String>,
+    /// Attribution information for the dictionary data.
     attribution: Option<String>,
+    /// Language of the terms in the dictionary.
+    ///
+    /// See: [iso639 code list](https://www.loc.gov/standards/iso639-2/php/code_list.php).
     source_language: Option<String>,
+    /// Main language of the definitions in the dictionary.
+    ///
+    /// See: [iso639 code list](https://www.loc.gov/standards/iso639-2/php/code_list.php).
     target_language: Option<String>,
-    frequency_mode: Option<String>,
+    frequency_mode: Option<FrequencyMode>,
     tag_meta: Option<HashMap<String, IndexTag>>,
 }
 
+#[deprecated(since="0.0.1", note="individual tag files should be used instead")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Tag information for terms and kanji. 
 ///
