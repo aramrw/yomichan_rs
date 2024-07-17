@@ -11,7 +11,7 @@ fn dict() {
         .build()
         .unwrap();
 
-    let path = std::path::Path::new("./test_dicts/AJDrama");
+    let path = std::path::Path::new("./test_dicts/jpdb_kanji_freq");
     prepare_dictionary(path).unwrap();
 
     #[cfg(target_os = "linux")]
