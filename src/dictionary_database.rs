@@ -70,29 +70,6 @@ pub struct TermEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseKanjiEntry {
-    character: String,
-    onyomi: String,
-    kunyomi: String,
-    tags: String,
-    meanings: Vec<String>,
-    dictionary: String,
-    stats: Option<std::collections::HashMap<String, String>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct KanjiEntry {
-    index: i32,
-    character: String,
-    onyomi: Vec<String>,
-    kunyomi: Vec<String>,
-    tags: Vec<String>,
-    definitions: Vec<String>,
-    stats: std::collections::HashMap<String, String>,
-    dictionary: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Tag {
     name: String,
     category: String,
@@ -116,37 +93,40 @@ pub struct DatabaseTermMeta {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaFrequency {
-    expression: String,
-    /// Is of type `TermMetaModeType::Freq`
-    mode: TermMetaModeType,
-    data: TermMetaFrequencyDataType,
-    dictionary: String,
+    pub expression: String,
+    /// Is of type [`TermMetaModeType::Freq`]
+    pub mode: TermMetaModeType,
+    pub data: TermMetaFrequencyDataType,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaPitch {
-    expression: String,
-    /// Is of type `TermMetaModeType::Pitch`
-    mode: TermMetaModeType,
-    data: TermMetaPitchData,
-    dictionary: String,
+    pub expression: String,
+    /// Is of type [`TermMetaModeType::Pitch`]
+    pub mode: TermMetaModeType,
+    pub data: TermMetaPitchData,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseTermMetaPhoneticData {
-    expression: String,
+pub struct DatabaseTermMetaPhonetic {
+    pub expression: String,
     /// Is of type [`TermMetaModeType::Ipa`]
-    mode: TermMetaModeType,
-    data: TermMetaPhoneticData,
-    dictionary: String,
+    pub mode: TermMetaModeType,
+    pub data: TermMetaPhoneticData,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum DatabaseTermMeta {
+#[serde(untagged)]
+pub enum DatabaseTermMetaMatchType {
     Frequency(DatabaseTermMetaFrequency),
     Pitch(DatabaseTermMetaPitch),
-    Phonetic(DatabaseTermMetaPhoneticData),
+    Phonetic(DatabaseTermMetaPhonetic),
 }
+
+/*************** Database Kanji Meta ***************/
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseKanjiMetaFrequency {
@@ -298,5 +278,3 @@ impl Yomichan {
         }
     }
 }
-
-
