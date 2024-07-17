@@ -152,6 +152,22 @@ enum EntryItemMatchType {
     StructuredContentVec(Vec<StructuredContent>),
 }
 
+impl<'de> Deserialize<'de> for EntryItemMatchType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .string(|single| Ok(EntryItemMatchType::String(single.to_string())))
+            .i128(|int| Ok(EntryItemMatchType::Integer(int)))
+            .seq(|seq| {
+                seq.deserialize()
+                    .map(EntryItemMatchType::StructuredContentVec)
+            })
+            .deserialize(deserializer)
+    }
+}
+
 impl Yomichan {
     async fn import_dictionary(&self) -> Result<(), DBError> {
         use db_stores::*;
@@ -420,6 +436,38 @@ fn handle_content_match_type(content: Vec<Element>) -> Vec<String> {
     }
 
     content_strings
+}
+
+fn read_dir_helper<P: AsRef<Path>>(
+    zip_path: P,
+    index: &mut PathBuf,
+    tag_banks: &mut Vec<PathBuf>,
+    term_meta_banks: &mut Vec<PathBuf>,
+    term_banks: &mut Vec<PathBuf>,
+) -> Result<(), io::Error> {
+    fn contains(path: &[u8], substr: &[u8]) -> bool {
+        path.windows(substr.len()).any(|w| w == substr)
+    }
+
+    fs::read_dir(&zip_path)?.try_for_each(|entry| -> Result<(), io::Error> {
+        let entry = entry?;
+        let outpath_buf = entry.path();
+        let outpath = outpath_buf.as_os_str().as_encoded_bytes();
+
+        if outpath.iter().last() != Some(&b'/') {
+            if contains(outpath, b"term_bank") {
+                term_banks.push(outpath_buf);
+            } else if contains(outpath, b"index.json") {
+                *index = outpath_buf;
+            } else if contains(outpath, b"term_meta_bank") {
+                term_meta_banks.push(outpath_buf);
+            } else if contains(outpath, b"tag_bank") {
+                tag_banks.push(outpath_buf);
+            }
+        }
+
+        Ok(())
+    })
 }
 
 fn print_timer<T>(inst: Instant, print: T)
