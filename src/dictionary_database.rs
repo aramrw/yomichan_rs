@@ -102,6 +102,18 @@ pub struct Tag {
     dictionary: String,
 }
 
+/*************** Database Term Meta ***************/
+
+/// A custom `Yomichan_rs`-unique Database Term Meta model.  
+///
+/// May contain `any` or `all` of the values.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DatabaseTermMeta {
+    pub frequency: Option<DatabaseTermMetaFrequency>,
+    pub pitch: Option<DatabaseTermMetaPitch>,
+    pub phonetic: Option<DatabaseTermMetaPhonetic>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaFrequency {
     expression: String,
