@@ -57,6 +57,9 @@ pub struct Index {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Tag information for terms and kanji. 
+///
+/// This object is deprecated, and individual tag files should be used instead.
 pub struct IndexTagMeta {
     pub tags: HashMap<String, IndexTag>,
 }
