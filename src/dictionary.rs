@@ -330,3 +330,17 @@ pub struct TermDictionaryEntry {
     /// Frequencies for the entry.
     frequencies: Vec<TermFrequency>,
 }
+pub struct PitchAccent {
+    /// Type of the pronunciation, for disambiguation between union type members.
+    /// Should be `"pitch-accent"` in the json.
+    term: TermPronunciationMatchType,
+    /// Position of the downstep, as a number of mora.
+    position: u8,
+    /// Positions of morae with a nasal sound.
+    nasal_positions: Vec<u8>,
+    /// Positions of morae with a devoiced sound.
+    devoic_positions: Vec<u8>,
+    /// Tags for the pitch accent.
+    tags: Vec<Tag>,
+}
+
