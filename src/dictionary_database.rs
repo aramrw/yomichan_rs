@@ -130,12 +130,11 @@ pub enum DatabaseTermMetaMatchType {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseKanjiMetaFrequency {
-    index: u16,
-    character: String,
-    /// Is of type `TermMetaModeType::Frequency`
-    mode: TermMetaModeType,
-    data: GenericFrequencyData,
-    dictionary: String,
+    pub character: String,
+    /// Is of type [`TermMetaModeType::Freq`]
+    pub mode: TermMetaModeType,
+    pub data: TermMetaFrequencyDataType,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
