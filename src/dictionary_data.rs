@@ -71,12 +71,21 @@ pub struct IndexTag {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Information about a single tag.
 pub struct Tag {
-    name: String,
-    category: String,
-    order: u16,
-    notes: String,
-    score: u16,
+    /// Tag name.
+    pub name: String,
+    /// Category for the tag.
+    pub category: String,
+    /// Sorting order for the tag.
+    pub order: i8,
+    /// Notes for the tag.
+    pub notes: String,
+    /// Score used to determine popularity.
+    ///
+    /// Negative values are more rare and positive values are more frequent.
+    /// This score is also used to sort search results.
+    pub score: i8,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
