@@ -134,11 +134,16 @@ pub struct TermV3 {
 }
 
 /// Custom `Yomichan.rs`-unique term model.
+/// Allows access to `entry` data _(ie: definitions)_-
+/// as concatenated String instead of raw HTML.
 ///
-/// Allows access to `entry` data as values instead of HTML.
+/// The String data is simply extracted and concatenated-
+/// meaning that there is _no_ formatting; A single string of continuous text.
+///
+/// If the program _is_ able to render html, this may be preferable: 
 /// See: [`TermV3`]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct TermV4 { 
+pub struct TermV4 {
     pub expression: String,
     pub reading: String,
     pub definition_tags: Option<String>,
