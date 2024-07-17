@@ -1,4 +1,4 @@
-use crate::dictionary_data::{Index, TermGlossaryImage, TermV3, TermV4};
+use crate::dictionary_data::{Index, Tag, TermGlossaryImage, TermV3, TermV4};
 use crate::dictionary_database::{
     db_stores, DatabaseTermEntry, MediaDataArrayBufferContent, TermEntry,
 };
@@ -16,12 +16,12 @@ use rayon::prelude::*;
 use tempfile::tempdir;
 
 use std::collections::{HashMap, VecDeque};
-use std::fs;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
+use std::{fs, io};
 
 //use chrono::{DateTime, Local};
 
@@ -67,9 +67,7 @@ pub enum FrequencyMode {
     OccurrenceBased,
     #[serde(rename = "rank-based")]
     RankBased,
-    OccuranceBased,
 }
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Summary {
     title: String,
@@ -168,9 +166,22 @@ impl<'de> Deserialize<'de> for EntryItemMatchType {
     }
 }
 
+// NEXT STEP BEFORE ADDING TO DB IS TO FINISH ALL THE SCHEMAS + MEDIA
+// TERM BANKS + INDEX IS DONE HOWEVER
+// THE BEST IDEA IS TO MAKE SURE I SUPPORT ALL FILE TYPES AND THEN I CAN IGNORE
+// THEM WHEN IT COMES TO PUSHING TO THE db
+//
+//
+//  terms: {total: termList.length}, // FINISHED
+//  termMeta: this._getMetaCounts(termMetaList),
+//  kanji: {total: kanjiList.length},
+//  kanjiMeta: this._getMetaCounts(kanjiMetaList),
+//  tagMeta: {total: tagList.length}, // FINISHED
+//  media: {total: media.length},
 impl Yomichan {
-    async fn import_dictionary(&self) -> Result<(), DBError> {
+    async fn import_dictionary<P: AsRef<Path>>(&self, zip_path: P) -> Result<(), DBError> {
         use db_stores::*;
+
         let txn = self.ycdatabase.db.begin_write()?;
         {
             let mut table = txn.open_table(DICTIONARIES_STORE);
@@ -178,15 +189,6 @@ impl Yomichan {
         }
         txn.commit()?;
 
-        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-        pub struct StructuredContent {
-            /// This should **always** have `"type": "structured-content"` inside the json.
-            /// If not, the dictionary is not valid.
-            #[serde(rename = "type")]
-            content_type: String,
-            /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
-            content: ContentMatchType,
-        }
         Ok(())
     }
 }
@@ -194,19 +196,8 @@ impl Yomichan {
 /// Deserializable type mapping a `term_bank_$i.json` file.
 pub type TermBank = Vec<EntryItem>;
 
-/// An `untagged` match type to generically match
-/// the `header`, `reading`, and `structured-content`
+/// the 'header', and `structured-content`
 /// of a `term_bank_$i.json` entry item.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum EntryItemMatchType {
-    String(String),
-    Integer(i128),
-    /// The array holding the main `structured-content` object.
-    /// There is only 1 per entry.
-    StructuredContentVec(Vec<StructuredContent>),
-}
-
 #[derive(Deserialize)]
 pub struct EntryItem {
     pub expression: String,
@@ -219,36 +210,20 @@ pub struct EntryItem {
     pub term_tags: String,
 }
 
-impl<'de> Deserialize<'de> for EntryItemMatchType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        UntaggedEnumVisitor::new()
-            .string(|single| Ok(EntryItemMatchType::String(single.to_string())))
-            .i128(|int| Ok(EntryItemMatchType::Integer(int)))
-            .seq(|seq| {
-                seq.deserialize()
-                    .map(EntryItemMatchType::StructuredContentVec)
-            })
-            .deserialize(deserializer)
-    }
-}
-
 /// The object holding all html & information about an entry.
-/// There is only 1 per entry.
+/// _There is only 1 per entry_.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StructuredContent {
-    /// Identifier to mark the start of each entry.
+    /// Identifier to mark the start of each entry's content.
     ///
-    /// This should **always** be `"type": "structured-content"` in the file.
+    /// This should _always_ be `"type": "structured-content"` in the file.
     /// If not, the dictionary is not valid.
     #[serde(rename = "type")]
     content_type: String,
     /// Contains the main content of the entry.
     /// _(see: [`ContentMatchType`] )_.
     ///
-    /// Will **always** be either an `Obj` or a `Vec` _(ie: Never a String)_.
+    /// Will _always_ be either an `Obj` or a `Vec` _(ie: Never a String)_.
     content: ContentMatchType,
 }
 
@@ -277,28 +252,20 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
 
     let mut index_path = PathBuf::new();
     let mut tag_bank_paths: Vec<PathBuf> = Vec::new();
+    let mut term_meta_banks: Vec<PathBuf> = Vec::new();
     let mut term_bank_paths: Vec<PathBuf> = Vec::new();
 
-    fs::read_dir(&zip_path)?.try_for_each(|entry| -> Result<(), std::io::Error> {
-        let entry = entry?;
-        let outpath_buf = entry.path();
-        let outpath = outpath_buf.to_str().unwrap();
+    read_dir_helper(
+        zip_path,
+        &mut index_path,
+        &mut tag_bank_paths,
+        &mut term_meta_banks,
+        &mut term_bank_paths,
+    );
 
-        if !outpath.ends_with('/') {
-            if outpath.contains("term_bank") {
-                term_bank_paths.push(outpath_buf);
-            } else if outpath.contains("index.json") {
-                index_path = outpath_buf;
-            } else if outpath.contains("tag_bank") {
-                tag_bank_paths.push(outpath_buf);
-            }
-        }
-
-        Ok(())
-    })?;
-
-    let index = convert_index_file(index_path)?;
-    let paths_len = tag_bank_paths.len() + term_bank_paths.len();
+    let paths_len = tag_bank_paths.len() + term_bank_paths.len() + 1;
+    let index: Index = convert_index_file(index_path)?;
+    let tag_list: Vec<Vec<Tag>> = convert_tag_bank_files(tag_bank_paths)?;
 
     let term_banks: Result<Vec<TermV4>, ImportError> = term_bank_paths
         .into_par_iter()
@@ -306,7 +273,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
         .collect::<Result<Vec<Vec<TermV4>>, ImportError>>()
         .map(|nested| nested.into_iter().flatten().collect());
 
-    let term_banks = match term_banks {
+    let term_list = match term_banks {
         Ok(tb) => tb,
         Err(e) => {
             return Err(ImportError::Custom(format!(
@@ -316,16 +283,10 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
         }
     };
 
-    println!("{}", term_banks.len());
+    let counts = (term_list.len(), tag_list.len());
+    print_timer(instant, paths_len);
 
-    let files_len = paths_len;
-    print_timer(instant, files_len);
-
-    // for term in term_banks {
-    //     println!("{:#?}", term);
-    // }
-
-    Ok(term_banks)
+    Ok(term_list)
 }
 
 fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
@@ -373,8 +334,6 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> 
 
     // Beginning of each word/phrase/expression (entry)
     // ie: ["headword","reading","","",u128,[{/* main */}]]];
-
-    //#[cfg(feature = "disabled")]
     let terms: Vec<TermV4> = entries
         .into_iter()
         .map(|mut entry| {
@@ -392,13 +351,6 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> 
             let structured_content = entry.structured_content.swap_remove(0);
             let defs = get_string_content(structured_content.content);
             v4_term.definition = defs.concat();
-
-            // let [structured_content] = entry.structured_content;
-            // let defs = get_string_content(structured_content.content);
-            // v4_term.definition = defs.concat();
-
-            // let defs = get_string_content(entry.structured_content.0.content);
-            // v4_term.definition = defs.concat();
 
             v4_term
         })
