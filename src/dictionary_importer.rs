@@ -40,9 +40,13 @@ pub enum ImportSteps {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CompiledSchemaNames {
     TermBank,
+    /// Metadata & information for terms.
+    ///
+    /// This currently includes `frequency data` and `pitch accent` data.
     TermMetaBank,
     KanjiBank,
     KanjiMetaBank,
+    /// Data file containing tag information for terms and kanji.
     TagBank,
 }
 
