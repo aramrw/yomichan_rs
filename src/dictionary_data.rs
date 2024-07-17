@@ -161,9 +161,11 @@ pub struct TermGlossaryDeinflection {
 
 /// A helper Enum to select the mode for TermMeta data structures.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum TermMetaModeType {
     Pitch,
     Freq,
+    Pitch,
     Ipa,
 }
 
