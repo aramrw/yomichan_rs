@@ -195,6 +195,13 @@ pub struct TermGlossaryDeinflection {
 
 /************* Term Meta *************/
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TermMeta {
+    pub expression: String,
+    pub mode: TermMetaModeType,
+    pub data: TermMetaDataMatchType,
+}
+
 /// A helper Enum to select the mode for TermMeta data structures.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
