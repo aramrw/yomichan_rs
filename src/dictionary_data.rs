@@ -2,9 +2,10 @@ use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
 use crate::dictionary_importer::{FrequencyMode, StructuredContent};
 use crate::structured_content::ImageElement;
 
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use serde_untagged::UntaggedEnumVisitor;
 
+use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::HashMap;
 use std::string::String;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -73,7 +74,7 @@ pub struct Index {
     pub tag_meta: Option<HashMap<String, IndexTag>>,
 }
 
-#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
+//#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Tag information for terms and kanji.
 ///
@@ -82,7 +83,7 @@ pub struct IndexTagMeta {
     pub tags: HashMap<String, IndexTag>,
 }
 
-#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
+//#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Tag information for terms and kanji.
 ///
@@ -203,7 +204,7 @@ pub struct TermMeta {
 }
 
 /// The metadata of a term.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum TermMetaDataMatchType {
     Frequency(TermMetaFrequencyDataType),
@@ -211,13 +212,6 @@ pub enum TermMetaDataMatchType {
     Phonetic(TermMetaPhoneticData),
 }
 
-/// The metadata of a term.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum TermMetaMatchType {
-    Frequency(TermMetaFrequency),
-    Pitch(TermMetaPitch),
-    Phonetic(TermMetaPhonetic),
 impl<'de> Deserialize<'de> for TermMetaDataMatchType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -263,6 +257,7 @@ impl<'de> Deserialize<'de> for TermMetaDataMatchType {
                 }
             })
             .deserialize(deserializer)
+    }
 }
 
 /// A helper Enum to select the mode for TermMeta data structures.
@@ -279,20 +274,19 @@ pub enum TermMetaModeType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// The frequency metadata of a term.
 pub struct TermMetaFrequency {
-    expression: String,
+    pub expression: String,
     /// This will be `"freq"` in the json.
-    mode: TermMetaModeType,
-    data: TermMetaFrequencyDataType,
+    pub mode: TermMetaModeType,
+    pub data: TermMetaFrequencyDataType,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum TermMetaFrequencyDataType {
     Generic(GenericFrequencyData),
     WithReading(TermMetaFrequencyDataWithReading),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 impl<'de> Deserialize<'de> for TermMetaFrequencyDataType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -334,7 +328,8 @@ pub enum GenericFrequencyData {
     String(String),
     Object {
         value: u32,
-        displayValue: Option<String>,
+        #[serde(rename = "displayValue")]
+        display_value: Option<String>,
     },
 }
 
