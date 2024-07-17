@@ -115,9 +115,10 @@ pub struct TermGlossaryStructuredContent {
 /// Yomichan-like term model.
 ///
 /// Because of how Yomichan is designed, the definition's HTML is contained in
+/// Because of how Yomichan is designed, the definition's raw HTML is contained in
 /// [`TermGlossaryContent::term_glossary_structured_content`]/`content` as a String.
 ///
-/// If the application is unable/unwilling to render HTML:
+/// If the program is unable/unwilling to render HTML:
 /// See: [`TermV4`]
 ///
 /// Related: [`TermGlossaryContent`]
