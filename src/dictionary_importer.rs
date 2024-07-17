@@ -343,6 +343,43 @@ fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<Tag>>, Impor
 
 /****************** Term Meta Functions ******************/
 
+fn convert_kanji_meta_file(
+    outpath: PathBuf,
+    mut dict_name: String,
+) -> Result<Vec<DatabaseKanjiMetaFrequency>, ImportError> {
+    let file = fs::File::open(&outpath).map_err(|e| {
+        ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
+    })?;
+    let reader = BufReader::new(file);
+
+    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermMetaFrequency>>();
+    let entries = match stream.next() {
+        Some(Ok(entries)) => entries,
+        Some(Err(e)) => {
+            return Err(ImportError::Custom(format!(
+                "File: {} | Err: {e}",
+                &outpath.to_string_lossy(),
+            )))
+        }
+        None => {
+            return Err(ImportError::Custom(String::from(
+                "no data in term_meta_bank stream",
+            )))
+        }
+    };
+
+    let kanji_metas: Vec<DatabaseKanjiMetaFrequency> = entries
+        .into_iter()
+        .map(|entry| DatabaseKanjiMetaFrequency {
+            character: entry.expression,
+            mode: TermMetaModeType::Freq,
+            data: entry.data,
+            dictionary: mem::take(&mut dict_name),
+        })
+        .collect();
+    Ok(kanji_metas)
+}
+
 fn convert_term_meta_file(
     outpath: PathBuf,
     mut dict_name: String,
