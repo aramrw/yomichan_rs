@@ -104,8 +104,10 @@ pub struct TermGlossaryText {
 ///
 /// An entry's entire [`StructuredContent`]is [`Deserialize`]d into a String and pushed into `content`.
 /// As such, it is up to the application to render `content` properly.
+/// An entry's entire HTML [`StructuredContent`]is [`Deserialize`]d into a String and pushed into `content`.
+/// As such, it is up to the program to render `content` properly.
 ///
-/// If the application is unable/unwilling to render html:
+/// If the program is unable/unwilling to render html:
 /// See: [`TermV4`]
 pub struct TermGlossaryStructuredContent {
     content: String,
