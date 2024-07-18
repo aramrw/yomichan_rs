@@ -408,6 +408,56 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictDat
     })
 }
 
+fn get_meta_counts(metas: &Vec<DatabaseMeta>) -> MetaCounts {
+    let mut meta_counts = MetaCounts::default();
+
+    for mt in metas {
+        if mt.frequency.is_some() {
+            meta_counts.freq += 1;
+        }
+        if mt.pitch.is_some() {
+            meta_counts.pitch += 1;
+        }
+        if mt.phonetic.is_some() {
+            meta_counts.ipa += 1;
+        }
+    }
+
+    meta_counts
+}
+
+fn create_summary(
+    index: Index,
+    prefix_wildcards_supported: bool,
+    counts: SummaryCounts,
+) -> Summary {
+    let local: DateTime<Local> = Local::now();
+    let formatted = local
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+        .to_string()
+        .rsplit_once('T')
+        .unwrap()
+        .0
+        .to_string();
+
+    Summary {
+        title: index.title,
+        revision: index.revision,
+        sequenced: index.sequenced,
+        version: index.version,
+        import_date: formatted,
+        prefix_wildcards_supported,
+        counts,
+        author: index.author,
+        url: index.url,
+        description: index.description,
+        attribution: index.attribution,
+        source_language: index.source_language,
+        target_language: index.target_language,
+        frequency_mode: index.frequency_mode,
+    }
+}
+
 fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     let index_str = fs::read_to_string(outpath)
         .map_err(|e| ImportError::Custom(format!("Failed to convert index | Err: {e}")))?;
@@ -434,7 +484,7 @@ fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<DictDataTag>
 fn convert_kanji_meta_file(
     outpath: PathBuf,
     mut dict_name: String,
-) -> Result<Vec<DatabaseKanjiMetaFrequency>, ImportError> {
+) -> Result<Vec<DatabaseMeta>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
     })?;
