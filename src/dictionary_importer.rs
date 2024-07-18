@@ -94,6 +94,38 @@ pub struct Summary {
     source_language: Option<String>,
     target_language: Option<String>,
     frequency_mode: Option<FrequencyMode>,
+    /// Name of the dictionary.
+    pub title: String,
+    /// Revision of the dictionary. This value is only used for displaying information.
+    pub revision: String,
+    /// Whether or not this dictionary contains sequencing information for related terms.
+    pub sequenced: bool,
+    /// Format of data found in the JSON data files.
+    pub version: u8,
+    /// Date the dictionary was added to the db.
+    pub import_date: String,
+    /// Whether or not wildcards can be used for the search query.
+    ///
+    /// Rather than searching for the source text exactly,
+    /// the text will only be required to be a prefix of an existing term.
+    /// For example, scanning `読み` will effectively search for `読み*`
+    /// which may bring up additional results such as *読み方*.
+    pub prefix_wildcards_supported: bool,
+    pub counts: SummaryCounts,
+    /// Creator of the dictionary.
+    pub author: Option<String>,
+    /// URL for the source of the dictionary.
+    pub url: Option<String>,
+    /// Description of the dictionary data.
+    pub description: Option<String>,
+    /// Attribution information for the dictionary data.
+    pub attribution: Option<String>,
+    /// Language of the terms in the dictionary.
+    pub source_language: Option<String>,
+    /// Main language of the definitions in the dictionary.
+    pub target_language: Option<String>,
+    /// (See: [`FrequencyMode`])
+    pub frequency_mode: Option<FrequencyMode>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
