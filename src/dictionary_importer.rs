@@ -616,6 +616,21 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> 
     Ok(terms)
 }
 
+fn create_glossary(def_str: String) -> TermGlossaryContent {
+    TermGlossaryContent {
+        term_glossary_string: def_str,
+        term_glossary_text: None,
+        term_glossary_structured_content: None,
+        term_glossary_image: None,
+    }
+}
+
+fn rev_jp_str(expression: &str) -> String {
+    UnicodeSegmentation::graphemes(expression, true)
+        .rev()
+        .collect::<String>()
+}
+
 fn get_string_content(c_match_type: ContentMatchType) -> Vec<String> {
     match c_match_type {
         ContentMatchType::String(string) => vec![string],
