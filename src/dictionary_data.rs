@@ -25,7 +25,7 @@ pub enum TermGlossaryType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermGlossaryImage {
     pub term_glossary_type: TermGlossaryType,
-    pub term_image: TermImage,
+    pub term_image: Option<TermImage>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -119,12 +119,19 @@ pub enum TermGlossary {
     Deinflection(TermGlossaryDeinflection),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// The last three values are [`None`] for now because
+/// I have to figure them out lol
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct TermGlossaryContent {
+    /// The `entry`'s String data is simply extracted and concatenated-
+    /// meaning that there is _no_ formatting; A single string of continuous text.
     pub term_glossary_string: String,
-    pub term_glossary_text: TermGlossaryText,
-    pub term_glossary_image: TermGlossaryImage,
-    pub term_glossary_structured_content: TermGlossaryStructuredContent,
+    pub term_glossary_text: Option<TermGlossaryText>,
+    pub term_glossary_image: Option<TermGlossaryImage>,
+    /// An entry's raw HTML [`StructuredContent`]is converted into a String,
+    /// without deserialization.
+    /// As such, it is up to the program to render the content properly.
+    pub term_glossary_structured_content: Option<TermGlossaryStructuredContent>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -417,9 +424,9 @@ pub struct TermMetaPhonetic {
 
 /************* Kanji Data *************/
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct KanjiMetaFrequency {
-    character: String,
-    mode: TermMetaModeType,
-    data: GenericFrequencyData,
-}
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// pub struct KanjiMetaFrequency {
+//     character: String,
+//     mode: TermMetaModeType,
+//     data: GenericFrequencyData,
+// }
