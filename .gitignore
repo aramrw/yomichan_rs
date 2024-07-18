@@ -1,5 +1,4 @@
 /target
 
-*.zip
-大辞林*
+test_dicts*
 *.svg

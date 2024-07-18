@@ -8,20 +8,20 @@ pub enum InitError {
 
 #[derive(Error, Debug)]
 pub enum ImportError {
-    #[error("database err")]
+    #[error("database err: {0}")]
     Database(#[from] redb::DatabaseError),
-    #[error("io err")]
+    #[error("io err: {0}")]
     IO(#[from] std::io::Error),
-    #[error("zip err")]
+    #[error("zip err: {0}")]
     Zip(#[from] zip::result::ZipError),
     #[error("json err: {0}")]
-    JSON(#[from] serde_json::error::Error),
+    Json(#[from] serde_json::error::Error),
     #[error("json err: {0}")]
     Custom(String),
-    #[error("error at line {0}: {1}")]
-    LineErr(u32, Box<ImportError>),
     #[error("thread err: {0}")]
     ThreadErr(#[from] std::thread::AccessError),
+    #[error("error at line {0}: {1}")]
+    LineErr(u32, Box<ImportError>),
 }
 
 #[derive(Error, Debug)]
@@ -36,8 +36,8 @@ pub enum DBError {
     Commit(#[from] redb::CommitError),
     #[error("binary err: {0}")]
     Binary(#[from] bincode::Error),
-    // #[error("generic err: {0}")]
-    // Generic(#[from] Box<dyn std::error::Error>),
+    #[error("import err: {0}")]
+    Import(#[from] ImportError),
 }
 
 #[macro_export]

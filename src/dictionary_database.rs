@@ -1,15 +1,18 @@
 use crate::dictionary::{TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    GenericFrequencyData, TermGlossary, TermMetaFrequencyDataType, TermMetaModeType,
-    TermMetaPhoneticData, TermMetaPitchData,
+    GenericFrequencyData, TermGlossary, TermGlossaryContent, TermMetaFrequencyDataType,
+    TermMetaModeType, TermMetaPhoneticData, TermMetaPitchData, Tag as DictDataTag
 };
+use crate::dictionary_importer::prepare_dictionary;
 use crate::errors;
 use crate::Yomichan;
 
 //use redb::TableDefinition;
 
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, NoneAsEmptyString};
 use std::collections::HashMap;
+use std::path::Path;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MediaDataBase<TContentType> {
@@ -36,20 +39,21 @@ pub struct Media<T = MediaType> {
     data: T,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct DatabaseTermEntry {
-    expression: String,
-    reading: String,
-    expression_reverse: Option<String>,
-    reading_reverse: Option<String>,
-    definition_tags: Option<String>,
-    tags: Option<String>,
-    rules: String,
-    score: u16,
-    glossary: Vec<TermGlossary>,
-    sequence: Option<i64>,
-    term_tags: Option<String>,
-    dictionary: String,
+    pub expression: String,
+    pub reading: String,
+    pub expression_reverse: String,
+    pub reading_reverse: String,
+    pub definition_tags: Option<String>,
+    /// Legacy alias for the `definitionTags` field.
+    pub tags: Option<String>,
+    pub rules: String,
+    pub score: i8,
+    pub glossary: TermGlossaryContent,
+    pub sequence: Option<i128>,
+    pub term_tags: Option<String>,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -70,29 +74,6 @@ pub struct TermEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseKanjiEntry {
-    character: String,
-    onyomi: String,
-    kunyomi: String,
-    tags: String,
-    meanings: Vec<String>,
-    dictionary: String,
-    stats: Option<std::collections::HashMap<String, String>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct KanjiEntry {
-    index: i32,
-    character: String,
-    onyomi: Vec<String>,
-    kunyomi: Vec<String>,
-    tags: Vec<String>,
-    definitions: Vec<String>,
-    stats: std::collections::HashMap<String, String>,
-    dictionary: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Tag {
     name: String,
     category: String,
@@ -102,49 +83,96 @@ pub struct Tag {
     dictionary: String,
 }
 
+/*************** Database Term Meta ***************/
+
+/// A custom `Yomichan_rs`-unique Database Term Meta model.  
+///
+/// May contain `any` or `all` of the values.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DatabaseTermMeta {
+    pub frequency: Option<DatabaseTermMetaFrequency>,
+    pub pitch: Option<DatabaseTermMetaPitch>,
+    pub phonetic: Option<DatabaseTermMetaPhonetic>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaFrequency {
-    expression: String,
-    /// Is of type `TermMetaModeType::Freq`
-    mode: TermMetaModeType,
-    data: TermMetaFrequencyDataType,
-    dictionary: String,
+    pub expression: String,
+    /// Is of type [`TermMetaModeType::Freq`]
+    pub mode: TermMetaModeType,
+    pub data: TermMetaFrequencyDataType,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseTermMetaPitch {
-    expression: String,
-    /// Is of type `TermMetaModeType::Pitch`
-    mode: TermMetaModeType,
-    data: TermMetaPitchData,
-    dictionary: String,
+    pub expression: String,
+    /// Is of type [`TermMetaModeType::Pitch`]
+    pub mode: TermMetaModeType,
+    pub data: TermMetaPitchData,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseTermMetaPhoneticData {
-    expression: String,
-    /// Is of type `TermMetaModeType::Ipa`
-    mode: TermMetaModeType,
-    data: TermMetaPhoneticData,
-    dictionary: String,
+pub struct DatabaseTermMetaPhonetic {
+    pub expression: String,
+    /// Is of type [`TermMetaModeType::Ipa`]
+    pub mode: TermMetaModeType,
+    pub data: TermMetaPhoneticData,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum DatabaseTermMeta {
+#[serde(untagged)]
+pub enum DatabaseTermMetaMatchType {
     Frequency(DatabaseTermMetaFrequency),
     Pitch(DatabaseTermMetaPitch),
-    Phonetic(DatabaseTermMetaPhoneticData),
+    Phonetic(DatabaseTermMetaPhonetic),
 }
+
+/*************** Database Kanji Meta ***************/
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseKanjiMetaFrequency {
-    index: u16,
-    character: String,
-    /// Is of type `TermMetaModeType::Frequency`
-    mode: TermMetaModeType,
-    data: GenericFrequencyData,
-    dictionary: String,
+    pub character: String,
+    /// Is of type [`TermMetaModeType::Freq`]
+    pub mode: TermMetaModeType,
+    pub data: TermMetaFrequencyDataType,
+    pub dictionary: String,
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DatabaseKanjiEntry {
+    pub character: String,
+    // all of these are most likely empty strings-
+    // its better dx to if let them then use .is_empty()
+    // so add this serde macro later
+    //#[serde_as(as = "NoneAsEmptyString")]
+    pub onyomi: Option<String>,
+    pub kunyomi: Option<String>,
+    pub tags: Option<String>,
+    pub definitions: Vec<String>,
+    /// The kanji dictionary name.
+    ///
+    /// Does not exist within the JSON, gets added _after_ deserialization.
+    pub stats: Option<HashMap<String, String>>,
+    #[serde(skip_deserializing)]
+    pub dictionary: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct KanjiEntry {
+    pub index: i32,
+    pub character: String,
+    pub onyomi: Vec<String>,
+    pub kunyomi: Vec<String>,
+    pub tags: Vec<String>,
+    pub definitions: Vec<String>,
+    pub stats: HashMap<String, String>,
+    pub dictionary: String,
+}
+
+/*************** Database Dictionary ***************/
 
 pub type DictionaryCountGroup = HashMap<String, u16>;
 
@@ -197,6 +225,15 @@ pub trait DictionarySet {
     fn has(&self, value: &str) -> bool;
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DatabaseDictData {
+    pub tag_list: Vec<Vec<DictDataTag>>,
+    pub kanji_meta_list: Vec<DatabaseKanjiMetaFrequency>,
+    pub kanji_list: Vec<DatabaseKanjiEntry>,
+    pub term_meta_list: Vec<DatabaseTermMeta>,
+    pub term_list: Vec<DatabaseTermEntry>,
+}
+
 /// Defines each `redb` store, containing serialized `Database` objects.
 /// Each entry in the table is serialized into a byte slice (`&[u8]`) before storage.
 pub mod db_stores {
@@ -235,13 +272,14 @@ pub mod db_stores {
 
 impl Yomichan {
     /// Adds a term entry to the database
-    pub fn add_term(&self, key: &str, term: TermEntry) -> Result<(), errors::DBError> {
-        let tx = self.ycdatabase.db.begin_write()?;
+    pub fn propogate_database<P: AsRef<Path>>(&self, zip_path: P) -> Result<(), errors::DBError> {
+        let items = prepare_dictionary(zip_path)?;
+        let tx = self.db.begin_write()?;
         {
             let mut table = tx.open_table(db_stores::TERMS_STORE)?;
 
-            let term_bytes = bincode::serialize(&term)?;
-            table.insert(key, &*term_bytes)?;
+            //let term_bytes = bincode::serialize(&term)?;
+            //table.insert(key, &*term_bytes)?;
         }
         tx.commit()?;
 
@@ -250,7 +288,7 @@ impl Yomichan {
 
     /// Looks up a term in the database
     pub fn lookup_term(&self, key: &str) -> Result<Option<TermEntry>, errors::DBError> {
-        let tx = self.ycdatabase.db.begin_read()?;
+        let tx = self.db.begin_read()?;
         let table = tx.open_table(db_stores::TERMS_STORE)?;
 
         if let Some(value_guard) = table.get(key)? {
@@ -261,5 +299,3 @@ impl Yomichan {
         }
     }
 }
-
-
