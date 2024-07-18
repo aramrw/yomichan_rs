@@ -235,8 +235,10 @@ pub type TermMetaBank = Vec<TermMeta>;
 
 /// the 'header', and `structured-content`
 /// of a `term_bank_$i.json` entry item.
+/// The 'header', and `structured-content`
+/// of a `term_bank_${i}.json` entry item.
 #[derive(Deserialize)]
-pub struct EntryItem {
+pub struct TermEntryItem {
     pub expression: String,
     pub reading: String,
     pub def_tags: Option<String>,
