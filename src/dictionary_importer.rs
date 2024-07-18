@@ -5,16 +5,19 @@ use crate::dictionary_data::{
     TermMetaFrequencyDataType, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
 use crate::dictionary_database::{
-    db_stores, DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseTermEntry,
-    DatabaseTermMeta, DatabaseTermMetaFrequency, DatabaseTermMetaPhonetic, DatabaseTermMetaPitch,
-    KanjiEntry, MediaDataArrayBufferContent, TermEntry,
+    db_stores, DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseMeta,
+    DatabaseMetaFrequency, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
+    MediaDataArrayBufferContent, TermEntry,
 };
+use crate::settings::{Options, Profile};
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
 use crate::errors::{DBError, ImportError};
 use crate::Yomichan;
 
 use unicode_segmentation::UnicodeSegmentation;
+
+use chrono::prelude::*;
 
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
@@ -90,10 +93,8 @@ pub struct Summary {
     /// Revision of the dictionary. This value is only used for displaying information.
     pub revision: String,
     /// Whether or not this dictionary contains sequencing information for related terms.
-    pub sequenced: bool,
     pub sequenced: Option<bool>,
     /// Format of data found in the JSON data files.
-    pub version: u8,
     pub version: Option<u8>,
     /// Date the dictionary was added to the db.
     pub import_date: String,
@@ -131,12 +132,6 @@ pub struct SummaryDetails {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryCounts {
-    terms: SummaryItemCount,
-    term_meta: SummaryMetaCount,
-    kanji: SummaryItemCount,
-    kanji_meta: SummaryMetaCount,
-    tag_meta: SummaryItemCount,
-    media: SummaryItemCount,
     pub terms: SummaryItemCount,
     pub term_meta: SummaryMetaCount,
     pub kanji: SummaryItemCount,
@@ -147,13 +142,11 @@ pub struct SummaryCounts {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryItemCount {
-    total: u64,
+    pub total: u16,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryMetaCount {
-    total: u64,
-    meta: HashMap<String, u64>,
     pub total: u16,
     pub meta: MetaCounts,
 }
@@ -300,7 +293,6 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
     Ok(temp_dir_path)
 }
 
-pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictData, ImportError> {
 pub fn prepare_dictionary<P: AsRef<Path>>(
     zip_path: P,
     options: &Options,
@@ -387,7 +379,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
             return Err(ImportError::Custom(format!(
                 "Failed to convert term banks | {}",
                 e
-            )))
+            )));
         }
     };
 
@@ -416,18 +408,13 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         media: SummaryItemCount { total: 0 },
     };
 
-    let counts = (
-        tag_list.len(),
-        kanji_meta_list.len(),
-        kanji_list.len(),
-        term_meta_list.len(),
-        term_list.len(),
     let summary = create_summary(
         index,
         options.global.database.prefix_wildcards_supported,
         counts,
     );
 
+    println!("{:#?}", summary);
     print_timer(instant, paths_len);
 
     Ok(DatabaseDictData {
@@ -436,6 +423,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         kanji_list,
         term_meta_list,
         term_list,
+        summary,
     })
 }
 
@@ -537,13 +525,8 @@ fn convert_kanji_meta_file(
         }
     };
 
-    let kanji_metas: Vec<DatabaseKanjiMetaFrequency> = entries
+    let kanji_metas: Vec<DatabaseMeta> = entries
         .into_iter()
-        .map(|entry| DatabaseKanjiMetaFrequency {
-            character: entry.expression,
-            mode: TermMetaModeType::Freq,
-            data: entry.data,
-            dictionary: mem::take(&mut dict_name),
         .map(|entry| {
             let dbkmf = DatabaseMetaFrequency {
                 expression: entry.expression,
@@ -565,7 +548,7 @@ fn convert_kanji_meta_file(
 fn convert_term_meta_file(
     outpath: PathBuf,
     mut dict_name: String,
-) -> Result<Vec<DatabaseTermMeta>, ImportError> {
+) -> Result<Vec<DatabaseMeta>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
     })?;
@@ -587,10 +570,10 @@ fn convert_term_meta_file(
         }
     };
 
-    let term_metas: Vec<DatabaseTermMeta> = entries
+    let term_metas: Vec<DatabaseMeta> = entries
         .into_iter()
         .map(|entry| {
-            let mut meta = DatabaseTermMeta {
+            let mut meta = DatabaseMeta {
                 frequency: None,
                 pitch: None,
                 phonetic: None,
@@ -599,7 +582,7 @@ fn convert_term_meta_file(
             match entry.mode {
                 TermMetaModeType::Freq => {
                     if let TermMetaDataMatchType::Frequency(data) = entry.data {
-                        meta.frequency = Some(DatabaseTermMetaFrequency {
+                        meta.frequency = Some(DatabaseMetaFrequency {
                             expression: entry.expression,
                             mode: TermMetaModeType::Freq,
                             data,
@@ -609,7 +592,7 @@ fn convert_term_meta_file(
                 }
                 TermMetaModeType::Pitch => {
                     if let TermMetaDataMatchType::Pitch(data) = entry.data {
-                        meta.pitch = Some(DatabaseTermMetaPitch {
+                        meta.pitch = Some(DatabaseMetaPitch {
                             expression: entry.expression,
                             mode: TermMetaModeType::Pitch,
                             data,
@@ -619,7 +602,7 @@ fn convert_term_meta_file(
                 }
                 TermMetaModeType::Ipa => {
                     if let TermMetaDataMatchType::Phonetic(data) = entry.data {
-                        meta.phonetic = Some(DatabaseTermMetaPhonetic {
+                        meta.phonetic = Some(DatabaseMetaPhonetic {
                             expression: entry.expression,
                             mode: TermMetaModeType::Freq,
                             data,
@@ -779,6 +762,12 @@ fn handle_content_match_type(content: Vec<Element>) -> Vec<String> {
             Element::Image(_) => {}
             // br elements don't have children
             Element::LineBreak(_) => {}
+            _ => {
+                panic!(
+                    "handle_content_match_type err: matched nothing! | line: {}",
+                    line!()
+                )
+            }
         }
     }
 
