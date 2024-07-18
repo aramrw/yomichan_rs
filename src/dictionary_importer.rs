@@ -395,6 +395,10 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         kanji_list.len(),
         term_meta_list.len(),
         term_list.len(),
+    let summary = create_summary(
+        index,
+        options.global.database.prefix_wildcards_supported,
+        counts,
     );
 
     print_timer(instant, paths_len);
