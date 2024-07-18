@@ -1,17 +1,20 @@
+use crate::dictionary::KanjiDictionaryEntry;
 use crate::dictionary_data::{
-    GenericFrequencyData, Index, Tag, TermGlossaryImage, TermMeta, TermMetaDataMatchType,
-    TermMetaFrequency, TermMetaFrequencyDataType, TermMetaModeType, TermMetaPitchData, TermV3,
-    TermV4,
+    GenericFrequencyData, Index, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
+    TermGlossaryImage, TermMeta, TermMetaDataMatchType, TermMetaFrequency,
+    TermMetaFrequencyDataType, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
 use crate::dictionary_database::{
-    db_stores, DatabaseKanjiMetaFrequency, DatabaseTermEntry, DatabaseTermMeta,
-    DatabaseTermMetaFrequency, DatabaseTermMetaPhonetic, DatabaseTermMetaPitch,
-    MediaDataArrayBufferContent, TermEntry,
+    db_stores, DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseTermEntry,
+    DatabaseTermMeta, DatabaseTermMetaFrequency, DatabaseTermMetaPhonetic, DatabaseTermMetaPitch,
+    KanjiEntry, MediaDataArrayBufferContent, TermEntry,
 };
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
 use crate::errors::{DBError, ImportError};
 use crate::Yomichan;
+
+use unicode_segmentation::UnicodeSegmentation;
 
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
@@ -80,20 +83,6 @@ pub enum FrequencyMode {
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Summary {
-    title: String,
-    revision: String,
-    sequenced: bool,
-    version: u8,
-    import_date: String,
-    prefix_wildcards_supported: bool,
-    counts: SummaryCounts,
-    author: Option<String>,
-    url: Option<String>,
-    description: Option<String>,
-    attribution: Option<String>,
-    source_language: Option<String>,
-    target_language: Option<String>,
-    frequency_mode: Option<FrequencyMode>,
     /// Name of the dictionary.
     pub title: String,
     /// Revision of the dictionary. This value is only used for displaying information.
@@ -210,15 +199,15 @@ impl<'de> Deserialize<'de> for EntryItemMatchType {
 
 //  terms: {total: termList.length}, // FINISHED
 //  termMeta: this._getMetaCounts(termMetaList), // FINISHED
-//  kanji: {total: kanjiList.length},
+//  kanji: {total: kanjiList.length}, // FINISHED
 //  kanjiMeta: this._getMetaCounts(kanjiMetaList), // FINISHED
 //  tagMeta: {total: tagList.length}, // FINISHED
-//  media: {total: media.length},
+//  media: {total: media.length}, // TODO FOR LATER
 impl Yomichan {
     async fn import_dictionary<P: AsRef<Path>>(&self, zip_path: P) -> Result<(), DBError> {
         use db_stores::*;
 
-        let txn = self.ycdatabase.db.begin_write()?;
+        let txn = self.db.begin_write()?;
         {
             let mut table = txn.open_table(DICTIONARIES_STORE);
             // table.insert(/* not sure what I'm going to do here yet */);
@@ -230,11 +219,10 @@ impl Yomichan {
 }
 
 /// Deserializable type mapping a `term_bank_$i.json` file.
-pub type TermBank = Vec<EntryItem>;
+pub type TermBank = Vec<TermEntryItem>;
 pub type TermMetaBank = Vec<TermMeta>;
+pub type KanjiBank = Vec<DatabaseKanjiEntry>;
 
-/// the 'header', and `structured-content`
-/// of a `term_bank_$i.json` entry item.
 /// The 'header', and `structured-content`
 /// of a `term_bank_${i}.json` entry item.
 #[derive(Deserialize)]
@@ -285,13 +273,14 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
     Ok(temp_dir_path)
 }
 
-pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, ImportError> {
+pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictData, ImportError> {
     let instant = Instant::now();
     //let temp_dir_path = extract_dict_zip(zip_path)?;
 
     let mut index_path = PathBuf::new();
     let mut tag_bank_paths: Vec<PathBuf> = Vec::new();
     let mut kanji_meta_bank_paths: Vec<PathBuf> = Vec::new();
+    let mut kanji_bank_paths: Vec<PathBuf> = Vec::new();
     let mut term_meta_bank_paths: Vec<PathBuf> = Vec::new();
     let mut term_bank_paths: Vec<PathBuf> = Vec::new();
 
@@ -300,6 +289,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
         &mut index_path,
         &mut tag_bank_paths,
         &mut kanji_meta_bank_paths,
+        &mut kanji_bank_paths,
         &mut term_meta_bank_paths,
         &mut term_bank_paths,
     );
@@ -307,7 +297,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
     let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title;
-    let tag_list: Vec<Vec<Tag>> = convert_tag_bank_files(tag_bank_paths)?;
+    let tag_list: Vec<Vec<DictDataTag>> = convert_tag_bank_files(tag_bank_paths)?;
 
     let kanji_meta_banks: Result<Vec<DatabaseKanjiMetaFrequency>, ImportError> =
         kanji_meta_bank_paths
@@ -317,7 +307,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
             .map(|v| v.into_iter().flatten().collect());
 
     let kanji_meta_list = match kanji_meta_banks {
-        Ok(tml) => tml,
+        Ok(kml) => kml,
         Err(e) => {
             return Err(ImportError::Custom(format!(
                 "Failed to convert kanji_meta_banks | {}",
@@ -342,7 +332,6 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
         }
     };
 
-    let term_banks: Result<Vec<TermV4>, ImportError> = term_bank_paths
     let kanji_banks: Result<Vec<DatabaseKanjiEntry>, ImportError> = kanji_bank_paths
         .into_iter()
         .map(|path| convert_kanji_bank(path, dict_name.clone()))
@@ -362,7 +351,6 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
     let term_banks: Result<Vec<DatabaseTermEntry>, ImportError> = term_bank_paths
         .into_par_iter()
         .map(convert_term_bank_file)
-        .collect::<Result<Vec<Vec<TermV4>>, ImportError>>()
         .collect::<Result<Vec<Vec<DatabaseTermEntry>>, ImportError>>() // Collect into Result<Vec<Vec<DatabaseTermEntry>>, ImportError>
         .map(|nested| nested.into_iter().flatten().collect());
 
@@ -376,19 +364,27 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
         }
     };
 
-    for t in &kanji_meta_list {
+    for t in &term_list {
         println!("{:#?}", t);
     }
 
     let counts = (
         tag_list.len(),
-        term_meta_list.len(),
         kanji_meta_list.len(),
+        kanji_list.len(),
+        term_meta_list.len(),
         term_list.len(),
     );
+
     print_timer(instant, paths_len);
 
-    Ok(term_list)
+    Ok(DatabaseDictData {
+        tag_list,
+        kanji_meta_list,
+        kanji_list,
+        term_meta_list,
+        term_list,
+    })
 }
 
 fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
@@ -401,18 +397,18 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
 // this one should probabaly be refactored to:
 // 1. include the file and err if it throws like the rest of the converts
 // 2. only handle one file and have the iteration be handled in the caller function
-fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<Tag>>, ImportError> {
+fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<DictDataTag>>, ImportError> {
     outpaths
         .into_iter()
         .map(|p| {
             let tag_str = fs::read_to_string(p)?;
-            let tag: Vec<Tag> = serde_json::from_str(&tag_str)?;
+            let tag: Vec<DictDataTag> = serde_json::from_str(&tag_str)?;
             Ok(tag)
         })
         .collect()
 }
 
-/****************** Term Meta Functions ******************/
+/****************** Meta Functions ******************/
 
 fn convert_kanji_meta_file(
     outpath: PathBuf,
@@ -560,14 +556,14 @@ fn convert_kanji_bank(
 
 /****************** Term Bank Functions ******************/
 
-fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> {
+fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<DatabaseTermEntry>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
     })?;
     let reader = BufReader::new(file);
 
     let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
-    let entries: Vec<EntryItem> = match stream.next() {
+    let entries: Vec<TermEntryItem> = match stream.next() {
         Some(Ok(entries)) => entries,
         Some(Err(e)) => {
             return Err(ImportError::Custom(format!(
@@ -584,7 +580,6 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> 
 
     // Beginning of each word/phrase/expression (entry)
     // ie: ["headword","reading","","",u128,[{/* main */}]]];
-    let terms: Vec<TermV4> = entries
     let terms: Vec<DatabaseTermEntry> = entries
         .into_iter()
         .map(|mut entry| {
@@ -675,11 +670,14 @@ fn handle_content_match_type(content: Vec<Element>) -> Vec<String> {
     content_strings
 }
 
+/****************** Helper Functions ******************/
+
 fn read_dir_helper<P: AsRef<Path>>(
     zip_path: P,
     index: &mut PathBuf,
     tag_banks: &mut Vec<PathBuf>,
     kanji_meta_banks: &mut Vec<PathBuf>,
+    kanji_banks: &mut Vec<PathBuf>,
     term_meta_banks: &mut Vec<PathBuf>,
     term_banks: &mut Vec<PathBuf>,
 ) -> Result<(), io::Error> {
@@ -701,6 +699,8 @@ fn read_dir_helper<P: AsRef<Path>>(
                 term_meta_banks.push(outpath_buf);
             } else if contains(outpath, b"kanji_meta_bank") {
                 kanji_meta_banks.push(outpath_buf);
+            } else if contains(outpath, b"kanji_bank") {
+                kanji_banks.push(outpath_buf);
             } else if contains(outpath, b"tag_bank") {
                 tag_banks.push(outpath_buf);
             }
