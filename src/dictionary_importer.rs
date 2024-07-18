@@ -81,6 +81,8 @@ pub enum FrequencyMode {
     #[serde(rename = "rank-based")]
     RankBased,
 }
+
+// Final details about the Dictionary and it's import process.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Summary {
     /// Name of the dictionary.
@@ -89,8 +91,10 @@ pub struct Summary {
     pub revision: String,
     /// Whether or not this dictionary contains sequencing information for related terms.
     pub sequenced: bool,
+    pub sequenced: Option<bool>,
     /// Format of data found in the JSON data files.
     pub version: u8,
+    pub version: Option<u8>,
     /// Date the dictionary was added to the db.
     pub import_date: String,
     /// Whether or not wildcards can be used for the search query.
@@ -118,6 +122,14 @@ pub struct Summary {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SummaryDetails {
+    pub prefix_wildcard_supported: bool,
+    pub counts: SummaryCounts,
+    // I dont know what this is
+    //pub styles: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryCounts {
     terms: SummaryItemCount,
     term_meta: SummaryMetaCount,
@@ -125,6 +137,12 @@ pub struct SummaryCounts {
     kanji_meta: SummaryMetaCount,
     tag_meta: SummaryItemCount,
     media: SummaryItemCount,
+    pub terms: SummaryItemCount,
+    pub term_meta: SummaryMetaCount,
+    pub kanji: SummaryItemCount,
+    pub kanji_meta: SummaryMetaCount,
+    pub tag_meta: SummaryItemCount,
+    pub media: SummaryItemCount,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -136,6 +154,15 @@ pub struct SummaryItemCount {
 pub struct SummaryMetaCount {
     total: u64,
     meta: HashMap<String, u64>,
+    pub total: u16,
+    pub meta: MetaCounts,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct MetaCounts {
+    freq: u32,
+    pitch: u32,
+    ipa: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
