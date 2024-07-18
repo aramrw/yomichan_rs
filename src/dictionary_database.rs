@@ -1,16 +1,15 @@
 use crate::dictionary::{TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    GenericFrequencyData, TermGlossary, TermGlossaryContent, TermMetaFrequencyDataType,
-    TermMetaModeType, TermMetaPhoneticData, TermMetaPitchData, Tag as DictDataTag
+    GenericFrequencyData, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
+    TermMetaFrequencyDataType, TermMetaModeType, TermMetaPhoneticData, TermMetaPitchData,
 };
-use crate::dictionary_importer::prepare_dictionary;
+use crate::dictionary_importer::{prepare_dictionary, Summary};
 use crate::errors;
 use crate::Yomichan;
 
 //use redb::TableDefinition;
 
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, NoneAsEmptyString};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -85,18 +84,18 @@ pub struct Tag {
 
 /*************** Database Term Meta ***************/
 
-/// A custom `Yomichan_rs`-unique Database Term Meta model.  
+/// A custom `Yomichan_rs`-unique, generic Database Meta model.  
 ///
 /// May contain `any` or `all` of the values.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseTermMeta {
-    pub frequency: Option<DatabaseTermMetaFrequency>,
-    pub pitch: Option<DatabaseTermMetaPitch>,
-    pub phonetic: Option<DatabaseTermMetaPhonetic>,
+pub struct DatabaseMeta {
+    pub frequency: Option<DatabaseMetaFrequency>,
+    pub pitch: Option<DatabaseMetaPitch>,
+    pub phonetic: Option<DatabaseMetaPhonetic>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseTermMetaFrequency {
+pub struct DatabaseMetaFrequency {
     pub expression: String,
     /// Is of type [`TermMetaModeType::Freq`]
     pub mode: TermMetaModeType,
@@ -105,7 +104,7 @@ pub struct DatabaseTermMetaFrequency {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseTermMetaPitch {
+pub struct DatabaseMetaPitch {
     pub expression: String,
     /// Is of type [`TermMetaModeType::Pitch`]
     pub mode: TermMetaModeType,
@@ -114,7 +113,7 @@ pub struct DatabaseTermMetaPitch {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseTermMetaPhonetic {
+pub struct DatabaseMetaPhonetic {
     pub expression: String,
     /// Is of type [`TermMetaModeType::Ipa`]
     pub mode: TermMetaModeType,
@@ -122,13 +121,13 @@ pub struct DatabaseTermMetaPhonetic {
     pub dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum DatabaseTermMetaMatchType {
-    Frequency(DatabaseTermMetaFrequency),
-    Pitch(DatabaseTermMetaPitch),
-    Phonetic(DatabaseTermMetaPhonetic),
-}
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// #[serde(untagged)]
+// pub enum DatabaseTermMetaMatchType {
+//     Frequency(DatabaseTermMetaFrequency),
+//     Pitch(DatabaseTermMetaPitch),
+//     Phonetic(DatabaseTermMetaPhonetic),
+// }
 
 /*************** Database Kanji Meta ***************/
 
@@ -228,10 +227,11 @@ pub trait DictionarySet {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseDictData {
     pub tag_list: Vec<Vec<DictDataTag>>,
-    pub kanji_meta_list: Vec<DatabaseKanjiMetaFrequency>,
+    pub kanji_meta_list: Vec<DatabaseMeta>,
     pub kanji_list: Vec<DatabaseKanjiEntry>,
-    pub term_meta_list: Vec<DatabaseTermMeta>,
+    pub term_meta_list: Vec<DatabaseMeta>,
     pub term_list: Vec<DatabaseTermEntry>,
+    pub summary: Summary,
 }
 
 /// Defines each `redb` store, containing serialized `Database` objects.
@@ -273,7 +273,7 @@ pub mod db_stores {
 impl Yomichan {
     /// Adds a term entry to the database
     pub fn propogate_database<P: AsRef<Path>>(&self, zip_path: P) -> Result<(), errors::DBError> {
-        let items = prepare_dictionary(zip_path)?;
+        let data = prepare_dictionary(zip_path, &self.options)?;
         let tx = self.db.begin_write()?;
         {
             let mut table = tx.open_table(db_stores::TERMS_STORE)?;
