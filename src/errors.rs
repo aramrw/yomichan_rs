@@ -8,11 +8,11 @@ pub enum InitError {
 
 #[derive(Error, Debug)]
 pub enum ImportError {
-    #[error("database err")]
+    #[error("database err: {0}")]
     Database(#[from] redb::DatabaseError),
-    #[error("io err")]
+    #[error("io err: {0}")]
     IO(#[from] std::io::Error),
-    #[error("zip err")]
+    #[error("zip err: {0}")]
     Zip(#[from] zip::result::ZipError),
     #[error("json err: {0}")]
     Json(#[from] serde_json::error::Error),
