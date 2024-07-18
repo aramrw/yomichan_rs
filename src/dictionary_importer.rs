@@ -343,9 +343,27 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<Vec<TermV4>, Im
     };
 
     let term_banks: Result<Vec<TermV4>, ImportError> = term_bank_paths
+    let kanji_banks: Result<Vec<DatabaseKanjiEntry>, ImportError> = kanji_bank_paths
+        .into_iter()
+        .map(|path| convert_kanji_bank(path, dict_name.clone()))
+        .collect::<Result<Vec<Vec<DatabaseKanjiEntry>>, ImportError>>()
+        .map(|nested| nested.into_iter().flatten().collect());
+
+    let kanji_list = match kanji_banks {
+        Ok(kb) => kb,
+        Err(e) => {
+            return Err(ImportError::Custom(format!(
+                "Failed to convert kanji banks | {}",
+                e
+            )))
+        }
+    };
+
+    let term_banks: Result<Vec<DatabaseTermEntry>, ImportError> = term_bank_paths
         .into_par_iter()
         .map(convert_term_bank_file)
         .collect::<Result<Vec<Vec<TermV4>>, ImportError>>()
+        .collect::<Result<Vec<Vec<DatabaseTermEntry>>, ImportError>>() // Collect into Result<Vec<Vec<DatabaseTermEntry>>, ImportError>
         .map(|nested| nested.into_iter().flatten().collect());
 
     let term_list = match term_banks {
