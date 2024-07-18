@@ -585,24 +585,31 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> 
     // Beginning of each word/phrase/expression (entry)
     // ie: ["headword","reading","","",u128,[{/* main */}]]];
     let terms: Vec<TermV4> = entries
+    let terms: Vec<DatabaseTermEntry> = entries
         .into_iter()
         .map(|mut entry| {
-            let mut v4_term = TermV4 {
-                expression: entry.expression,
-                reading: entry.reading,
+            let expression = entry.expression;
+            let reading = entry.reading;
+            let expression_reverse = rev_jp_str(&expression);
+            let reading_reverse = rev_jp_str(&reading);
+            let mut db_term = DatabaseTermEntry {
+                expression,
+                expression_reverse,
+                reading,
+                reading_reverse,
                 definition_tags: entry.def_tags,
                 rules: entry.rules,
                 score: entry.score,
-                sequence: entry.sequence,
-                term_tags: entry.term_tags,
+                sequence: Some(entry.sequence),
+                term_tags: Some(entry.term_tags),
                 ..Default::default()
             };
 
             let structured_content = entry.structured_content.swap_remove(0);
             let defs = get_string_content(structured_content.content);
-            v4_term.definition = defs.concat();
+            db_term.glossary = create_glossary(defs.concat());
 
-            v4_term
+            db_term
         })
         .collect();
 
