@@ -1,4 +1,4 @@
-use crate::dictionary_importer::*;
+use crate::{dictionary_importer::*, settings::Options, Yomichan};
 #[allow(unused_imports)]
 use crate::structured_content::ContentMatchType;
 
@@ -11,8 +11,9 @@ fn dict() {
         .build()
         .unwrap();
 
+    let options = Options::default();
     let path = std::path::Path::new("./test_dicts/daijisen");
-    prepare_dictionary(path).unwrap();
+    prepare_dictionary(path, &options).unwrap();
 
     #[cfg(target_os = "linux")]
     if let Ok(report) = guard.report().build() {
@@ -135,5 +136,5 @@ fn hardcoded() {
     std::fs::write(&paths[0], json_0.as_bytes()).unwrap();
     //std::fs::write(&paths[1], json_1.as_bytes()).unwrap();
 
-    prepare_dictionary(std::path::Path::new(dir_path)).unwrap();
+    //prepare_dictionary(std::path::Path::new(dir_path)).unwrap();
 }
