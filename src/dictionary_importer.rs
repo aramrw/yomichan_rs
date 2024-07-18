@@ -524,6 +524,40 @@ fn convert_term_meta_file(
     Ok(term_metas)
 }
 
+/****************** Kanji Bank Functions ******************/
+
+fn convert_kanji_bank(
+    outpath: PathBuf,
+    mut dict_name: String,
+) -> Result<Vec<DatabaseKanjiEntry>, ImportError> {
+    let file = fs::File::open(&outpath).map_err(|e| {
+        ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
+    })?;
+    let reader = BufReader::new(file);
+
+    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<KanjiBank>();
+    let mut entries = match stream.next() {
+        Some(Ok(entries)) => entries,
+        Some(Err(e)) => {
+            return Err(ImportError::Custom(format!(
+                "File: {} | Err: {e}",
+                &outpath.to_string_lossy(),
+            )))
+        }
+        None => {
+            return Err(ImportError::Custom(String::from(
+                "no data in term_bank stream",
+            )))
+        }
+    };
+
+    for item in &mut entries {
+        item.dictionary = Some(mem::take(&mut dict_name))
+    }
+
+    Ok(entries)
+}
+
 /****************** Term Bank Functions ******************/
 
 fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<TermV4>, ImportError> {
