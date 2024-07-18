@@ -367,6 +367,27 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictDat
     for t in &term_list {
         println!("{:#?}", t);
     }
+    let counts = SummaryCounts {
+        terms: SummaryItemCount {
+            total: term_list.len() as u16,
+        },
+        term_meta: SummaryMetaCount {
+            total: term_meta_list.len() as u16,
+            meta: term_meta_counts,
+        },
+        tag_meta: SummaryItemCount {
+            total: tag_list.len() as u16,
+        },
+        kanji_meta: SummaryMetaCount {
+            total: kanji_meta_list.len() as u16,
+            meta: kanji_meta_counts,
+        },
+        kanji: SummaryItemCount {
+            total: kanji_list.len() as u16,
+        },
+        // Can't deserialize media (yet).
+        media: SummaryItemCount { total: 0 },
+    };
 
     let counts = (
         tag_list.len(),
