@@ -40,3 +40,21 @@ impl Yomichan {
         })
     }
 }
+
+/// Formats the path to include `.yc` as the extension.
+fn format_db_path<P: AsRef<Path>>(path: P) -> Result<String, InitError> {
+    let path_ref = path.as_ref();
+    if let Some(parent) = path_ref.parent() {
+        return match parent.exists() {
+            true => Ok(path_ref.with_extension("yc").to_string_lossy().to_string()),
+            false => Err(InitError::Path(format!(
+                "path does not exist: {}",
+                path_ref.to_string_lossy()
+            ))),
+        };
+    }
+    Err(InitError::Path(format!(
+        "path does not exist: {}",
+        path_ref.to_string_lossy()
+    )))
+}
