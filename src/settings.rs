@@ -296,13 +296,54 @@ pub type DictionariesOptions = Vec<DictionaryOptions>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct DictionaryOptions {
+    /// The title of the dictionary.
     pub name: String,
-    pub priority: u8,
+    /// What order the dictionary's results get returned.
+    pub priority: usize,
+    /// Whether or not the dictionary will be used.
     pub enabled: bool,
+    /// If you have two dictionaries, `Dict 1` and `Dict 2`:
+    /// - Set the [`ResultOutputMode`] to `Group` results for the main dictionary entry.
+    /// - Choose `Dict 1` as the main dictionary for merged mode.
+    /// - Enable `allow_secondary_searches` on `Dict 2`.
+    /// _(Can be enabled for multiple dictionaries)_.
+    ///
+    /// Yomichan_rs will now first perform an _initial_ lookup in `Dict 1`, fetching the grouped definition.
+    /// It will then use the headwords from `Dict 1`to perform a secondary lookup in `Dict 2`,
+    /// merging the two dictionary's definitions.
     pub allow_secondary_searches: bool,
+    /// Dictionary definitions can be collapsed if they exceed a certain line count,
+    /// which may be useful for dictionaries with long definitions. There are five different modes:
+    ///
+    /// By default, the number of lines shown for a definition is 3.
+    /// This can be configured by adjusting the Custom CSS `styles`;
+    ///
+    /// _(Value can be a unitless integer or decimal number)_.
     pub definitions_collapsible: DictionaryDefinitionsCollapsible,
+    /// When deinflecting words, only dictionary entries whose POS
+    /// matches that expected by the deinflector will be shown.
     pub parts_of_speech_filter: bool,
+    /// Deinflections from this dictionary will be used.
     pub use_deinflections: bool,
+    /// # Example
+    ///
+    /// ```
+    /// /* Globally set the line count */
+    /// :root {
+    /// --collapsible-definition-line-count: 2;
+    /// }
+    ///
+    /// /* Set the line count for a specific dictionary */
+    /// .definition-item[data-dictionary='JMdict'] {
+    /// --collapsible-definition-line-count: 2;
+    /// }
+    ///
+    /// /* Spoiler-like functionality, use with Force collapsed mode */
+    /// .definition-item[data-dictionary='JMdict'] .definition-item-inner.collapsible.collapsed {
+    /// color: #000000;
+    /// background-color: #000000;
+    /// }
+    /// ```
     pub styles: Option<String>,
 }
 
