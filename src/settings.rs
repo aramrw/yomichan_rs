@@ -707,13 +707,13 @@ pub enum AnkiScreenshotFormat {
     Jpeg,
 }
 
-/// A card is considered a duplicate if the value of the first field matches that of any other card. 
-/// By default, this check will include cards across all decks in a collection, 
+/// A card is considered a duplicate if the value of the first field matches that of any other card.
+/// By default, this check will include cards across all decks in a collection,
 /// but this constraint can be relaxed by using either the Deck or Deck root option.
 ///
-/// The Deck option will only check for duplicates in the target deck. 
-/// The Deck root option will additionally check for duplicates in all child decks of the root deck. 
-/// This allows adding cards that are unique for decks including a subdeck structure. 
+/// The Deck option will only check for duplicates in the target deck.
+/// The Deck root option will additionally check for duplicates in all child decks of the root deck.
+/// This allows adding cards that are unique for decks including a subdeck structure.
 /// For decks which don't have any parent-child hierarchy, both options function the same.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AnkiDuplicateScope {
@@ -734,8 +734,7 @@ pub enum AnkiDuplicateBehavior {
 
 /// Show card tags
 ///
-/// When coming across a word that is already in an Anki deck, 
-/// a button will appear that shows the tags the card has. 
+/// When coming across a word that is already in an Anki deck,
 /// a button will appear that shows the tags the card has.
 ///
 /// If set to `Non-Standard`, all tags that are included in the Card tags option will be filtered out from the list.
