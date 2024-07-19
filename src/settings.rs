@@ -52,6 +52,20 @@ pub struct Profile {
     pub options: ProfileOptions,
 }
 
+impl Profile {
+    fn new(
+        name: String,
+        condition_groups: Vec<ProfileConditionGroup>,
+        options: ProfileOptions,
+    ) -> Self {
+        Self {
+            name,
+            condition_groups,
+            options,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct ProfileConditionGroup {
     pub conditions: Vec<ProfileCondition>,
