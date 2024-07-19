@@ -132,6 +132,13 @@ fn hardcoded() {
         format!("{dir_path}\\term_bank_0.json"),
         format!("{dir_path}\\term_bank_1.json"),
     ];
+#[test]
+fn init_db() {
+    let db_path = String::from("./test.yc");
+    let mut ycd = Yomichan::new(db_path).unwrap();
+    let path = std::path::Path::new("./test_dicts/daijisen");
+    ycd.import_dictionary(path).unwrap();
+}
 
     std::fs::write(&paths[0], json_0.as_bytes()).unwrap();
     //std::fs::write(&paths[1], json_1.as_bytes()).unwrap();
