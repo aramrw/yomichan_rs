@@ -375,3 +375,24 @@ fn process_tokens(tokens: Vec<Token>) -> Vec<&str> {
     tokens.iter().map(|t| t.text).collect()
 }
 
+fn init_tokenizer() -> Result<Tokenizer, LinderaError> {
+    use lindera::{
+        DictionaryConfig, DictionaryKind, LinderaResult, Mode, Tokenizer, TokenizerConfig,
+    };
+
+    let dictionary = DictionaryConfig {
+        kind: Some(DictionaryKind::IPADIC),
+        path: None,
+    };
+
+    let config = TokenizerConfig {
+        dictionary,
+        user_dictionary: None,
+        mode: Mode::Normal,
+    };
+
+    let tokenizer = Tokenizer::from_config(config)?;
+    //let tokens = tokenizer.tokenize(query.as_ref())?;
+
+    Ok(tokenizer)
+}
