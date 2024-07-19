@@ -142,6 +142,14 @@ fn init_db() {
 
     std::fs::write(&paths[0], json_0.as_bytes()).unwrap();
     //std::fs::write(&paths[1], json_1.as_bytes()).unwrap();
+#[test]
+fn query_db() {
+    let db_path = String::from("./test.yc");
+    let ycd = Yomichan::new(db_path).unwrap();
 
-    //prepare_dictionary(std::path::Path::new(dir_path)).unwrap();
+    let terms = ycd.bulk_lookup("国外").unwrap();
+
+    for t in terms {
+        println!("{:#?}", t);
+    }
 }
