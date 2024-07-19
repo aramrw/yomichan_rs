@@ -12,20 +12,20 @@ pub enum InitError {
 
 #[derive(Error, Debug)]
 pub enum ImportError {
-    #[error("database err: {0}")]
-    Database(#[from] redb::DatabaseError),
+    #[error("db err: {0}")]
+    Database(#[from] db_type::Error),
     #[error("io err: {0}")]
     IO(#[from] std::io::Error),
     #[error("zip err: {0}")]
     Zip(#[from] zip::result::ZipError),
     #[error("json err: {0}")]
     Json(#[from] serde_json::error::Error),
-    #[error("json err: {0}")]
-    Custom(String),
     #[error("thread err: {0}")]
     ThreadErr(#[from] std::thread::AccessError),
     #[error("error at line {0}: {1}")]
     LineErr(u32, Box<ImportError>),
+    #[error("json err: {0}")]
+    Custom(String),
 }
 
 #[derive(Error, Debug)]
