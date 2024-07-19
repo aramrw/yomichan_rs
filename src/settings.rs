@@ -604,11 +604,11 @@ pub enum TermDisplayStyle {
 /// Frequency sorting mode
 ///
 /// Dictionary frequency data can be represented in one of two ways:
-/// 
-/// `Occurrence`-based, where the frequency corresponds to a number of occurrences. 
+///
+/// `Occurrence`-based, where the frequency corresponds to a number of occurrences.
 /// - Large values indicate a more common term.
 ///
-/// `Rank`-based, where the frequency value corresponds to a ranking index. 
+/// `Rank`-based, where the frequency value corresponds to a ranking index.
 /// - Smaller values indicate a more common term.
 ///
 /// _`Occurrence`-based frequency dictionaries are highly discouraged, do not use them!!_
@@ -636,7 +636,7 @@ pub enum PopupWindowState {
     Fullscreen,
 }
 
-/// When searching for audio, the sources are checked in order until the first valid source is found. 
+/// When searching for audio, the sources are checked in order until the first valid source is found.
 /// This allows for selecting a fallback source if the first choice is not available.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AudioSourceType {
