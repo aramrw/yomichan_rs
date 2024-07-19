@@ -347,6 +347,27 @@ pub struct DictionaryOptions {
     pub styles: Option<String>,
 }
 
+impl DictionaryOptions {
+    pub fn new(settings: &Options, dict_name: String, profile_index: usize) -> Self {
+        let profile = settings.profiles.get(profile_index);
+        let p_len = match profile {
+            Some(pd) => pd.options.dictionaries.len(),
+            None => 1,
+        };
+
+        DictionaryOptions {
+            name: dict_name,
+            priority: p_len,
+            enabled: true,
+            allow_secondary_searches: false,
+            definitions_collapsible: DictionaryDefinitionsCollapsible::Expanded,
+            parts_of_speech_filter: true,
+            use_deinflections: true,
+            styles: None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct ParsingOptions {
     pub enable_scanning_parser: bool,
