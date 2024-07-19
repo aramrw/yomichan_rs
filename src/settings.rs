@@ -2,14 +2,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct Options {
-    pub version: u8,
-    pub profiles: Vec<Profile>,
-    pub current_profile: u8,
-    pub global: GlobalOptions,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct GlobalOptions {
     pub database: GlobalDatabaseOptions,
 }
@@ -71,11 +63,11 @@ pub struct ProfileConditionGroup {
     pub conditions: Vec<ProfileCondition>,
 }
 
-/// Profile usage conditions are used to automatically select certain profiles based on context. 
+/// Profile usage conditions are used to automatically select certain profiles based on context.
 /// For example, different profiles can be used,
 /// depending on the nested level of the popup, or based on the website's URL.
 
-/// Conditions are organized into groups corresponding to the order in which they are checked. 
+/// Conditions are organized into groups corresponding to the order in which they are checked.
 /// If all of the conditions in any group of a profile are met, then that profile will be used for that context.
 
 /// If no conditions are specified, the profile will only be used if it is selected as the default profile.
@@ -102,7 +94,7 @@ pub struct ProfileOptions {
     pub audio: AudioOptions,
     pub scanning: ScanningOptions,
     pub translation: TranslationOptions,
-    pub dictionaries: DictionariesOptions,
+    pub dictionaries: Vec<DictionaryOptions>,
     pub parsing: ParsingOptions,
     pub anki: AnkiOptions,
     pub sentence_parsing: SentenceParsingOptions,
@@ -291,8 +283,6 @@ pub struct TranslationTextReplacementGroup {
     pub ignore_case: bool,
     pub replacement: String,
 }
-
-pub type DictionariesOptions = Vec<DictionaryOptions>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct DictionaryOptions {
@@ -553,7 +543,6 @@ pub enum PopupActionBarLocation {
     Bottom,
     Left,
 }
-
 
 /// Adjust the shadow style.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
