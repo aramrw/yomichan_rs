@@ -4,6 +4,10 @@ use thiserror::Error;
 pub enum InitError {
     #[error("database connection failed")]
     DatabaseConnectionFailed(#[from] redb::DatabaseError),
+    #[error("db conn err: {0}")]
+    DatabaseConnectionFailed(#[from] db_type::Error),
+    #[error("path does not exist: {0}")]
+    Path(String),
 }
 
 #[derive(Error, Debug)]
