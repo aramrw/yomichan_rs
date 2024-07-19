@@ -310,13 +310,17 @@ impl Yomichan {
     pub fn propogate_database<P: AsRef<Path>>(&self, zip_path: P) -> Result<(), errors::DBError> {
         let data = prepare_dictionary(zip_path, &self.options)?;
         let tx = self.db.begin_write()?;
+    pub fn import_dictionary<P: AsRef<Path>>(&mut self, zip_path: P) -> Result<(), DBError> {
+        let data = prepare_dictionary(zip_path, &mut self.options)?;
+        let terms = data.term_list;
+        let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
         {
-            let mut table = tx.open_table(db_stores::TERMS_STORE)?;
-
-            //let term_bytes = bincode::serialize(&term)?;
-            //table.insert(key, &*term_bytes)?;
+            let rwtx = db.rw_transaction()?;
+            for t in terms {
+                rwtx.insert(t)?;
+            }
+            rwtx.commit()?;
         }
-        tx.commit()?;
 
         Ok(())
     }
