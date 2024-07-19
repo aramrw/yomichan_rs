@@ -5,11 +5,13 @@ use crate::dictionary_data::{
     TermMetaFrequencyDataType, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
 use crate::dictionary_database::{
-    db_stores, DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseMeta,
+    DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseMeta,
     DatabaseMetaFrequency, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
     MediaDataArrayBufferContent, TermEntry,
 };
-use crate::settings::{Options, Profile};
+use crate::settings::{
+    self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
+};
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
 use crate::errors::{DBError, ImportError};
@@ -127,6 +129,7 @@ pub struct SummaryDetails {
     pub prefix_wildcard_supported: bool,
     pub counts: SummaryCounts,
     // I dont know what this is
+    // some kind of styles.css file stuff
     //pub styles: String,
 }
 
@@ -217,27 +220,6 @@ impl<'de> Deserialize<'de> for EntryItemMatchType {
     }
 }
 
-//  terms: {total: termList.length}, // FINISHED
-//  termMeta: this._getMetaCounts(termMetaList), // FINISHED
-//  kanji: {total: kanjiList.length}, // FINISHED
-//  kanjiMeta: this._getMetaCounts(kanjiMetaList), // FINISHED
-//  tagMeta: {total: tagList.length}, // FINISHED
-//  media: {total: media.length}, // TODO FOR LATER
-impl Yomichan {
-    async fn import_dictionary<P: AsRef<Path>>(&self, zip_path: P) -> Result<(), DBError> {
-        use db_stores::*;
-
-        let txn = self.db.begin_write()?;
-        {
-            let mut table = txn.open_table(DICTIONARIES_STORE);
-            // table.insert(/* not sure what I'm going to do here yet */);
-        }
-        txn.commit()?;
-
-        Ok(())
-    }
-}
-
 /// Deserializable type mapping a `term_bank_$i.json` file.
 pub type TermBank = Vec<TermEntryItem>;
 pub type TermMetaBank = Vec<TermMeta>;
@@ -295,7 +277,7 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
 
 pub fn prepare_dictionary<P: AsRef<Path>>(
     zip_path: P,
-    options: &Options,
+    settings: &mut Options,
 ) -> Result<DatabaseDictData, ImportError> {
     let instant = Instant::now();
     //let temp_dir_path = extract_dict_zip(zip_path)?;
@@ -317,7 +299,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         &mut term_bank_paths,
     );
 
-    let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
+    // let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title.clone();
     let tag_list: Vec<Vec<DictDataTag>> = convert_tag_bank_files(tag_bank_paths)?;
@@ -371,7 +353,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         .into_par_iter()
         .map(convert_term_bank_file)
         .collect::<Result<Vec<Vec<DatabaseTermEntry>>, ImportError>>();
-        //.map(|nested| nested.into_iter().flatten().collect());
+    //.map(|nested| nested.into_iter().flatten().collect());
 
     let term_list: Vec<DatabaseTermEntry> = match term_banks {
         Ok(tl) => tl.into_iter().flatten().collect(),
@@ -410,12 +392,16 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
 
     let summary = create_summary(
         index,
-        options.global.database.prefix_wildcards_supported,
+        settings.global.database.prefix_wildcards_supported,
         counts,
     );
 
-    println!("{:#?}", summary);
-    print_timer(instant, paths_len);
+    let pf_index = settings.current_profile;
+    let dict_opts = DictionaryOptions::new(settings, dict_name, pf_index);
+    settings.profiles.get(pf_index)
+        .options
+        .dictionaries
+        .push(dict_opts);
 
     Ok(DatabaseDictData {
         tag_list,
@@ -502,7 +488,7 @@ fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<DictDataTag>
 
 fn convert_kanji_meta_file(
     outpath: PathBuf,
-    mut dict_name: String,
+    dict_name: String,
 ) -> Result<Vec<DatabaseMeta>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
@@ -532,7 +518,7 @@ fn convert_kanji_meta_file(
                 expression: entry.expression,
                 mode: TermMetaModeType::Freq,
                 data: entry.data,
-                dictionary: mem::take(&mut dict_name),
+                dictionary: dict_name.clone(),
             };
 
             DatabaseMeta {
@@ -547,7 +533,7 @@ fn convert_kanji_meta_file(
 
 fn convert_term_meta_file(
     outpath: PathBuf,
-    mut dict_name: String,
+    dict_name: String,
 ) -> Result<Vec<DatabaseMeta>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
@@ -586,7 +572,7 @@ fn convert_term_meta_file(
                             expression: entry.expression,
                             mode: TermMetaModeType::Freq,
                             data,
-                            dictionary: mem::take(&mut dict_name),
+                            dictionary: dict_name.clone(),
                         });
                     }
                 }
@@ -596,7 +582,7 @@ fn convert_term_meta_file(
                             expression: entry.expression,
                             mode: TermMetaModeType::Pitch,
                             data,
-                            dictionary: mem::take(&mut dict_name),
+                            dictionary: dict_name.clone(),
                         });
                     }
                 }
@@ -606,7 +592,7 @@ fn convert_term_meta_file(
                             expression: entry.expression,
                             mode: TermMetaModeType::Freq,
                             data,
-                            dictionary: mem::take(&mut dict_name),
+                            dictionary: dict_name.clone(),
                         });
                     }
                 }
