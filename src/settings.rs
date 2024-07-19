@@ -19,6 +19,32 @@ pub struct GlobalDatabaseOptions {
     pub prefix_wildcards_supported: bool,
 }
 
+/// Global Yomichan Settings.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct Options {
+    // should get it from crates / rust somehow
+    pub version: f32,
+    pub profiles: Vec<Profile>,
+    pub current_profile: usize,
+    pub global: GlobalOptions,
+}
+
+impl Options {
+    fn new(
+        version: f32,
+        profiles: Vec<Profile>,
+        current_profile: usize,
+        global: GlobalOptions,
+    ) -> Self {
+        Self {
+            version,
+            profiles,
+            current_profile,
+            global,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct Profile {
     pub name: String,
