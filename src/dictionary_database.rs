@@ -336,5 +336,37 @@ impl Yomichan {
         } else {
             Ok(None)
         }
+    pub fn bulk_lookup<Q: AsRef<str>>(&self, query: Q) -> Result<Vec<DatabaseTermEntry>, DBError> {
+        let tokenizer = init_tokenizer()?;
+        let tokens = tokenizer.tokenize(query.as_ref())?;
+        let tokens: Vec<&str> = process_tokens(tokens);
+        let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
+
+        let rtx = db.r_transaction()?;
+
+        let entries: Result<Vec<Vec<DatabaseTermEntry>>, native_db::db_type::Error> = tokens
+            .iter()
+            .map(|tok| {
+                rtx.scan()
+                    .secondary(DatabaseTermEntryKey::expression)?
+                    .start_with(query.as_ref())
+                    .collect::<Result<Vec<DatabaseTermEntry>, native_db::db_type::Error>>()
+            })
+            .collect();
+
+        let entries = match entries {
+            Ok(ent) => {
+                if ent.is_empty() {
+                    return Err(DBError::Query(format!(
+                        "no entries found for: {}",
+                        query.as_ref()
+                    )));
+                }
+                ent.into_iter().flatten().collect()
+            }
+            Err(e) => return Err(DBError::Query(format!("bulk query err: | {}", e))),
+        };
+
+        Ok(entries)
     }
 }
