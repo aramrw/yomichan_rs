@@ -4,12 +4,24 @@ use crate::dictionary_data::{
     TermMetaFrequencyDataType, TermMetaModeType, TermMetaPhoneticData, TermMetaPitchData,
 };
 use crate::dictionary_importer::{prepare_dictionary, Summary};
-use crate::errors;
+use crate::errors::DBError;
 use crate::Yomichan;
 
-//use redb::TableDefinition;
+use bincode::Error;
+use lindera::{LinderaError, Token, Tokenizer};
+use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
+use native_model::{native_model, Model};
+use once_cell::sync::Lazy;
+use unicode_segmentation::{Graphemes, UnicodeSegmentation};
+
+pub static DB_MODELS: Lazy<Models> = Lazy::new(|| {
+    let mut models = Models::new();
+    models.define::<DatabaseTermEntry>().unwrap();
+    models
+});
 
 use serde::{Deserialize, Serialize};
+
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -39,8 +51,12 @@ pub struct Media<T = MediaType> {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[native_model(id = 1, version = 1)]
+#[native_db]
 pub struct DatabaseTermEntry {
+    #[secondary_key]
     pub expression: String,
+    #[secondary_key]
     pub reading: String,
     pub expression_reverse: String,
     pub reading_reverse: String,
@@ -50,6 +66,7 @@ pub struct DatabaseTermEntry {
     pub rules: String,
     pub score: i8,
     pub glossary: TermGlossaryContent,
+    #[primary_key]
     pub sequence: Option<i128>,
     pub term_tags: Option<String>,
     pub dictionary: String,
@@ -84,7 +101,7 @@ pub struct Tag {
 
 /*************** Database Term Meta ***************/
 
-/// A custom `Yomichan_rs`-unique, generic Database Meta model.  
+/// A custom `Yomichan_rs`-unique, generic Database Meta model.
 ///
 /// May contain `any` or `all` of the values.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -234,41 +251,6 @@ pub struct DatabaseDictData {
     pub summary: Summary,
 }
 
-/// Defines each `redb` store, containing serialized `Database` objects.
-/// Each entry in the table is serialized into a byte slice (`&[u8]`) before storage.
-pub mod db_stores {
-    use redb::TableDefinition;
-
-    /// Mapped to [`dictionary_importer::Summary`].
-    ///
-    /// [`dictionary_importer::Summary`]: dictionary_importer::Summary
-    pub const DICTIONARIES_STORE: TableDefinition<&str, &[u8]> =
-        TableDefinition::new("dictionaries");
-    /// Mapped to [`DatabaseTermEntry`].
-    ///
-    /// [`DatabaseTermEntry`]: DatabaseTermEntry
-    pub const TERMS_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("terms");
-    /// Mapped to [`DatabaseTermMeta`].
-    ///
-    /// [`DatabaseTermMeta`]: DatabaseTermMeta
-    pub const TERM_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("term_meta");
-    /// Mapped to [`DatabaseKanjiEntry`].
-    ///
-    /// [`DatabaseKanjiEntry`]: DatabaseKanjiEntry
-    pub const KANJI_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("kanji");
-    /// Mapped to [`DatabaseKanjiMeta`].
-    ///
-    /// [`DatabaseKanjiMeta`]: DatabaseKanjiMeta
-    pub const KANJI_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("kanji_meta");
-    /// Mapped to [`Tag`].
-    ///
-    /// [`Tag`]: Tag
-    pub const TAG_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("tag_meta");
-    /// Mapped to [`MediaDataArrayBufferContent`].
-    ///
-    /// [`MediaDataArrayBufferContent`]: MediaDataArrayBufferContent
-    pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
-}
 /// Defines each [`redb`] store, containing serialized `Database` objects.
 /// Each entry in the table is serialized into a byte slice _(`&[u8]`)_ before storage.
 // pub mod db_stores {
@@ -306,10 +288,6 @@ pub mod db_stores {
 // }
 
 impl Yomichan {
-    /// Adds a term entry to the database
-    pub fn propogate_database<P: AsRef<Path>>(&self, zip_path: P) -> Result<(), errors::DBError> {
-        let data = prepare_dictionary(zip_path, &self.options)?;
-        let tx = self.db.begin_write()?;
     pub fn import_dictionary<P: AsRef<Path>>(&mut self, zip_path: P) -> Result<(), DBError> {
         let data = prepare_dictionary(zip_path, &mut self.options)?;
         let terms = data.term_list;
@@ -326,16 +304,6 @@ impl Yomichan {
     }
 
     /// Looks up a term in the database
-    pub fn lookup_term(&self, key: &str) -> Result<Option<TermEntry>, errors::DBError> {
-        let tx = self.db.begin_read()?;
-        let table = tx.open_table(db_stores::TERMS_STORE)?;
-
-        if let Some(value_guard) = table.get(key)? {
-            let stored_term: TermEntry = bincode::deserialize(value_guard.value())?;
-            Ok(Some(stored_term))
-        } else {
-            Ok(None)
-        }
     pub fn bulk_lookup<Q: AsRef<str>>(&self, query: Q) -> Result<Vec<DatabaseTermEntry>, DBError> {
         let tokenizer = init_tokenizer()?;
         let tokens = tokenizer.tokenize(query.as_ref())?;
