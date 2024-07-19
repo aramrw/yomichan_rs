@@ -12,30 +12,37 @@ mod tests;
 
 use crate::settings::Options;
 
-use redb::{Database as ReDatabase /* ReadableTable, TableDefinition */};
+use errors::InitError;
+use native_db::*;
+use native_model::{native_model, Model};
 
-use std::path::Path;
+use dictionary_database::DB_MODELS;
 
+use std::path::{Path, PathBuf};
+
+/// A Yomichan Dictionary instance.
 pub struct Yomichan {
-    db: ReDatabase,
+    db_path: String,
     options: Options,
 }
 
 impl Yomichan {
-    /// Initializes _(or if one already exists, opens)_ a Yomichan Dictionary DB Connection.
+    /// Initializes _(or if one already exists, opens)_ a Yomichan Dictionary Database.
     ///
     /// # Arguments
-    /// 
+    ///
     /// * `db_path` - The location where the database will be created.
     ///
     /// ```
     /// use yomichan_rs::Yomichan;
-    /// let ycd = Yomichan::new("C:\\Users\\1\\Desktop");
+    /// let mut ycd = Yomichan::new("C:\\Users\\1\\Desktop");
     /// ```
-    pub fn new<P: AsRef<Path>>(db_path: P) -> Result<Self, errors::InitError> {
-        let db = ReDatabase::create(db_path)?;
+    pub fn new(db_path: impl AsRef<Path>) -> Result<Self, errors::InitError> {
+
+        let new_path = format_db_path(db_path)?;
+        let db = native_db::Builder::new().create(&DB_MODELS, &new_path)?;
         Ok(Self {
-            db,
+            db_path: new_path,
             options: Options::default(),
         })
     }
