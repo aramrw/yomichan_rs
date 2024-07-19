@@ -668,13 +668,23 @@ pub enum TranslationCollapseEmphaticSequences {
     Full,
 }
 
+/// Customize dictionary collapsing.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum DictionaryDefinitionsCollapsible {
+    /// Definitions will not be collapsed.
     NotCollapsible,
+    /// Definitions will show a collapse button if their size exceeds the max height,
+    /// and they will be collapsed by default.
     #[default]
     Expanded,
+    /// Definitions will show a collapse button if their size exceeds the max height,
+    /// and they will be expanded by default.
     Collapsed,
+    /// Definitions will always show a collapse button,
+    /// and they will be collapsed by default.
     ForceCollapsed,
+    ///  Definitions will always show a collapse button,
+    ///  and they will be expanded by default.
     ForceExpanded,
 }
 
