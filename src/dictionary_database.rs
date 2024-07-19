@@ -269,6 +269,41 @@ pub mod db_stores {
     /// [`MediaDataArrayBufferContent`]: MediaDataArrayBufferContent
     pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
 }
+/// Defines each [`redb`] store, containing serialized `Database` objects.
+/// Each entry in the table is serialized into a byte slice _(`&[u8]`)_ before storage.
+// pub mod db_stores {
+//     use redb::TableDefinition;
+//
+//     /// Mapped to [`dictionary_importer::Summary`].
+//     ///
+//     /// [`dictionary_importer::Summary`]: dictionary_importer::Summary
+//     pub const DICTIONARIES_STORE: TableDefinition<&str, &[u8]> =
+//         TableDefinition::new("dictionaries");
+//     /// Mapped to [`DatabaseTermEntry`].
+//     ///
+//     /// [`DatabaseTermEntry`]: DatabaseTermEntry
+//     pub const TERMS_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("terms");
+//     /// Mapped to [`DatabaseTermMeta`].
+//     ///
+//     /// [`DatabaseTermMeta`]: DatabaseTermMeta
+//     pub const TERM_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("term_meta");
+//     /// Mapped to [`DatabaseKanjiEntry`].
+//     ///
+//     /// [`DatabaseKanjiEntry`]: DatabaseKanjiEntry
+//     pub const KANJI_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("kanji");
+//     /// Mapped to [`DatabaseKanjiMeta`].
+//     ///
+//     /// [`DatabaseKanjiMeta`]: DatabaseKanjiMeta
+//     pub const KANJI_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("kanji_meta");
+//     /// Mapped to [`Tag`].
+//     ///
+//     /// [`Tag`]: Tag
+//     pub const TAG_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("tag_meta");
+//     /// Mapped to [`MediaDataArrayBufferContent`].
+//     ///
+//     /// [`MediaDataArrayBufferContent`]: MediaDataArrayBufferContent
+//     pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
+// }
 
 impl Yomichan {
     /// Adds a term entry to the database
