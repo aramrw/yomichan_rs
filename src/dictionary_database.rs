@@ -370,3 +370,8 @@ impl Yomichan {
         Ok(entries)
     }
 }
+
+fn process_tokens(tokens: Vec<Token>) -> Vec<&str> {
+    tokens.iter().map(|t| t.text).collect()
+}
+
