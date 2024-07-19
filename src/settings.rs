@@ -736,8 +736,9 @@ pub enum AnkiDuplicateBehavior {
 ///
 /// When coming across a word that is already in an Anki deck, 
 /// a button will appear that shows the tags the card has. 
+/// a button will appear that shows the tags the card has.
 ///
-/// If set to `Non-Standard`, all tags that are included in the Card tags option will be filtered out from the list. 
+/// If set to `Non-Standard`, all tags that are included in the Card tags option will be filtered out from the list.
 /// If no tags remain after filtering, then the button will not be shown.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AnkiDisplayTags {
@@ -752,8 +753,8 @@ pub enum AnkiDisplayTags {
 /// Clicking the View added note button shows this window.
 ///
 /// AnkiConnect releases after around `2022-05-29` support a new note editor window-
-/// which can be shown when clicking the View added note button. 
-/// This can be tested using the buttons below. 
+/// which can be shown when clicking the View added note button.
+/// This can be tested using the buttons below.
 ///
 /// _If an error occurs, [Anki](https://apps.ankiweb.net/) and/or [AnkiConnect](https://ankiweb.net/shared/info/2055492159) may need to be updated_.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -774,12 +775,12 @@ pub enum SentenceTerminationCharacterMode {
 }
 
 /// Hold a key while moving the cursor to scan text.
-/// 
-/// A keyboard modifier key can be used to activate text scanning when the cursor is moved. 
-/// Alternatively, the `No Key` option can be used 
+///
+/// A keyboard modifier key can be used to activate text scanning when the cursor is moved.
+/// Alternatively, the `No Key` option can be used
 /// to scan text whenever the cursor is moved, without requiring any key to be held.
 ///
-/// More advanced scanning input customization can be set up 
+/// More advanced scanning input customization can be set up
 /// by enabling the `Advanced` option and clicking `Configure Advanced Scanning Inputs`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum InputsHotkeyModifier {
