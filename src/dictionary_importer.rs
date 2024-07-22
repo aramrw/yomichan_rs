@@ -143,6 +143,40 @@ pub struct SummaryCounts {
     pub media: SummaryItemCount,
 }
 
+impl SummaryCounts {
+    fn new(
+        term_len: usize,
+        term_meta_len: usize,
+        tag_len: usize,
+        kanji_len: usize,
+        kanji_meta_len: usize,
+        term_meta_counts: MetaCounts,
+        kanji_meta_counts: MetaCounts,
+    ) -> Self {
+        Self {
+            terms: SummaryItemCount {
+                total: term_len as u16,
+            },
+            term_meta: SummaryMetaCount {
+                total: term_meta_len as u16,
+                meta: term_meta_counts,
+            },
+            tag_meta: SummaryItemCount {
+                total: tag_len as u16,
+            },
+            kanji_meta: SummaryMetaCount {
+                total: kanji_meta_len as u16,
+                meta: kanji_meta_counts,
+            },
+            kanji: SummaryItemCount {
+                total: kanji_len as u16,
+            },
+            // Can't deserialize media (yet).
+            media: SummaryItemCount { total: 0 },
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryItemCount {
     pub total: u16,
