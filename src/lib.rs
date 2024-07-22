@@ -48,6 +48,53 @@ impl Yomichan {
     }
 }
 
+fn check_db_exists<P: AsRef<Path>>(path: P) -> Result<Option<OsString>, InitError> {
+    let path = path.as_ref();
+
+    // Function to check if the path has a .yc extension
+    fn check_ext(path: &Path) -> Option<OsString> {
+        if let Some(ext) = path.extension() {
+            if ext == "yc" {
+                return Some(path.into());
+            }
+        }
+        None
+    }
+
+    // Check if the direct path is a .yc file
+    if let Some(db_path) = check_ext(path) {
+        return Ok(Some(db_path));
+    }
+
+    // Iterate over the directory entries
+    if path.is_dir() {
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+
+            // Check files in the directory
+            if entry_path.is_file() {
+                if let Some(db_path) = check_ext(&entry_path) {
+                    return Ok(Some(db_path));
+                }
+            }
+
+            // Recursively check the `yomichan` subdirectory
+            if entry_path.is_dir() {
+                if let Some(dir_name) = entry_path.file_name() {
+                    if dir_name == "yomichan" {
+                        if let Some(db_path) = check_db_exists(&entry_path)? {
+                            return Ok(Some(db_path));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+
 /// Formats the path to include `.yc` as the extension.
 fn format_db_path<P: AsRef<Path>>(path: P) -> Result<String, InitError> {
 fn init_db_path<P: AsRef<Path>>(path: P) -> Result<OsString, InitError> {
