@@ -40,6 +40,15 @@ impl Options {
         self
     }
 
+    pub fn get_current_profile_mut(&mut self) -> &mut Profile {
+        let index = self.current_profile;
+        &mut self.profiles[index]
+    }
+
+    pub fn get_current_profile(&self) -> &Profile {
+        let index = self.current_profile;
+        &self.profiles[index]
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
