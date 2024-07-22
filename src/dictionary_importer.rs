@@ -161,6 +161,26 @@ pub struct MetaCounts {
     ipa: u32,
 }
 
+impl MetaCounts {
+    fn new(metas: &Vec<DatabaseMeta>) -> Self {
+        let mut meta_counts = MetaCounts::default();
+
+        for mt in metas {
+            if mt.frequency.is_some() {
+                meta_counts.freq += 1;
+            }
+            if mt.pitch.is_some() {
+                meta_counts.pitch += 1;
+            }
+            if mt.phonetic.is_some() {
+                meta_counts.ipa += 1;
+            }
+        }
+
+        meta_counts
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ImageImportMatchType {
     Image,
