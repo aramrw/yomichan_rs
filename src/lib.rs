@@ -50,15 +50,34 @@ impl Yomichan {
 
 /// Formats the path to include `.yc` as the extension.
 fn format_db_path<P: AsRef<Path>>(path: P) -> Result<String, InitError> {
+fn init_db_path<P: AsRef<Path>>(path: P) -> Result<OsString, InitError> {
     let path_ref = path.as_ref();
-    if let Some(parent) = path_ref.parent() {
-        return match parent.exists() {
-            true => Ok(path_ref.with_extension("yc").to_string_lossy().to_string()),
-            false => Err(InitError::Path(format!(
-                "path does not exist: {}",
+
+    // Check if the parent directory exists
+    if let Some(parent_path) = path_ref.parent() {
+        if !parent_path.exists() {
+            return Err(InitError::Path(format!(
+                "parent dir does not exist for path: {}",
                 path_ref.to_string_lossy()
-            ))),
-        };
+            )));
+        }
+    } else {
+        return Err(InitError::Path(format!(
+            "invalid parent dir for path: {}",
+            path_ref.to_string_lossy()
+        )));
+    }
+
+    // Create the `yomichan` subdirectory
+    let yomichan_dir = path_ref.join("yomichan");
+    if !yomichan_dir.exists() {
+        fs::create_dir_all(&yomichan_dir).map_err(|e| {
+            InitError::Path(format!(
+                "failed to create directory at: {} | err: {}",
+                path_ref.to_string_lossy(),
+                e
+            ))
+        })?;
     }
     Err(InitError::Path(format!(
         "path does not exist: {}",
