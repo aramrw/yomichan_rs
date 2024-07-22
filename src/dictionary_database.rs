@@ -159,6 +159,87 @@ impl DatabaseMeta {
         Ok(kanji_metas)
     }
 
+    pub fn convert_term_meta_file(
+        outpath: PathBuf,
+        dict_name: String,
+    ) -> Result<Vec<DatabaseMeta>, ImportError> {
+        let file = fs::File::open(&outpath).map_err(|e| {
+            ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
+        })?;
+        let reader = BufReader::new(file);
+
+        let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermMetaBank>();
+        let entries: TermMetaBank = match stream.next() {
+            Some(Ok(entries)) => entries,
+            Some(Err(e)) => {
+                return Err(ImportError::Custom(format!(
+                    "File: {} | Err: {e}",
+                    &outpath.to_string_lossy(),
+                )))
+            }
+            None => {
+                return Err(ImportError::Custom(String::from(
+                    "no data in term_meta_bank stream",
+                )))
+            }
+        };
+
+        let term_metas: Vec<DatabaseMeta> = entries
+            .into_iter()
+            .map(|entry| {
+                let mut meta = DatabaseMeta {
+                    frequency: None,
+                    pitch: None,
+                    phonetic: None,
+                };
+
+                let id = Uuid::new_v4().to_string();
+                let dictionary = dict_name.clone();
+                let expression = entry.expression;
+
+                match entry.mode {
+                    TermMetaModeType::Freq => {
+                        if let TermMetaDataMatchType::Frequency(data) = entry.data {
+                            meta.frequency = Some(DatabaseMetaFrequency {
+                                id,
+                                expression,
+                                mode: TermMetaModeType::Freq,
+                                data,
+                                dictionary,
+                            });
+                        }
+                    }
+                    TermMetaModeType::Pitch => {
+                        if let TermMetaDataMatchType::Pitch(data) = entry.data {
+                            meta.pitch = Some(DatabaseMetaPitch {
+                                id,
+                                expression,
+                                mode: TermMetaModeType::Pitch,
+                                data,
+                                dictionary,
+                            });
+                        }
+                    }
+                    TermMetaModeType::Ipa => {
+                        if let TermMetaDataMatchType::Phonetic(data) = entry.data {
+                            meta.phonetic = Some(DatabaseMetaPhonetic {
+                                id,
+                                expression,
+                                mode: TermMetaModeType::Freq,
+                                data,
+                                dictionary,
+                            });
+                        }
+                    }
+                }
+
+                meta
+            })
+            .collect();
+        Ok(term_metas)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseMetaFrequency {
     pub expression: String,
