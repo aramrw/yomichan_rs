@@ -111,6 +111,54 @@ pub struct DatabaseMeta {
     pub phonetic: Option<DatabaseMetaPhonetic>,
 }
 
+impl DatabaseMeta {
+    pub fn convert_kanji_meta_file(
+        outpath: PathBuf,
+        dict_name: String,
+    ) -> Result<Vec<DatabaseMeta>, ImportError> {
+        let file = fs::File::open(&outpath).map_err(|e| {
+            ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
+        })?;
+        let reader = BufReader::new(file);
+
+        let mut stream =
+            JsonDeserializer::from_reader(reader).into_iter::<Vec<TermMetaFrequency>>();
+        let entries = match stream.next() {
+            Some(Ok(entries)) => entries,
+            Some(Err(e)) => {
+                return Err(ImportError::Custom(format!(
+                    "File: {} | Err: {e}",
+                    &outpath.to_string_lossy(),
+                )))
+            }
+            None => {
+                return Err(ImportError::Custom(String::from(
+                    "no data in term_meta_bank stream",
+                )))
+            }
+        };
+
+        let kanji_metas: Vec<DatabaseMeta> = entries
+            .into_iter()
+            .map(|entry| {
+                let dbkmf = DatabaseMetaFrequency {
+                    id: Uuid::new_v4().to_string(),
+                    expression: entry.expression,
+                    mode: TermMetaModeType::Freq,
+                    data: entry.data,
+                    dictionary: dict_name.clone(),
+                };
+
+                DatabaseMeta {
+                    frequency: Some(dbkmf),
+                    pitch: None,
+                    phonetic: None,
+                }
+            })
+            .collect();
+        Ok(kanji_metas)
+    }
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseMetaFrequency {
     pub expression: String,
