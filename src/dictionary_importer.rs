@@ -359,6 +359,33 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
     Ok(temp_dir_path)
 }
 
+pub fn import_dictionary<P: AsRef<Path>>(
+    zip_path: P,
+    settings: &Options,
+    db_path: &OsString,
+) -> Result<DictionaryOptions, DBError> {
+    let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
+    let db = DBBuilder::new().open(&DB_MODELS, db_path)?;
+    let rwtx = db.rw_transaction()?;
+    db_rwriter(&rwtx, data.term_list)?;
+    {
+        let term_meta_list = data.term_meta_list;
+        for item in term_meta_list {
+            if let Some(freq) = item.frequency {
+                rwtx.insert(freq)?;
+            }
+            if let Some(pitch) = item.pitch {
+                rwtx.insert(pitch)?;
+            }
+            if let Some(ipa) = item.phonetic {
+                rwtx.insert(ipa)?;
+            }
+        }
+    }
+
+    rwtx.commit()?;
+    Ok(data.dictionary_options)
+}
 pub fn prepare_dictionary<P: AsRef<Path>>(
     zip_path: P,
     settings: &mut Options,
