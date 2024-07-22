@@ -1,29 +1,50 @@
 use crate::dictionary::{TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
     GenericFrequencyData, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
-    TermMetaFrequencyDataType, TermMetaModeType, TermMetaPhoneticData, TermMetaPitchData,
+    TermMetaDataMatchType, TermMetaFrequency, TermMetaFrequencyDataType, TermMetaModeType,
+    TermMetaPhoneticData, TermMetaPitchData,
 };
-use crate::dictionary_importer::{prepare_dictionary, Summary};
-use crate::errors::DBError;
+
+use crate::dictionary_data::KANA_MAP;
+use crate::dictionary_importer::{prepare_dictionary, Summary, TermMetaBank};
+use crate::errors::{DBError, ImportError};
+use crate::settings::{DictionaryOptions, Options, Profile};
 use crate::Yomichan;
 
 use bincode::Error;
-use lindera::{LinderaError, Token, Tokenizer};
+
+//use lindera::{LinderaError, Token, Tokenizer};
+
+use db_type::{KeyOptions, ToKeyDefinition};
 use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
 use native_model::{native_model, Model};
+
 use once_cell::sync::Lazy;
+
+use rayon::collections::hash_set;
+use serde::{Deserialize, Serialize};
+use serde_json::Deserializer as JsonDeserializer;
+
+use transaction::RTransaction;
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
+use uuid::Uuid;
+
+use std::collections::{HashMap, HashSet};
+use std::ffi::OsString;
+use std::fmt::{Debug, Display};
+use std::hash::Hash;
+use std::io::BufReader;
+use std::path::{Path, PathBuf};
+use std::{fs, marker};
 
 pub static DB_MODELS: Lazy<Models> = Lazy::new(|| {
     let mut models = Models::new();
     models.define::<DatabaseTermEntry>().unwrap();
+    models.define::<DatabaseMetaFrequency>().unwrap();
+    models.define::<DatabaseMetaPitch>().unwrap();
+    models.define::<DatabaseMetaPhonetic>().unwrap();
     models
 });
-
-use serde::{Deserialize, Serialize};
-
-use std::collections::HashMap;
-use std::path::Path;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MediaDataBase<TContentType> {
@@ -54,6 +75,8 @@ pub struct Media<T = MediaType> {
 #[native_model(id = 1, version = 1)]
 #[native_db]
 pub struct DatabaseTermEntry {
+    #[primary_key]
+    pub id: String,
     #[secondary_key]
     pub expression: String,
     #[secondary_key]
@@ -66,15 +89,16 @@ pub struct DatabaseTermEntry {
     pub rules: String,
     pub score: i8,
     pub glossary: TermGlossaryContent,
-    #[primary_key]
+    #[secondary_key]
     pub sequence: Option<i128>,
     pub term_tags: Option<String>,
     pub dictionary: String,
+    pub file_path: OsString,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermEntry {
-    index: u16,
+    index: u32,
     match_type: TermSourceMatchType,
     match_source: TermSourceMatchSource,
     term: String,
@@ -241,7 +265,12 @@ impl DatabaseMeta {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[native_model(id = 2, version = 1)]
+#[native_db]
 pub struct DatabaseMetaFrequency {
+    #[primary_key]
+    pub id: String,
+    #[secondary_key]
     pub expression: String,
     /// Is of type [`TermMetaModeType::Freq`]
     pub mode: TermMetaModeType,
@@ -250,7 +279,12 @@ pub struct DatabaseMetaFrequency {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[native_model(id = 3, version = 1)]
+#[native_db]
 pub struct DatabaseMetaPitch {
+    #[primary_key]
+    pub id: String,
+    #[secondary_key]
     pub expression: String,
     /// Is of type [`TermMetaModeType::Pitch`]
     pub mode: TermMetaModeType,
@@ -259,7 +293,12 @@ pub struct DatabaseMetaPitch {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[native_model(id = 4, version = 1)]
+#[native_db]
 pub struct DatabaseMetaPhonetic {
+    #[primary_key]
+    pub id: String,
+    #[secondary_key]
     pub expression: String,
     /// Is of type [`TermMetaModeType::Ipa`]
     pub mode: TermMetaModeType,
@@ -370,51 +409,28 @@ pub trait DictionarySet {
     fn has(&self, value: &str) -> bool;
 }
 
+trait DBReadWrite {
+    fn rw_insert(&self, db: Database) -> Result<(), DBError>;
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseDictData {
     pub tag_list: Vec<Vec<DictDataTag>>,
     pub kanji_meta_list: Vec<DatabaseMeta>,
     pub kanji_list: Vec<DatabaseKanjiEntry>,
     pub term_meta_list: Vec<DatabaseMeta>,
-    pub term_list: Vec<DatabaseTermEntry>,
+    pub term_list: DatabaseTermEntryCollection,
     pub summary: Summary,
+    pub dictionary_options: DictionaryOptions,
 }
 
-/// Defines each [`redb`] store, containing serialized `Database` objects.
-/// Each entry in the table is serialized into a byte slice _(`&[u8]`)_ before storage.
-// pub mod db_stores {
-//     use redb::TableDefinition;
-//
-//     /// Mapped to [`dictionary_importer::Summary`].
-//     ///
-//     /// [`dictionary_importer::Summary`]: dictionary_importer::Summary
-//     pub const DICTIONARIES_STORE: TableDefinition<&str, &[u8]> =
-//         TableDefinition::new("dictionaries");
-//     /// Mapped to [`DatabaseTermEntry`].
-//     ///
-//     /// [`DatabaseTermEntry`]: DatabaseTermEntry
-//     pub const TERMS_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("terms");
-//     /// Mapped to [`DatabaseTermMeta`].
-//     ///
-//     /// [`DatabaseTermMeta`]: DatabaseTermMeta
-//     pub const TERM_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("term_meta");
-//     /// Mapped to [`DatabaseKanjiEntry`].
-//     ///
-//     /// [`DatabaseKanjiEntry`]: DatabaseKanjiEntry
-//     pub const KANJI_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("kanji");
-//     /// Mapped to [`DatabaseKanjiMeta`].
-//     ///
-//     /// [`DatabaseKanjiMeta`]: DatabaseKanjiMeta
-//     pub const KANJI_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("kanji_meta");
-//     /// Mapped to [`Tag`].
-//     ///
-//     /// [`Tag`]: Tag
-//     pub const TAG_META_STORE: TableDefinition<&str, &[u8]> = TableDefinition::new("tag_meta");
-//     /// Mapped to [`MediaDataArrayBufferContent`].
-//     ///
-//     /// [`MediaDataArrayBufferContent`]: MediaDataArrayBufferContent
-//     pub const MEDIA: TableDefinition<&str, &[u8]> = TableDefinition::new("media");
-// }
+#[derive(Clone, Debug, PartialEq)]
+pub enum Queries<'a, Q> {
+    Exact(&'a [Q]),
+    StartWith(&'a [Q]),
+}
+
+type DatabaseTermEntryCollection = Vec<DatabaseTermEntry>;
 
 impl Yomichan {
     pub fn import_dictionary<P: AsRef<Path>>(&mut self, zip_path: P) -> Result<(), DBError> {
