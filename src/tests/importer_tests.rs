@@ -1,4 +1,6 @@
-use crate::{dictionary_importer::*, settings::Options, Yomichan};
+use std::collections::HashSet;
+
+use crate::{dictionary_database::Queries, dictionary_importer::*, settings::Options, Yomichan};
 
 #[test]
 fn dict() {
@@ -9,9 +11,9 @@ fn dict() {
         .build()
         .unwrap();
 
-    let mut options = Options::default();
+    let options = Options::default();
     let path = std::path::Path::new("./test_dicts/daijisen");
-    prepare_dictionary(path, &mut options).unwrap();
+    prepare_dictionary(path, &options).unwrap();
 
     #[cfg(target_os = "linux")]
     if let Ok(report) = guard.report().build() {
@@ -20,47 +22,77 @@ fn dict() {
     };
 }
 
-#[test]
-fn token() {
-    use lindera::{
-        DictionaryConfig, DictionaryKind, LinderaResult, Mode, Tokenizer, TokenizerConfig,
-    };
-
-    let dictionary = DictionaryConfig {
-        kind: Some(DictionaryKind::UniDic),
-        path: None,
-    };
-
-    let config = TokenizerConfig {
-        dictionary,
-        user_dictionary: None,
-        mode: Mode::Normal,
-    };
-
-    let tokenizer = Tokenizer::from_config(config).unwrap();
-    let tokens = tokenizer.tokenize("俺は疲れている").unwrap();
-
-    for token in tokens {
-        println!("{}", token.text);
-    }
-}
+// #[test]
+// fn token() {
+//     use lindera::{
+//         DictionaryConfig, DictionaryKind, LinderaResult, Mode, Tokenizer, TokenizerConfig,
+//     };
+//
+//     let dictionary = DictionaryConfig {
+//         kind: Some(DictionaryKind::IPADIC),
+//         path: None,
+//     };
+//
+//     let config = TokenizerConfig {
+//         dictionary,
+//         user_dictionary: None,
+//         mode: Mode::Normal,
+//     };
+//
+//     let tokenizer = Tokenizer::from_config(config).unwrap();
+//     let tokens = tokenizer.tokenize("粋な計らい").unwrap();
+//
+//     println!("{}", tokens.len());
+//     for token in tokens {
+//         println!("{}", token.text);
+//     }
+// }
 
 #[test]
 fn init_db() {
-    let db_path = String::from("./test.yc");
+    let db_path = String::from("./a");
     let mut ycd = Yomichan::new(db_path).unwrap();
-    let path = std::path::Path::new("./test_dicts/daijisen");
-    ycd.import_dictionary(path).unwrap();
+    //let paths = ["./test_dicts/daijisen"];
+    let paths = ["./test_dicts/ajdfreq"];
+    ycd.import_dictionaries(&paths).unwrap();
 }
 
 #[test]
-fn query_db() {
-    let db_path = String::from("./test.yc");
+fn query_exact() {
+    let db_path = String::from("./a");
     let ycd = Yomichan::new(db_path).unwrap();
 
-    let terms = ycd.bulk_lookup("国外").unwrap();
+    let terms = ycd.lookup_exact("亞").unwrap();
 
     for t in terms {
         println!("{:#?}", t);
     }
 }
+
+#[test]
+fn bulk_query() {
+    let db_path = String::from("./a");
+    let ycd = Yomichan::new(db_path).unwrap();
+    //let yomu = Vec::from(["詠む", "読む"]);
+    let nomu = Vec::from([/*"呑む",*/ "飲む"]);
+    let terms = ycd.bulk_lookup_term(Queries::StartWith(&nomu)).unwrap();
+
+    for t in terms {
+        println!("{:#?}", t);
+    }
+}
+
+// #[test]
+// fn query_seq() {
+//     let db_path = String::from("./a");
+//     let ycd = Yomichan::new(db_path).unwrap();
+//
+//     // 伏線: 13975000000 
+//     // ありがとう: 504000000
+//     let terms = ycd.lookup_seqs(&[16713100000], None).unwrap();
+//     //let terms = ycd.lookup_seq(13975000000).unwrap();
+//
+//     for t in terms {
+//         println!("{:#?}", t);
+//     }
+// }
