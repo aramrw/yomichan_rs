@@ -493,3 +493,72 @@ fn init_tokenizer() -> Result<Tokenizer, LinderaError> {
 
     Ok(tokenizer)
 }
+// fn process_tokens(tokens: Vec<Token>) -> Vec<&str> {
+//     tokens.iter().map(|t| t.text).collect()
+// }
+//
+// fn init_tokenizer() -> Result<Tokenizer, LinderaError> {
+//     use lindera::{
+//         DictionaryConfig, DictionaryKind, LinderaResult, Mode, Tokenizer, TokenizerConfig,
+//     };
+//
+//     let dictionary = DictionaryConfig {
+//         kind: Some(DictionaryKind::IPADIC),
+//         path: None,
+//     };
+//
+//     let config = TokenizerConfig {
+//         dictionary,
+//         user_dictionary: None,
+//         mode: Mode::Normal,
+//     };
+//
+//     let tokenizer = Tokenizer::from_config(config)?;
+//     //let tokens = tokenizer.tokenize(query.as_ref())?;
+//
+//     Ok(tokenizer)
+// }
+
+// Query terms via a sentence.
+// pub fn lookup_tokens<Q: AsRef<str>>(
+//     &self,
+//     query: Q,
+// ) -> Result<DatabaseTermEntryCollection, DBError> {
+//     let tokenizer = init_tokenizer()?;
+//     let tokens = tokenizer.tokenize(query.as_ref())?;
+//     let tokens: Vec<&str> = process_tokens(tokens);
+//     let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
+//
+//     let rtx = db.r_transaction()?;
+//
+//     let expression_entries: Result<Vec<DatabaseTermEntryCollection>, DBError> = tokens
+//         .iter()
+//         .map(|tok| query_sw(&rtx, DatabaseTermEntryKey::expression, *tok))
+//         .collect();
+//
+//     let reading_entries: Result<Vec<DatabaseTermEntryCollection>, DBError> = tokens
+//         .iter()
+//         .map(|tok| query_sw(&rtx, DatabaseTermEntryKey::reading, *tok))
+//         .collect();
+//
+//     let mut expression_entries: DatabaseTermEntryCollection = match expression_entries {
+//         Ok(ent) => ent.into_iter().flatten().collect(),
+//         Err(e) => return Err(DBError::Query(format!("bulk query err: | {}", e))),
+//     };
+//
+//     let reading_entries: DatabaseTermEntryCollection = match reading_entries {
+//         Ok(ent) => ent.into_iter().flatten().collect(),
+//         Err(e) => return Err(DBError::Query(format!("bulk query err: | {}", e))),
+//     };
+//
+//     if expression_entries.is_empty() || reading_entries.is_empty() {
+//         return Err(DBError::Query(format!(
+//             "no entries found for: {}",
+//             query.as_ref()
+//         )));
+//     }
+//
+//     expression_entries.extend(reading_entries);
+//
+//     Ok(expression_entries)
+// }
