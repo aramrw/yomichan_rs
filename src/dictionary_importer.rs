@@ -409,6 +409,14 @@ pub fn import_dictionary<P: AsRef<Path>>(
     rwtx.commit()?;
     Ok(data.dictionary_options)
 }
+
+fn db_rwriter<L: ToInput>(rwtx: &RwTransaction, list: Vec<L>) -> Result<(), DBError> {
+    for item in list {
+        rwtx.insert(item)?;
+    }
+    Ok(())
+}
+
 pub fn prepare_dictionary<P: AsRef<Path>>(
     zip_path: P,
     settings: &mut Options,
