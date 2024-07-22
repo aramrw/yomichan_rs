@@ -359,6 +359,29 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
     Ok(temp_dir_path)
 }
 
+impl Yomichan {
+    pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
+        &mut self,
+        zip_paths: &[P],
+    ) -> Result<(), DBError> {
+        let settings = self.options.get_options_mut();
+        let db_path = &self.db_path;
+
+        let mut dictionary_options: Vec<DictionaryOptions> = zip_paths
+            .par_iter()
+            .map(|path| import_dictionary(path, settings, db_path))
+            .collect::<Result<Vec<DictionaryOptions>, DBError>>()?;
+
+        let current_profile = settings.get_current_profile_mut();
+        current_profile
+            .options
+            .dictionaries
+            .append(&mut dictionary_options);
+
+        Ok(())
+    }
+}
+
 pub fn import_dictionary<P: AsRef<Path>>(
     zip_path: P,
     settings: &Options,
