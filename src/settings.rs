@@ -15,7 +15,7 @@ pub struct GlobalDatabaseOptions {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct Options {
     // should get it from crates / rust somehow
-    pub version: f32,
+    pub version: u8,
     pub profiles: Vec<Profile>,
     pub current_profile: usize,
     pub global: GlobalOptions,
@@ -23,7 +23,7 @@ pub struct Options {
 
 impl Options {
     fn new(
-        version: f32,
+        version: u8,
         profiles: Vec<Profile>,
         current_profile: usize,
         global: GlobalOptions,
@@ -59,7 +59,7 @@ pub struct Profile {
 }
 
 impl Profile {
-    fn new(
+    pub fn new(
         name: String,
         condition_groups: Vec<ProfileConditionGroup>,
         options: ProfileOptions,
@@ -310,7 +310,7 @@ pub struct DictionaryOptions {
     /// - Set the [`ResultOutputMode`] to `Group` results for the main dictionary entry.
     /// - Choose `Dict 1` as the main dictionary for merged mode.
     /// - Enable `allow_secondary_searches` on `Dict 2`.
-    /// _(Can be enabled for multiple dictionaries)_.
+    ///     _(Can be enabled for multiple dictionaries)_.
     ///
     /// Yomichan_rs will now first perform an _initial_ lookup in `Dict 1`, fetching the grouped definition.
     /// It will then use the headwords from `Dict 1`to perform a secondary lookup in `Dict 2`,
@@ -352,12 +352,9 @@ pub struct DictionaryOptions {
 }
 
 impl DictionaryOptions {
-    pub fn new(settings: &Options, dict_name: String, profile_index: usize) -> Self {
-        let profile = settings.profiles.get(profile_index);
-        let p_len = match profile {
-            Some(pd) => pd.options.dictionaries.len(),
-            None => 1,
-        };
+    pub fn new(settings: &Options, dict_name: String) -> Self {
+        let profile = settings.get_current_profile();
+        let p_len = profile.options.dictionaries.len();
 
         DictionaryOptions {
             name: dict_name,
