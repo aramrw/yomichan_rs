@@ -35,6 +35,11 @@ impl Options {
             global,
         }
     }
+
+    pub fn get_options_mut(&mut self) -> &mut Self {
+        self
+    }
+
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
