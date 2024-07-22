@@ -8,6 +8,8 @@ pub enum InitError {
     DatabaseConnectionFailed(#[from] db_type::Error),
     #[error("path does not exist: {0}")]
     Path(String),
+    #[error("io err: {0}")]
+    IO(#[from] std::io::Error),
 }
 
 #[derive(Error, Debug)]
@@ -36,10 +38,12 @@ pub enum DBError {
     Binary(#[from] bincode::Error),
     #[error("query err: {0}")]
     Query(String),
+    #[error("none found err: {0}")]
+    NoneFound(String),
     #[error("import err: {0}")]
     Import(#[from] ImportError),
-    #[error("token err: {0}")]
-    Token(#[from] lindera::LinderaError),
+    //#[error("token err: {0}")]
+    //Token(#[from] lindera::LinderaError),
 }
 
 #[macro_export]
