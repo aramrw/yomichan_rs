@@ -17,12 +17,17 @@ use native_db::*;
 use native_model::{native_model, Model};
 
 use dictionary_database::DB_MODELS;
+use settings::Profile;
 
-use std::path::{Path, PathBuf};
+use std::{
+    ffi::{OsStr, OsString},
+    fs,
+    path::{Path, PathBuf},
+};
 
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
-    db_path: String,
+    db_path: OsString,
     options: Options,
 }
 
@@ -31,19 +36,28 @@ impl Yomichan {
     ///
     /// # Arguments
     ///
-    /// * `db_path` - The location where the database will be created.
+    /// * `db_path` - The location where the `yomichan/data.db` will be created/opened.
     ///
     /// ```
     /// use yomichan_rs::Yomichan;
+    ///
+    /// // create the database at `C:\\Users\\1\\Desktop\\yomichan\\data.db`
     /// let mut ycd = Yomichan::new("C:\\Users\\1\\Desktop");
     /// ```
-    pub fn new(db_path: impl AsRef<Path>) -> Result<Self, errors::InitError> {
+    pub fn new(path: impl AsRef<Path>) -> Result<Self, errors::InitError> {
+        let db_path = if let Some(existing) = check_db_exists(&path)? {
+            existing
+        } else {
+            init_db_path(&path)?
+        };
+        let db = native_db::Builder::new().create(&DB_MODELS, &db_path)?;
 
-        let new_path = format_db_path(db_path)?;
-        let db = native_db::Builder::new().create(&DB_MODELS, &new_path)?;
+        let mut options = Options::default();
+        options.profiles.push(Profile::default());
+
         Ok(Self {
-            db_path: new_path,
-            options: Options::default(),
+            db_path,
+            options,
         })
     }
 }
@@ -96,7 +110,6 @@ fn check_db_exists<P: AsRef<Path>>(path: P) -> Result<Option<OsString>, InitErro
 }
 
 /// Formats the path to include `.yc` as the extension.
-fn format_db_path<P: AsRef<Path>>(path: P) -> Result<String, InitError> {
 fn init_db_path<P: AsRef<Path>>(path: P) -> Result<OsString, InitError> {
     let path_ref = path.as_ref();
 
@@ -126,8 +139,9 @@ fn init_db_path<P: AsRef<Path>>(path: P) -> Result<OsString, InitError> {
             ))
         })?;
     }
-    Err(InitError::Path(format!(
-        "path does not exist: {}",
-        path_ref.to_string_lossy()
-    )))
+
+    // Create the path for the database file with the .yc extension
+    let db_path = yomichan_dir.join("data").with_extension("yc");
+
+    Ok(db_path.into_os_string())
 }
