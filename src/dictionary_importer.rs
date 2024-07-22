@@ -124,6 +124,36 @@ pub struct Summary {
     pub frequency_mode: Option<FrequencyMode>,
 }
 
+impl Summary {
+    fn new(index: Index, prefix_wildcards_supported: bool, counts: SummaryCounts) -> Self {
+        let local: DateTime<Local> = Local::now();
+        let formatted = local
+            .to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+            .to_string()
+            .rsplit_once('T')
+            .unwrap()
+            .0
+            .to_string();
+
+        Self {
+            title: index.title,
+            revision: index.revision,
+            sequenced: index.sequenced,
+            version: index.version,
+            import_date: formatted,
+            prefix_wildcards_supported,
+            counts,
+            author: index.author,
+            url: index.url,
+            description: index.description,
+            attribution: index.attribution,
+            source_language: index.source_language,
+            target_language: index.target_language,
+            frequency_mode: index.frequency_mode,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryDetails {
     pub prefix_wildcard_supported: bool,
