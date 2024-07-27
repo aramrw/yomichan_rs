@@ -5,6 +5,54 @@ use crate::dictionary_data::{
     TermMetaPitch, TermMetaPitchData,
 };
 
+use crate::dictionary_data::KANA_MAP;
+use crate::dictionary_importer::{prepare_dictionary, Summary, TermMetaBank};
+use crate::errors::{DBError, ImportError};
+use crate::settings::{DictionaryOptions, Options, Profile};
+use crate::Yomichan;
+
+use bincode::Error;
+
+//use lindera::{LinderaError, Token, Tokenizer};
+
+use db_type::{KeyOptions, ToKeyDefinition};
+use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
+use native_model::{native_model, Model};
+
+use once_cell::sync::Lazy;
+
+use rayon::collections::hash_set;
+use serde::{Deserialize, Serialize};
+use serde_json::Deserializer as JsonDeserializer;
+
+use transaction::RTransaction;
+//use unicode_segmentation::{Graphemes, UnicodeSegmentation};
+use uuid::Uuid;
+
+use std::collections::{HashMap, HashSet};
+use std::ffi::OsString;
+use std::fmt::{Debug, Display};
+use std::hash::Hash;
+use std::io::BufReader;
+use std::path::{Path, PathBuf};
+use std::{fs, marker};
+
+use super::dictionary_database::{
+    DBMetaType, DatabaseMeta, DatabaseMetaFrequency, DatabaseMetaFrequencyKey,
+    DatabaseMetaPhoneticKey, DatabaseMetaPitchKey, DatabaseTermEntry, DatabaseTermEntryKey,
+    HasExpression, Queries, TermEntry, VecDBMetaFreq, VecDBTermEntry, VecDBTermMeta, VecTermEntry,
+    DB_MODELS,
+};
+
+impl Yomichan {
+    /// Queries multiple terms via text.
+    /// Matches the query to either an `expression` or a `reading`.
+    ///
+    /// `exact` functions do not tokenize the query;
+    /// meaning sentences or queries containing particles and grammar
+    /// should not be passed.
+    ///
+    /// if you need to lookup a sentence, see: [`Self::lookup_tokens`]
     pub fn lookup_exact<Q: AsRef<str> + Debug>(&self, query: Q) -> Result<VecDBTermEntry, DBError> {
         let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
         let rtx = db.r_transaction()?;
@@ -378,3 +426,80 @@ fn query_all_freq_meta(
     Ok(results?)
 }
 
+// fn handle_meta_freq_query<Q: AsRef<str> + Debug>(
+//     queries: &Queries<Q>,
+//     rtx: &RTransaction,
+// ) -> Result<(VecDBMetaFreq, VecDBMetaFreq), DBError> {
+//     match queries {
+//         Queries::Exact(queries) => {
+//             let exps = queries
+//                 .iter()
+//                 .filter_map(|q| {
+//                     if !is_kana(q.as_ref()) {
+//                         Some(query_exact::<DatabaseMetaFrequency>(
+//                             rtx,
+//                             DatabaseMetaFrequencyKey::expression,
+//                             q.as_ref(),
+//                         ))
+//                     } else {
+//                         None
+//                     }
+//                 })
+//                 .collect::<Result<Vec<VecDBMetaFreq>, DBError>>()?
+//                 .into_iter()
+//                 .flatten()
+//                 .collect::<VecDBMetaFreq>();
+//
+//             Ok((exps, readings))
+//         }
+//         Queries::StartWith(queries) => {
+//             let exps = queries
+//                 .iter()
+//                 .filter_map(|q| {
+//                     if !is_kana(q.as_ref()) {
+//                         Some(query_exact::<DatabaseMetaFrequency>(
+//                             rtx,
+//                             DatabaseMetaFrequencyKey::expression,
+//                             q.as_ref(),
+//                         ))
+//                     } else {
+//                         None
+//                     }
+//                 })
+//                 .collect::<Result<Vec<VecDBMetaFreq>, DBError>>()?
+//                 .into_iter()
+//                 .flatten()
+//                 .collect::<VecDBMetaFreq>();
+//             Ok((exps, readings))
+//         }
+//     }
+// }
+
+// fn handle_meta_query<Q: AsRef<str> + Debug>(
+//     queries: &Queries<Q>,
+//     rtx: &RTransaction,
+// ) -> Result<(VecDBTermMeta, VecDBTermMeta), DBError> {
+//     let (exps, readings): (VecDBTermMeta, VecDBTermMeta) = match queries {
+//         Queries::Exact(queries) => {
+//             let exps = queries.iter().filter_map(|q| {
+//             if !is_kana(q.as_ref()) {
+//                 let frequency = query_exact(rtx, DatabaseMetaFrequencyKey::expression, q.as_ref());
+//                 let pitch = query_exact(rtx, DatabaseMetaPitchKey::expression, q.as_ref());
+//                 let phonetic = query_exact(rtx, DatabaseMetaPhoneticKey::expression, q.as_ref());
+//
+//                 return Some(DatabaseMeta {
+//                         frequency,
+//                         pitch,
+//                         phonetic
+//                     });
+//             }
+//             None
+//         }).collect();
+//
+//         }
+//         Queries::StartWith(queries) => {
+//     (exps, readings),
+// }
+//     };
+//     Ok((exps, readings))
+// }
