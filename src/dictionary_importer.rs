@@ -1,20 +1,26 @@
+use crate::database::dictionary_database::{
+    DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseMeta,
+    DatabaseMetaFrequency, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
+    MediaDataArrayBufferContent, TermEntry, DB_MODELS,
+};
 use crate::dictionary::KanjiDictionaryEntry;
 use crate::dictionary_data::{
-    GenericFrequencyData, Index, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
-    TermGlossaryImage, TermMeta, TermMetaDataMatchType, TermMetaFrequency,
-    TermMetaFrequencyDataType, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
+    GenericFreqData, Index, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
+    TermGlossaryImage, TermMeta, TermMetaDataMatchType, TermMetaFreqDataMatchType,
+    TermMetaFrequency, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
-use crate::dictionary_database::{
-    db_stores, DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseTermEntry,
-    DatabaseTermMeta, DatabaseTermMetaFrequency, DatabaseTermMetaPhonetic, DatabaseTermMetaPitch,
-    KanjiEntry, MediaDataArrayBufferContent, TermEntry,
+use crate::settings::{
+    self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
 };
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
 use crate::errors::{DBError, ImportError};
 use crate::Yomichan;
 
-use unicode_segmentation::UnicodeSegmentation;
+use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
+use transaction::RwTransaction;
+
+use chrono::prelude::*;
 
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
@@ -25,6 +31,7 @@ use rayon::prelude::*;
 use tempfile::tempdir;
 
 use std::collections::{HashMap, VecDeque};
+use std::ffi::OsString;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -81,6 +88,8 @@ pub enum FrequencyMode {
     #[serde(rename = "rank-based")]
     RankBased,
 }
+
+// Final details about the Dictionary and it's import process.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Summary {
     /// Name of the dictionary.
@@ -88,9 +97,9 @@ pub struct Summary {
     /// Revision of the dictionary. This value is only used for displaying information.
     pub revision: String,
     /// Whether or not this dictionary contains sequencing information for related terms.
-    pub sequenced: bool,
+    pub sequenced: Option<bool>,
     /// Format of data found in the JSON data files.
-    pub version: u8,
+    pub version: Option<u8>,
     /// Date the dictionary was added to the db.
     pub import_date: String,
     /// Whether or not wildcards can be used for the search query.
@@ -98,7 +107,7 @@ pub struct Summary {
     /// Rather than searching for the source text exactly,
     /// the text will only be required to be a prefix of an existing term.
     /// For example, scanning `読み` will effectively search for `読み*`
-    /// which may bring up additional results such as *読み方*.
+    /// which may bring up additional results such as `読み方`.
     pub prefix_wildcards_supported: bool,
     pub counts: SummaryCounts,
     /// Creator of the dictionary.
@@ -117,25 +126,127 @@ pub struct Summary {
     pub frequency_mode: Option<FrequencyMode>,
 }
 
+impl Summary {
+    fn new(index: Index, prefix_wildcards_supported: bool, counts: SummaryCounts) -> Self {
+        let local: DateTime<Local> = Local::now();
+        let formatted = local
+            .to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+            .to_string()
+            .rsplit_once('T')
+            .unwrap()
+            .0
+            .to_string();
+
+        Self {
+            title: index.title,
+            revision: index.revision,
+            sequenced: index.sequenced,
+            version: index.version,
+            import_date: formatted,
+            prefix_wildcards_supported,
+            counts,
+            author: index.author,
+            url: index.url,
+            description: index.description,
+            attribution: index.attribution,
+            source_language: index.source_language,
+            target_language: index.target_language,
+            frequency_mode: index.frequency_mode,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SummaryDetails {
+    pub prefix_wildcard_supported: bool,
+    pub counts: SummaryCounts,
+    // I dont know what this is
+    // some kind of styles.css file stuff
+    //pub styles: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryCounts {
-    terms: SummaryItemCount,
-    term_meta: SummaryMetaCount,
-    kanji: SummaryItemCount,
-    kanji_meta: SummaryMetaCount,
-    tag_meta: SummaryItemCount,
-    media: SummaryItemCount,
+    pub terms: SummaryItemCount,
+    pub term_meta: SummaryMetaCount,
+    pub kanji: SummaryItemCount,
+    pub kanji_meta: SummaryMetaCount,
+    pub tag_meta: SummaryItemCount,
+    pub media: SummaryItemCount,
+}
+
+impl SummaryCounts {
+    fn new(
+        term_len: usize,
+        term_meta_len: usize,
+        tag_len: usize,
+        kanji_len: usize,
+        kanji_meta_len: usize,
+        term_meta_counts: MetaCounts,
+        kanji_meta_counts: MetaCounts,
+    ) -> Self {
+        Self {
+            terms: SummaryItemCount {
+                total: term_len as u16,
+            },
+            term_meta: SummaryMetaCount {
+                total: term_meta_len as u16,
+                meta: term_meta_counts,
+            },
+            tag_meta: SummaryItemCount {
+                total: tag_len as u16,
+            },
+            kanji_meta: SummaryMetaCount {
+                total: kanji_meta_len as u16,
+                meta: kanji_meta_counts,
+            },
+            kanji: SummaryItemCount {
+                total: kanji_len as u16,
+            },
+            // Can't deserialize media (yet).
+            media: SummaryItemCount { total: 0 },
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryItemCount {
-    total: u64,
+    pub total: u16,
 }
+
+impl SummaryItemCount {}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SummaryMetaCount {
-    total: u64,
-    meta: HashMap<String, u64>,
+    pub total: u16,
+    pub meta: MetaCounts,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct MetaCounts {
+    freq: u32,
+    pitch: u32,
+    ipa: u32,
+}
+
+impl MetaCounts {
+    fn new(metas: &Vec<DatabaseMeta>) -> Self {
+        let mut meta_counts = MetaCounts::default();
+
+        for mt in metas {
+            if mt.frequency.is_some() {
+                meta_counts.freq += 1;
+            }
+            if mt.pitch.is_some() {
+                meta_counts.pitch += 1;
+            }
+            if mt.phonetic.is_some() {
+                meta_counts.ipa += 1;
+            }
+        }
+
+        meta_counts
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -197,27 +308,6 @@ impl<'de> Deserialize<'de> for EntryItemMatchType {
     }
 }
 
-//  terms: {total: termList.length}, // FINISHED
-//  termMeta: this._getMetaCounts(termMetaList), // FINISHED
-//  kanji: {total: kanjiList.length}, // FINISHED
-//  kanjiMeta: this._getMetaCounts(kanjiMetaList), // FINISHED
-//  tagMeta: {total: tagList.length}, // FINISHED
-//  media: {total: media.length}, // TODO FOR LATER
-impl Yomichan {
-    async fn import_dictionary<P: AsRef<Path>>(&self, zip_path: P) -> Result<(), DBError> {
-        use db_stores::*;
-
-        let txn = self.db.begin_write()?;
-        {
-            let mut table = txn.open_table(DICTIONARIES_STORE);
-            // table.insert(/* not sure what I'm going to do here yet */);
-        }
-        txn.commit()?;
-
-        Ok(())
-    }
-}
-
 /// Deserializable type mapping a `term_bank_$i.json` file.
 pub type TermBank = Vec<TermEntryItem>;
 pub type TermMetaBank = Vec<TermMeta>;
@@ -273,8 +363,69 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
     Ok(temp_dir_path)
 }
 
-pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictData, ImportError> {
-    let instant = Instant::now();
+impl Yomichan {
+    pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
+        &mut self,
+        zip_paths: &[P],
+    ) -> Result<(), DBError> {
+        let settings = self.options.get_options_mut();
+        let db_path = &self.db_path;
+
+        let mut dictionary_options: Vec<DictionaryOptions> = zip_paths
+            .par_iter()
+            .map(|path| import_dictionary(path, settings, db_path))
+            .collect::<Result<Vec<DictionaryOptions>, DBError>>()?;
+
+        let current_profile = settings.get_current_profile_mut();
+        current_profile
+            .options
+            .dictionaries
+            .append(&mut dictionary_options);
+
+        Ok(())
+    }
+}
+
+pub fn import_dictionary<P: AsRef<Path>>(
+    zip_path: P,
+    settings: &Options,
+    db_path: &OsString,
+) -> Result<DictionaryOptions, DBError> {
+    let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
+    let db = DBBuilder::new().open(&DB_MODELS, db_path)?;
+    let rwtx = db.rw_transaction()?;
+    db_rwriter(&rwtx, data.term_list)?;
+    {
+        let term_meta_list = data.term_meta_list;
+        for item in term_meta_list {
+            if let Some(freq) = item.frequency {
+                rwtx.insert(freq)?;
+            }
+            if let Some(pitch) = item.pitch {
+                rwtx.insert(pitch)?;
+            }
+            if let Some(ipa) = item.phonetic {
+                rwtx.insert(ipa)?;
+            }
+        }
+    }
+
+    rwtx.commit()?;
+    Ok(data.dictionary_options)
+}
+
+fn db_rwriter<L: ToInput>(rwtx: &RwTransaction, list: Vec<L>) -> Result<(), DBError> {
+    for item in list {
+        rwtx.insert(item)?;
+    }
+    Ok(())
+}
+
+pub fn prepare_dictionary<P: AsRef<Path>>(
+    zip_path: P,
+    settings: &Options,
+) -> Result<DatabaseDictData, ImportError> {
+    //let instant = Instant::now();
     //let temp_dir_path = extract_dict_zip(zip_path)?;
 
     let mut index_path = PathBuf::new();
@@ -294,20 +445,33 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictDat
         &mut term_bank_paths,
     );
 
-    let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
+    // let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
-    let dict_name = index.title;
+    let dict_name = index.title.clone();
     let tag_list: Vec<Vec<DictDataTag>> = convert_tag_bank_files(tag_bank_paths)?;
 
-    let kanji_meta_banks: Result<Vec<DatabaseKanjiMetaFrequency>, ImportError> =
-        kanji_meta_bank_paths
-            .into_par_iter()
-            .map(|path| convert_kanji_meta_file(path, dict_name.clone()))
-            .collect::<Result<Vec<Vec<DatabaseKanjiMetaFrequency>>, ImportError>>()
-            .map(|v| v.into_iter().flatten().collect());
+    let term_banks: Result<Vec<Vec<DatabaseTermEntry>>, ImportError> = term_bank_paths
+        .into_par_iter()
+        .map(|path| convert_term_bank_file(path, &dict_name))
+        .collect::<Result<Vec<Vec<DatabaseTermEntry>>, ImportError>>();
 
-    let kanji_meta_list = match kanji_meta_banks {
-        Ok(kml) => kml,
+    let term_list: Vec<DatabaseTermEntry> = match term_banks {
+        Ok(tl) => tl.into_iter().flatten().collect(),
+        Err(e) => {
+            return Err(ImportError::Custom(format!(
+                "Failed to convert term banks | {}",
+                e
+            )));
+        }
+    };
+
+    let kanji_meta_banks: Result<Vec<Vec<DatabaseMeta>>, ImportError> = kanji_meta_bank_paths
+        .into_par_iter()
+        .map(|path| DatabaseMeta::convert_kanji_meta_file(path, dict_name.clone()))
+        .collect::<Result<Vec<Vec<DatabaseMeta>>, ImportError>>();
+
+    let kanji_meta_list: Vec<DatabaseMeta> = match kanji_meta_banks {
+        Ok(kml) => kml.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
                 "Failed to convert kanji_meta_banks | {}",
@@ -316,14 +480,13 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictDat
         }
     };
 
-    let term_meta_banks: Result<Vec<DatabaseTermMeta>, ImportError> = term_meta_bank_paths
+    let term_meta_banks: Result<Vec<Vec<DatabaseMeta>>, ImportError> = term_meta_bank_paths
         .into_par_iter()
-        .map(|path| convert_term_meta_file(path, dict_name.clone()))
-        .collect::<Result<Vec<Vec<DatabaseTermMeta>>, ImportError>>()
-        .map(|v| v.into_iter().flatten().collect());
+        .map(|path| DatabaseMeta::convert_term_meta_file(path, dict_name.clone()))
+        .collect::<Result<Vec<Vec<DatabaseMeta>>, ImportError>>();
 
-    let term_meta_list = match term_meta_banks {
-        Ok(tml) => tml,
+    let term_meta_list: Vec<DatabaseMeta> = match term_meta_banks {
+        Ok(tml) => tml.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
                 "Failed to convert term_meta_banks | {}",
@@ -332,14 +495,13 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictDat
         }
     };
 
-    let kanji_banks: Result<Vec<DatabaseKanjiEntry>, ImportError> = kanji_bank_paths
+    let kanji_banks: Result<Vec<Vec<DatabaseKanjiEntry>>, ImportError> = kanji_bank_paths
         .into_iter()
-        .map(|path| convert_kanji_bank(path, dict_name.clone()))
-        .collect::<Result<Vec<Vec<DatabaseKanjiEntry>>, ImportError>>()
-        .map(|nested| nested.into_iter().flatten().collect());
+        .map(|path| convert_kanji_bank(path, &dict_name))
+        .collect::<Result<Vec<Vec<DatabaseKanjiEntry>>, ImportError>>();
 
-    let kanji_list = match kanji_banks {
-        Ok(kb) => kb,
+    let kanji_list: Vec<DatabaseKanjiEntry> = match kanji_banks {
+        Ok(kl) => kl.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
                 "Failed to convert kanji banks | {}",
@@ -348,35 +510,26 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictDat
         }
     };
 
-    let term_banks: Result<Vec<DatabaseTermEntry>, ImportError> = term_bank_paths
-        .into_par_iter()
-        .map(convert_term_bank_file)
-        .collect::<Result<Vec<Vec<DatabaseTermEntry>>, ImportError>>() // Collect into Result<Vec<Vec<DatabaseTermEntry>>, ImportError>
-        .map(|nested| nested.into_iter().flatten().collect());
+    let term_meta_counts = MetaCounts::new(&term_meta_list);
+    let kanji_meta_counts = MetaCounts::new(&kanji_meta_list);
 
-    let term_list = match term_banks {
-        Ok(tb) => tb,
-        Err(e) => {
-            return Err(ImportError::Custom(format!(
-                "Failed to convert term banks | {}",
-                e
-            )))
-        }
-    };
-
-    for t in &term_list {
-        println!("{:#?}", t);
-    }
-
-    let counts = (
+    let counts = SummaryCounts::new(
+        term_list.len(),
+        term_meta_list.len(),
         tag_list.len(),
         kanji_meta_list.len(),
         kanji_list.len(),
-        term_meta_list.len(),
-        term_list.len(),
+        term_meta_counts,
+        kanji_meta_counts,
     );
 
-    print_timer(instant, paths_len);
+    let summary = Summary::new(
+        index,
+        settings.global.database.prefix_wildcards_supported,
+        counts,
+    );
+
+    let dictionary_options = DictionaryOptions::new(settings, dict_name);
 
     Ok(DatabaseDictData {
         tag_list,
@@ -384,6 +537,8 @@ pub fn prepare_dictionary<P: AsRef<Path>>(zip_path: P) -> Result<DatabaseDictDat
         kanji_list,
         term_meta_list,
         term_list,
+        summary,
+        dictionary_options,
     })
 }
 
@@ -408,123 +563,11 @@ fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<DictDataTag>
         .collect()
 }
 
-/****************** Meta Functions ******************/
-
-fn convert_kanji_meta_file(
-    outpath: PathBuf,
-    mut dict_name: String,
-) -> Result<Vec<DatabaseKanjiMetaFrequency>, ImportError> {
-    let file = fs::File::open(&outpath).map_err(|e| {
-        ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
-    })?;
-    let reader = BufReader::new(file);
-
-    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermMetaFrequency>>();
-    let entries = match stream.next() {
-        Some(Ok(entries)) => entries,
-        Some(Err(e)) => {
-            return Err(ImportError::Custom(format!(
-                "File: {} | Err: {e}",
-                &outpath.to_string_lossy(),
-            )))
-        }
-        None => {
-            return Err(ImportError::Custom(String::from(
-                "no data in term_meta_bank stream",
-            )))
-        }
-    };
-
-    let kanji_metas: Vec<DatabaseKanjiMetaFrequency> = entries
-        .into_iter()
-        .map(|entry| DatabaseKanjiMetaFrequency {
-            character: entry.expression,
-            mode: TermMetaModeType::Freq,
-            data: entry.data,
-            dictionary: mem::take(&mut dict_name),
-        })
-        .collect();
-    Ok(kanji_metas)
-}
-
-fn convert_term_meta_file(
-    outpath: PathBuf,
-    mut dict_name: String,
-) -> Result<Vec<DatabaseTermMeta>, ImportError> {
-    let file = fs::File::open(&outpath).map_err(|e| {
-        ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
-    })?;
-    let reader = BufReader::new(file);
-
-    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermMetaBank>();
-    let entries: TermMetaBank = match stream.next() {
-        Some(Ok(entries)) => entries,
-        Some(Err(e)) => {
-            return Err(ImportError::Custom(format!(
-                "File: {} | Err: {e}",
-                &outpath.to_string_lossy(),
-            )))
-        }
-        None => {
-            return Err(ImportError::Custom(String::from(
-                "no data in term_meta_bank stream",
-            )))
-        }
-    };
-
-    let term_metas: Vec<DatabaseTermMeta> = entries
-        .into_iter()
-        .map(|entry| {
-            let mut meta = DatabaseTermMeta {
-                frequency: None,
-                pitch: None,
-                phonetic: None,
-            };
-
-            match entry.mode {
-                TermMetaModeType::Freq => {
-                    if let TermMetaDataMatchType::Frequency(data) = entry.data {
-                        meta.frequency = Some(DatabaseTermMetaFrequency {
-                            expression: entry.expression,
-                            mode: TermMetaModeType::Freq,
-                            data,
-                            dictionary: mem::take(&mut dict_name),
-                        });
-                    }
-                }
-                TermMetaModeType::Pitch => {
-                    if let TermMetaDataMatchType::Pitch(data) = entry.data {
-                        meta.pitch = Some(DatabaseTermMetaPitch {
-                            expression: entry.expression,
-                            mode: TermMetaModeType::Pitch,
-                            data,
-                            dictionary: mem::take(&mut dict_name),
-                        });
-                    }
-                }
-                TermMetaModeType::Ipa => {
-                    if let TermMetaDataMatchType::Phonetic(data) = entry.data {
-                        meta.phonetic = Some(DatabaseTermMetaPhonetic {
-                            expression: entry.expression,
-                            mode: TermMetaModeType::Freq,
-                            data,
-                            dictionary: mem::take(&mut dict_name),
-                        });
-                    }
-                }
-            }
-
-            meta
-        })
-        .collect();
-    Ok(term_metas)
-}
-
 /****************** Kanji Bank Functions ******************/
 
 fn convert_kanji_bank(
     outpath: PathBuf,
-    mut dict_name: String,
+    dict_name: &str,
 ) -> Result<Vec<DatabaseKanjiEntry>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
         ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
@@ -548,7 +591,7 @@ fn convert_kanji_bank(
     };
 
     for item in &mut entries {
-        item.dictionary = Some(mem::take(&mut dict_name))
+        item.dictionary = Some(dict_name.to_owned())
     }
 
     Ok(entries)
@@ -556,9 +599,12 @@ fn convert_kanji_bank(
 
 /****************** Term Bank Functions ******************/
 
-fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<DatabaseTermEntry>, ImportError> {
+fn convert_term_bank_file(
+    outpath: PathBuf,
+    dict_name: &str,
+) -> Result<Vec<DatabaseTermEntry>, ImportError> {
     let file = fs::File::open(&outpath).map_err(|e| {
-        ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
+        ImportError::Custom(format!("file: {:#?} | err: {e}", outpath.to_string_lossy()))
     })?;
     let reader = BufReader::new(file);
 
@@ -583,11 +629,13 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<DatabaseTermEntry>, Im
     let terms: Vec<DatabaseTermEntry> = entries
         .into_iter()
         .map(|mut entry| {
+            let id = uuid::Uuid::new_v4().to_string();
             let expression = entry.expression;
             let reading = entry.reading;
-            let expression_reverse = rev_jp_str(&expression);
-            let reading_reverse = rev_jp_str(&reading);
+            let expression_reverse = rev_str(&expression);
+            let reading_reverse = rev_str(&reading);
             let mut db_term = DatabaseTermEntry {
+                id,
                 expression,
                 expression_reverse,
                 reading,
@@ -597,12 +645,16 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<DatabaseTermEntry>, Im
                 score: entry.score,
                 sequence: Some(entry.sequence),
                 term_tags: Some(entry.term_tags),
+                file_path: outpath.clone().into_os_string(),
+                dictionary: dict_name.to_owned(),
                 ..Default::default()
             };
 
             let structured_content = entry.structured_content.swap_remove(0);
             let defs = get_string_content(structured_content.content);
-            db_term.glossary = create_glossary(defs.concat());
+            let gloss_content = TermGlossaryContent::new(defs.concat(), None, None, None);
+            let gloss = TermGlossary::Content(Box::new(gloss_content));
+            db_term.glossary = gloss;
 
             db_term
         })
@@ -611,19 +663,8 @@ fn convert_term_bank_file(outpath: PathBuf) -> Result<Vec<DatabaseTermEntry>, Im
     Ok(terms)
 }
 
-fn create_glossary(def_str: String) -> TermGlossaryContent {
-    TermGlossaryContent {
-        term_glossary_string: def_str,
-        term_glossary_text: None,
-        term_glossary_structured_content: None,
-        term_glossary_image: None,
-    }
-}
-
-fn rev_jp_str(expression: &str) -> String {
-    UnicodeSegmentation::graphemes(expression, true)
-        .rev()
-        .collect::<String>()
+fn rev_str(expression: &str) -> String {
+    expression.chars().rev().collect()
 }
 
 fn get_string_content(c_match_type: ContentMatchType) -> Vec<String> {
@@ -664,6 +705,12 @@ fn handle_content_match_type(content: Vec<Element>) -> Vec<String> {
             Element::Image(_) => {}
             // br elements don't have children
             Element::LineBreak(_) => {}
+            _ => {
+                panic!(
+                    "handle_content_match_type err: matched nothing! | line: {}",
+                    line!()
+                )
+            }
         }
     }
 

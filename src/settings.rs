@@ -2,14 +2,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct Options {
-    pub version: u8,
-    pub profiles: Vec<Profile>,
-    pub current_profile: u8,
-    pub global: GlobalOptions,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct GlobalOptions {
     pub database: GlobalDatabaseOptions,
 }
@@ -19,6 +11,46 @@ pub struct GlobalDatabaseOptions {
     pub prefix_wildcards_supported: bool,
 }
 
+/// Global Yomichan Settings.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct Options {
+    // should get it from crates / rust somehow
+    pub version: u8,
+    pub profiles: Vec<Profile>,
+    pub current_profile: usize,
+    pub global: GlobalOptions,
+}
+
+impl Options {
+    fn new(
+        version: u8,
+        profiles: Vec<Profile>,
+        current_profile: usize,
+        global: GlobalOptions,
+    ) -> Self {
+        Self {
+            version,
+            profiles,
+            current_profile,
+            global,
+        }
+    }
+
+    pub fn get_options_mut(&mut self) -> &mut Self {
+        self
+    }
+
+    pub fn get_current_profile_mut(&mut self) -> &mut Profile {
+        let index = self.current_profile;
+        &mut self.profiles[index]
+    }
+
+    pub fn get_current_profile(&self) -> &Profile {
+        let index = self.current_profile;
+        &self.profiles[index]
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct Profile {
     pub name: String,
@@ -26,16 +58,30 @@ pub struct Profile {
     pub options: ProfileOptions,
 }
 
+impl Profile {
+    pub fn new(
+        name: String,
+        condition_groups: Vec<ProfileConditionGroup>,
+        options: ProfileOptions,
+    ) -> Self {
+        Self {
+            name,
+            condition_groups,
+            options,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct ProfileConditionGroup {
     pub conditions: Vec<ProfileCondition>,
 }
 
-/// Profile usage conditions are used to automatically select certain profiles based on context. 
+/// Profile usage conditions are used to automatically select certain profiles based on context.
 /// For example, different profiles can be used,
 /// depending on the nested level of the popup, or based on the website's URL.
 
-/// Conditions are organized into groups corresponding to the order in which they are checked. 
+/// Conditions are organized into groups corresponding to the order in which they are checked.
 /// If all of the conditions in any group of a profile are met, then that profile will be used for that context.
 
 /// If no conditions are specified, the profile will only be used if it is selected as the default profile.
@@ -62,7 +108,7 @@ pub struct ProfileOptions {
     pub audio: AudioOptions,
     pub scanning: ScanningOptions,
     pub translation: TranslationOptions,
-    pub dictionaries: DictionariesOptions,
+    pub dictionaries: Vec<DictionaryOptions>,
     pub parsing: ParsingOptions,
     pub anki: AnkiOptions,
     pub sentence_parsing: SentenceParsingOptions,
@@ -252,18 +298,75 @@ pub struct TranslationTextReplacementGroup {
     pub replacement: String,
 }
 
-pub type DictionariesOptions = Vec<DictionaryOptions>;
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct DictionaryOptions {
+    /// The title of the dictionary.
     pub name: String,
-    pub priority: u8,
+    /// What order the dictionary's results get returned.
+    pub priority: usize,
+    /// Whether or not the dictionary will be used.
     pub enabled: bool,
+    /// If you have two dictionaries, `Dict 1` and `Dict 2`:
+    /// - Set the [`ResultOutputMode`] to `Group` results for the main dictionary entry.
+    /// - Choose `Dict 1` as the main dictionary for merged mode.
+    /// - Enable `allow_secondary_searches` on `Dict 2`.
+    ///     _(Can be enabled for multiple dictionaries)_.
+    ///
+    /// Yomichan_rs will now first perform an _initial_ lookup in `Dict 1`, fetching the grouped definition.
+    /// It will then use the headwords from `Dict 1`to perform a secondary lookup in `Dict 2`,
+    /// merging the two dictionary's definitions.
     pub allow_secondary_searches: bool,
+    /// Dictionary definitions can be collapsed if they exceed a certain line count,
+    /// which may be useful for dictionaries with long definitions. There are five different modes:
+    ///
+    /// By default, the number of lines shown for a definition is 3.
+    /// This can be configured by adjusting the Custom CSS `styles`;
+    ///
+    /// _(Value can be a unitless integer or decimal number)_.
     pub definitions_collapsible: DictionaryDefinitionsCollapsible,
+    /// When deinflecting words, only dictionary entries whose POS
+    /// matches that expected by the deinflector will be shown.
     pub parts_of_speech_filter: bool,
+    /// Deinflections from this dictionary will be used.
     pub use_deinflections: bool,
+    /// # Example
+    ///
+    /// ```
+    /// /* Globally set the line count */
+    /// :root {
+    /// --collapsible-definition-line-count: 2;
+    /// }
+    ///
+    /// /* Set the line count for a specific dictionary */
+    /// .definition-item[data-dictionary='JMdict'] {
+    /// --collapsible-definition-line-count: 2;
+    /// }
+    ///
+    /// /* Spoiler-like functionality, use with Force collapsed mode */
+    /// .definition-item[data-dictionary='JMdict'] .definition-item-inner.collapsible.collapsed {
+    /// color: #000000;
+    /// background-color: #000000;
+    /// }
+    /// ```
     pub styles: Option<String>,
+}
+
+impl DictionaryOptions {
+    pub fn new(settings: &Options, dict_name: String) -> Self {
+        let profile = settings.get_current_profile();
+        let p_len = profile.options.dictionaries.len();
+
+        DictionaryOptions {
+            name: dict_name,
+            priority: p_len,
+            enabled: true,
+            allow_secondary_searches: false,
+            definitions_collapsible: DictionaryDefinitionsCollapsible::Expanded,
+            parts_of_speech_filter: true,
+            use_deinflections: true,
+            styles: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -452,7 +555,6 @@ pub enum PopupActionBarLocation {
     Left,
 }
 
-
 /// Adjust the shadow style.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum PopupShadow {
@@ -502,11 +604,11 @@ pub enum TermDisplayStyle {
 /// Frequency sorting mode
 ///
 /// Dictionary frequency data can be represented in one of two ways:
-/// 
-/// `Occurrence`-based, where the frequency corresponds to a number of occurrences. 
+///
+/// `Occurrence`-based, where the frequency corresponds to a number of occurrences.
 /// - Large values indicate a more common term.
 ///
-/// `Rank`-based, where the frequency value corresponds to a ranking index. 
+/// `Rank`-based, where the frequency value corresponds to a ranking index.
 /// - Smaller values indicate a more common term.
 ///
 /// _`Occurrence`-based frequency dictionaries are highly discouraged, do not use them!!_
@@ -534,7 +636,7 @@ pub enum PopupWindowState {
     Fullscreen,
 }
 
-/// When searching for audio, the sources are checked in order until the first valid source is found. 
+/// When searching for audio, the sources are checked in order until the first valid source is found.
 /// This allows for selecting a fallback source if the first choice is not available.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AudioSourceType {
@@ -566,13 +668,23 @@ pub enum TranslationCollapseEmphaticSequences {
     Full,
 }
 
+/// Customize dictionary collapsing.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum DictionaryDefinitionsCollapsible {
+    /// Definitions will not be collapsed.
     NotCollapsible,
+    /// Definitions will show a collapse button if their size exceeds the max height,
+    /// and they will be collapsed by default.
     #[default]
     Expanded,
+    /// Definitions will show a collapse button if their size exceeds the max height,
+    /// and they will be expanded by default.
     Collapsed,
+    /// Definitions will always show a collapse button,
+    /// and they will be collapsed by default.
     ForceCollapsed,
+    ///  Definitions will always show a collapse button,
+    ///  and they will be expanded by default.
     ForceExpanded,
 }
 
@@ -595,13 +707,13 @@ pub enum AnkiScreenshotFormat {
     Jpeg,
 }
 
-/// A card is considered a duplicate if the value of the first field matches that of any other card. 
-/// By default, this check will include cards across all decks in a collection, 
+/// A card is considered a duplicate if the value of the first field matches that of any other card.
+/// By default, this check will include cards across all decks in a collection,
 /// but this constraint can be relaxed by using either the Deck or Deck root option.
 ///
-/// The Deck option will only check for duplicates in the target deck. 
-/// The Deck root option will additionally check for duplicates in all child decks of the root deck. 
-/// This allows adding cards that are unique for decks including a subdeck structure. 
+/// The Deck option will only check for duplicates in the target deck.
+/// The Deck root option will additionally check for duplicates in all child decks of the root deck.
+/// This allows adding cards that are unique for decks including a subdeck structure.
 /// For decks which don't have any parent-child hierarchy, both options function the same.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AnkiDuplicateScope {
@@ -622,10 +734,10 @@ pub enum AnkiDuplicateBehavior {
 
 /// Show card tags
 ///
-/// When coming across a word that is already in an Anki deck, 
-/// a button will appear that shows the tags the card has. 
+/// When coming across a word that is already in an Anki deck,
+/// a button will appear that shows the tags the card has.
 ///
-/// If set to `Non-Standard`, all tags that are included in the Card tags option will be filtered out from the list. 
+/// If set to `Non-Standard`, all tags that are included in the Card tags option will be filtered out from the list.
 /// If no tags remain after filtering, then the button will not be shown.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AnkiDisplayTags {
@@ -640,8 +752,8 @@ pub enum AnkiDisplayTags {
 /// Clicking the View added note button shows this window.
 ///
 /// AnkiConnect releases after around `2022-05-29` support a new note editor window-
-/// which can be shown when clicking the View added note button. 
-/// This can be tested using the buttons below. 
+/// which can be shown when clicking the View added note button.
+/// This can be tested using the buttons below.
 ///
 /// _If an error occurs, [Anki](https://apps.ankiweb.net/) and/or [AnkiConnect](https://ankiweb.net/shared/info/2055492159) may need to be updated_.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -662,12 +774,12 @@ pub enum SentenceTerminationCharacterMode {
 }
 
 /// Hold a key while moving the cursor to scan text.
-/// 
-/// A keyboard modifier key can be used to activate text scanning when the cursor is moved. 
-/// Alternatively, the `No Key` option can be used 
+///
+/// A keyboard modifier key can be used to activate text scanning when the cursor is moved.
+/// Alternatively, the `No Key` option can be used
 /// to scan text whenever the cursor is moved, without requiring any key to be held.
 ///
-/// More advanced scanning input customization can be set up 
+/// More advanced scanning input customization can be set up
 /// by enabling the `Advanced` option and clicking `Configure Advanced Scanning Inputs`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum InputsHotkeyModifier {

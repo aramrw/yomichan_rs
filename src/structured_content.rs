@@ -167,7 +167,7 @@ pub struct StructuredContentStyle {
 }
 
 /// A match type to deserialize any `Content` type.
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ContentMatchType {
     String(String),
@@ -183,18 +183,21 @@ pub enum ContentMatchType {
     Content(Vec<Element>),
 }
 
-impl<'de> Deserialize<'de> for ContentMatchType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        UntaggedEnumVisitor::new()
-            .string(|single| Ok(ContentMatchType::String(single.to_string())))
-            .map(|map| map.deserialize().map(ContentMatchType::Element))
-            .seq(|seq| seq.deserialize().map(ContentMatchType::Content))
-            .deserialize(deserializer)
-    }
-}
+// daijisen: ~6.35s WITHOUT custom deserialization. 
+// daijisen: ~7.13 WITH custom deserialization.
+
+// impl<'de> Deserialize<'de> for ContentMatchType {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         UntaggedEnumVisitor::new()
+//             .string(|single| Ok(ContentMatchType::String(single.to_string())))
+//             .map(|map| map.deserialize().map(ContentMatchType::Element))
+//             .seq(|seq| seq.deserialize().map(ContentMatchType::Content))
+//             .deserialize(deserializer)
+//     }
+// }
 
 impl<'de> Deserialize<'de> for Element {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -263,7 +266,7 @@ impl<'de> Deserialize<'de> for Element {
 #[serde(untagged)]
 pub enum Element {
     UnknownString(String),
-    #[serde(rename = "a")]
+    //#[serde(rename = "a")]
     Link(LinkElement),
     // #[serde(
     //     alias = "div",
