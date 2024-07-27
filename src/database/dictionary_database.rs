@@ -1,8 +1,8 @@
 use crate::dictionary::{TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    GenericFrequencyData, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
-    TermMetaDataMatchType, TermMetaFrequency, TermMetaFrequencyDataType, TermMetaModeType,
-    TermMetaPhoneticData, TermMetaPitchData,
+    GenericFreqData, Tag as DictDataTag, TermGlossary, TermGlossaryContent, TermMetaDataMatchType,
+    TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPhoneticData,
+    TermMetaPitch, TermMetaPitchData,
 };
 
 use crate::dictionary_data::KANA_MAP;
@@ -26,7 +26,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
 
 use transaction::RTransaction;
-use unicode_segmentation::{Graphemes, UnicodeSegmentation};
+//use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 use uuid::Uuid;
 
 use std::collections::{HashMap, HashSet};
@@ -71,6 +71,10 @@ pub struct Media<T = MediaType> {
     data: T,
 }
 
+pub trait HasExpression {
+    fn expression(&self) -> &str;
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 #[native_model(id = 1, version = 1)]
 #[native_db]
@@ -88,7 +92,7 @@ pub struct DatabaseTermEntry {
     pub tags: Option<String>,
     pub rules: String,
     pub score: i8,
-    pub glossary: TermGlossaryContent,
+    pub glossary: TermGlossary,
     #[secondary_key]
     pub sequence: Option<i128>,
     pub term_tags: Option<String>,
@@ -96,21 +100,27 @@ pub struct DatabaseTermEntry {
     pub file_path: OsString,
 }
 
+impl HasExpression for DatabaseTermEntry {
+    fn expression(&self) -> &str {
+        &self.expression
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermEntry {
-    index: u32,
-    match_type: TermSourceMatchType,
-    match_source: TermSourceMatchSource,
-    term: String,
-    reading: String,
-    definition_tags: String,
-    term_tags: Vec<String>,
-    rules: Vec<String>,
-    definitions: Vec<TermGlossary>,
-    score: u16,
-    dictionary: String,
-    id: u128,
-    sequence: i64,
+    pub id: String,
+    pub index: u32,
+    pub term: String,
+    pub reading: String,
+    pub sequence: Option<i128>,
+    pub match_type: TermSourceMatchType,
+    pub match_source: TermSourceMatchSource,
+    pub definition_tags: Option<String>,
+    pub term_tags: Option<Vec<String>>,
+    pub rules: Vec<String>,
+    pub definitions: Vec<TermGlossary>,
+    pub score: i8,
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -124,6 +134,11 @@ pub struct Tag {
 }
 
 /*************** Database Term Meta ***************/
+
+pub trait DBMetaType {
+    fn mode(&self) -> &TermMetaModeType;
+    fn expression(&self) -> &str;
+}
 
 /// A custom `Yomichan_rs`-unique, generic Database Meta model.
 ///
@@ -264,6 +279,7 @@ impl DatabaseMeta {
     }
 }
 
+/// Used to store the frequency metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[native_model(id = 2, version = 1)]
 #[native_db]
@@ -274,10 +290,26 @@ pub struct DatabaseMetaFrequency {
     pub expression: String,
     /// Is of type [`TermMetaModeType::Freq`]
     pub mode: TermMetaModeType,
-    pub data: TermMetaFrequencyDataType,
+    pub data: TermMetaFreqDataMatchType,
     pub dictionary: String,
 }
 
+impl DBMetaType for DatabaseMetaFrequency {
+    fn mode(&self) -> &TermMetaModeType {
+        &self.mode
+    }
+    fn expression(&self) -> &str {
+        &self.expression
+    }
+}
+
+impl HasExpression for DatabaseMetaFrequency {
+    fn expression(&self) -> &str {
+        &self.expression
+    }
+}
+
+/// Used to store the pitch metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[native_model(id = 3, version = 1)]
 #[native_db]
@@ -292,6 +324,16 @@ pub struct DatabaseMetaPitch {
     pub dictionary: String,
 }
 
+impl DBMetaType for DatabaseMetaPitch {
+    fn mode(&self) -> &TermMetaModeType {
+        &self.mode
+    }
+    fn expression(&self) -> &str {
+        &self.expression
+    }
+}
+
+/// Used to store the phonetic metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[native_model(id = 4, version = 1)]
 #[native_db]
@@ -306,13 +348,14 @@ pub struct DatabaseMetaPhonetic {
     pub dictionary: String,
 }
 
-// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-// #[serde(untagged)]
-// pub enum DatabaseTermMetaMatchType {
-//     Frequency(DatabaseTermMetaFrequency),
-//     Pitch(DatabaseTermMetaPitch),
-//     Phonetic(DatabaseTermMetaPhonetic),
-// }
+impl DBMetaType for DatabaseMetaPhonetic {
+    fn mode(&self) -> &TermMetaModeType {
+        &self.mode
+    }
+    fn expression(&self) -> &str {
+        &self.expression
+    }
+}
 
 /*************** Database Kanji Meta ***************/
 
@@ -321,7 +364,7 @@ pub struct DatabaseKanjiMetaFrequency {
     pub character: String,
     /// Is of type [`TermMetaModeType::Freq`]
     pub mode: TermMetaModeType,
-    pub data: TermMetaFrequencyDataType,
+    pub data: TermMetaFreqDataMatchType,
     pub dictionary: String,
 }
 
@@ -413,13 +456,18 @@ trait DBReadWrite {
     fn rw_insert(&self, db: Database) -> Result<(), DBError>;
 }
 
+pub type VecTermEntry = Vec<TermEntry>;
+pub type VecDBTermEntry = Vec<DatabaseTermEntry>;
+pub type VecDBTermMeta = Vec<DatabaseMeta>;
+pub type VecDBMetaFreq = Vec<DatabaseMetaFrequency>;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseDictData {
     pub tag_list: Vec<Vec<DictDataTag>>,
     pub kanji_meta_list: Vec<DatabaseMeta>,
     pub kanji_list: Vec<DatabaseKanjiEntry>,
     pub term_meta_list: Vec<DatabaseMeta>,
-    pub term_list: DatabaseTermEntryCollection,
+    pub term_list: VecDBTermEntry,
     pub summary: Summary,
     pub dictionary_options: DictionaryOptions,
 }
@@ -430,85 +478,6 @@ pub enum Queries<'a, Q> {
     StartWith(&'a [Q]),
 }
 
-type DatabaseTermEntryCollection = Vec<DatabaseTermEntry>;
-
-impl Yomichan {
-    pub fn import_dictionary<P: AsRef<Path>>(&mut self, zip_path: P) -> Result<(), DBError> {
-        let data = prepare_dictionary(zip_path, &mut self.options)?;
-        let terms = data.term_list;
-        let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
-        {
-            let rwtx = db.rw_transaction()?;
-            for t in terms {
-                rwtx.insert(t)?;
-            }
-            rwtx.commit()?;
-        }
-
-        Ok(())
-    }
-
-    /// Looks up a term in the database
-    pub fn bulk_lookup<Q: AsRef<str>>(&self, query: Q) -> Result<Vec<DatabaseTermEntry>, DBError> {
-        let tokenizer = init_tokenizer()?;
-        let tokens = tokenizer.tokenize(query.as_ref())?;
-        let tokens: Vec<&str> = process_tokens(tokens);
-        let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
-
-        let rtx = db.r_transaction()?;
-
-        let entries: Result<Vec<Vec<DatabaseTermEntry>>, native_db::db_type::Error> = tokens
-            .iter()
-            .map(|tok| {
-                rtx.scan()
-                    .secondary(DatabaseTermEntryKey::expression)?
-                    .start_with(query.as_ref())
-                    .collect::<Result<Vec<DatabaseTermEntry>, native_db::db_type::Error>>()
-            })
-            .collect();
-
-        let entries = match entries {
-            Ok(ent) => {
-                if ent.is_empty() {
-                    return Err(DBError::Query(format!(
-                        "no entries found for: {}",
-                        query.as_ref()
-                    )));
-                }
-                ent.into_iter().flatten().collect()
-            }
-            Err(e) => return Err(DBError::Query(format!("bulk query err: | {}", e))),
-        };
-
-        Ok(entries)
-    }
-}
-
-fn process_tokens(tokens: Vec<Token>) -> Vec<&str> {
-    tokens.iter().map(|t| t.text).collect()
-}
-
-fn init_tokenizer() -> Result<Tokenizer, LinderaError> {
-    use lindera::{
-        DictionaryConfig, DictionaryKind, LinderaResult, Mode, Tokenizer, TokenizerConfig,
-    };
-
-    let dictionary = DictionaryConfig {
-        kind: Some(DictionaryKind::IPADIC),
-        path: None,
-    };
-
-    let config = TokenizerConfig {
-        dictionary,
-        user_dictionary: None,
-        mode: Mode::Normal,
-    };
-
-    let tokenizer = Tokenizer::from_config(config)?;
-    //let tokens = tokenizer.tokenize(query.as_ref())?;
-
-    Ok(tokenizer)
-}
 // fn process_tokens(tokens: Vec<Token>) -> Vec<&str> {
 //     tokens.iter().map(|t| t.text).collect()
 // }
@@ -539,7 +508,7 @@ fn init_tokenizer() -> Result<Tokenizer, LinderaError> {
 // pub fn lookup_tokens<Q: AsRef<str>>(
 //     &self,
 //     query: Q,
-// ) -> Result<DatabaseTermEntryCollection, DBError> {
+// ) -> Result<VecDBTermEntry, DBError> {
 //     let tokenizer = init_tokenizer()?;
 //     let tokens = tokenizer.tokenize(query.as_ref())?;
 //     let tokens: Vec<&str> = process_tokens(tokens);
@@ -547,22 +516,22 @@ fn init_tokenizer() -> Result<Tokenizer, LinderaError> {
 //
 //     let rtx = db.r_transaction()?;
 //
-//     let expression_entries: Result<Vec<DatabaseTermEntryCollection>, DBError> = tokens
+//     let expression_entries: Result<Vec<VecDBTermEntry>, DBError> = tokens
 //         .iter()
 //         .map(|tok| query_sw(&rtx, DatabaseTermEntryKey::expression, *tok))
 //         .collect();
 //
-//     let reading_entries: Result<Vec<DatabaseTermEntryCollection>, DBError> = tokens
+//     let reading_entries: Result<Vec<VecDBTermEntry>, DBError> = tokens
 //         .iter()
 //         .map(|tok| query_sw(&rtx, DatabaseTermEntryKey::reading, *tok))
 //         .collect();
 //
-//     let mut expression_entries: DatabaseTermEntryCollection = match expression_entries {
+//     let mut expression_entries: VecDBTermEntry = match expression_entries {
 //         Ok(ent) => ent.into_iter().flatten().collect(),
 //         Err(e) => return Err(DBError::Query(format!("bulk query err: | {}", e))),
 //     };
 //
-//     let reading_entries: DatabaseTermEntryCollection = match reading_entries {
+//     let reading_entries: VecDBTermEntry = match reading_entries {
 //         Ok(ent) => ent.into_iter().flatten().collect(),
 //         Err(e) => return Err(DBError::Query(format!("bulk query err: | {}", e))),
 //     };
