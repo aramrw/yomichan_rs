@@ -325,3 +325,15 @@ where
     Ok(results?)
 }
 
+pub fn is_kana(str: &str) -> bool {
+    for c in str.chars() {
+        let mut tmp = [0u8; 4];
+        let char = c.encode_utf8(&mut tmp);
+        if KANA_MAP.get_by_left(char).is_none() && KANA_MAP.get_by_right(char).is_none() {
+            return false;
+        }
+    }
+
+    true
+}
+
