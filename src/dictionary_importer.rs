@@ -1,13 +1,13 @@
-use crate::dictionary::KanjiDictionaryEntry;
-use crate::dictionary_data::{
-    GenericFrequencyData, Index, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
-    TermGlossaryImage, TermMeta, TermMetaDataMatchType, TermMetaFrequency,
-    TermMetaFrequencyDataType, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
-};
-use crate::dictionary_database::{
+use crate::database::dictionary_database::{
     DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseMeta,
     DatabaseMetaFrequency, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
     MediaDataArrayBufferContent, TermEntry, DB_MODELS,
+};
+use crate::dictionary::KanjiDictionaryEntry;
+use crate::dictionary_data::{
+    GenericFreqData, Index, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
+    TermGlossaryImage, TermMeta, TermMetaDataMatchType, TermMetaFreqDataMatchType,
+    TermMetaFrequency, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
 use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
@@ -19,7 +19,6 @@ use crate::Yomichan;
 
 use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
 use transaction::RwTransaction;
-use unicode_segmentation::UnicodeSegmentation;
 
 use chrono::prelude::*;
 
@@ -633,8 +632,8 @@ fn convert_term_bank_file(
             let id = uuid::Uuid::new_v4().to_string();
             let expression = entry.expression;
             let reading = entry.reading;
-            let expression_reverse = rev_jp_str(&expression);
-            let reading_reverse = rev_jp_str(&reading);
+            let expression_reverse = rev_str(&expression);
+            let reading_reverse = rev_str(&reading);
             let mut db_term = DatabaseTermEntry {
                 id,
                 expression,
@@ -653,7 +652,9 @@ fn convert_term_bank_file(
 
             let structured_content = entry.structured_content.swap_remove(0);
             let defs = get_string_content(structured_content.content);
-            db_term.glossary = create_glossary(defs.concat());
+            let gloss_content = TermGlossaryContent::new(defs.concat(), None, None, None);
+            let gloss = TermGlossary::Content(Box::new(gloss_content));
+            db_term.glossary = gloss;
 
             db_term
         })
@@ -662,19 +663,8 @@ fn convert_term_bank_file(
     Ok(terms)
 }
 
-fn create_glossary(def_str: String) -> TermGlossaryContent {
-    TermGlossaryContent {
-        term_glossary_string: def_str,
-        term_glossary_text: None,
-        term_glossary_structured_content: None,
-        term_glossary_image: None,
-    }
-}
-
-fn rev_jp_str(expression: &str) -> String {
-    UnicodeSegmentation::graphemes(expression, true)
-        .rev()
-        .collect::<String>()
+fn rev_str(expression: &str) -> String {
+    expression.chars().rev().collect()
 }
 
 fn get_string_content(c_match_type: ContentMatchType) -> Vec<String> {
