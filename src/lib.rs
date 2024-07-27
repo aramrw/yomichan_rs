@@ -1,23 +1,22 @@
 #![allow(unused)]
+mod database;
 mod dictionary;
 mod dictionary_data;
-mod dictionary_database;
 mod dictionary_importer;
-mod dictionary_worker_handler;
 mod errors;
 mod freq;
 mod settings;
 mod structured_content;
+mod language;
 mod tests;
 
-use crate::settings::Options;
-
+use database::dictionary_database::DB_MODELS;
+use settings::Profile;
+use settings::Options;
 use errors::InitError;
+
 use native_db::*;
 use native_model::{native_model, Model};
-
-use dictionary_database::DB_MODELS;
-use settings::Profile;
 
 use std::{
     ffi::{OsStr, OsString},
@@ -55,10 +54,7 @@ impl Yomichan {
         let mut options = Options::default();
         options.profiles.push(Profile::default());
 
-        Ok(Self {
-            db_path,
-            options,
-        })
+        Ok(Self { db_path, options })
     }
 }
 
