@@ -145,3 +145,18 @@ use crate::dictionary_data::{
         Ok(entries)
     }
 
+    pub fn lookup_seq(&self, seq: i128) -> Result<VecDBTermEntry, DBError> {
+        let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
+        let rtx = db.r_transaction()?;
+
+        let entries: VecDBTermEntry =
+            query_sw(&rtx, DatabaseTermEntryKey::expression, seq).map_err(DBError::from)?;
+
+        if entries.is_empty() {
+            return Err(DBError::Query(format!("no entries found for: {:?}", seq)));
+        }
+
+        Ok(entries)
+    }
+}
+
