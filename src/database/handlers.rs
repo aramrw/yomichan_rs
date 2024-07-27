@@ -292,3 +292,15 @@ fn handle_term_query<Q: AsRef<str> + Debug>(
     Ok((exps, readings))
 }
 
+fn query_sw<'a, R: native_db::ToInput>(
+    rtx: &RTransaction,
+    key: impl ToKeyDefinition<KeyOptions>,
+    query: impl ToKey + 'a,
+) -> Result<Vec<R>, DBError> {
+    Ok(rtx
+        .scan()
+        .secondary(key)?
+        .start_with(query)
+        .collect::<Result<Vec<R>, db_type::Error>>()?)
+}
+
