@@ -160,3 +160,66 @@ use crate::dictionary_data::{
     }
 }
 
+fn construct_term_entries(
+    entries: Vec<DatabaseTermEntry>,
+    match_source: TermSourceMatchSource,
+    match_type: TermSourceMatchType,
+) -> Result<Vec<TermEntry>, DBError> {
+    let mut grouped_indices: Vec<(usize, usize)> = Vec::new();
+
+    for (i, entry) in entries.iter().enumerate() {
+        let mut found = false;
+        for (mut idx, (term, reading)) in grouped_indices.iter_mut().enumerate() {
+            if entry.expression == entries[*term].expression
+                && entry.reading == entries[*reading].reading
+            {
+                found = true;
+                idx = i;
+                break;
+            }
+        }
+        if !found {
+            grouped_indices.push((i, i));
+        }
+    }
+
+    let result: Vec<TermEntry> = grouped_indices
+        .iter()
+        .enumerate()
+        .map(|(i, (start, end))| {
+            let mut term_tags: HashSet<String> = HashSet::new();
+            let mut rules: HashSet<String> = HashSet::new();
+            let mut definitions: Vec<TermGlossary> = Vec::new();
+
+            entries
+                .iter()
+                .take(*end + 1)
+                .skip(*start)
+                .for_each(|entry| {
+                    if let Some(t_tags) = entry.term_tags.clone() {
+                        term_tags.insert(t_tags);
+                    }
+                    rules.insert(entry.rules.clone());
+                    definitions.push(entry.glossary.clone());
+                });
+
+            TermEntry {
+                id: Uuid::new_v4().to_string(),
+                index: u32::try_from(i).unwrap_or_default(),
+                term: entries[i].expression.clone(),
+                reading: entries[i].reading.clone(),
+                match_type: match_type.clone(),
+                match_source: match_source.clone(),
+                definition_tags: entries[i].definition_tags.clone(),
+                term_tags: Some(term_tags.into_iter().collect()),
+                rules: rules.into_iter().collect(),
+                definitions,
+                score: entries[i].score,
+                dictionary: entries[i].dictionary.clone(),
+                sequence: entries[i].sequence,
+            }
+        })
+        .collect();
+    Ok(result)
+}
+
