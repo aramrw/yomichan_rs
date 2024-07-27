@@ -72,7 +72,6 @@ pub struct KanjiStat {
     value: NumOrStr,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KanjiFrequency {
     index: u64,
