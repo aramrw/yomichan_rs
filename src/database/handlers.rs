@@ -304,3 +304,24 @@ fn query_sw<'a, R: native_db::ToInput>(
         .collect::<Result<Vec<R>, db_type::Error>>()?)
 }
 
+fn query_exact<R>(
+    rtx: &RTransaction,
+    key: impl ToKeyDefinition<KeyOptions>,
+    query: &str,
+) -> Result<Vec<R>, DBError>
+where
+    R: HasExpression + native_db::ToInput,
+{
+    let results: Result<Vec<R>, db_type::Error> = rtx
+        .scan()
+        .secondary(key)?
+        .start_with(query)
+        .take_while(|e: &Result<R, db_type::Error>| match e {
+            Ok(entry) => entry.expression() == query,
+            Err(_) => false,
+        })
+        .collect();
+
+    Ok(results?)
+}
+
