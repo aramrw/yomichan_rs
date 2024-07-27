@@ -223,3 +223,72 @@ fn construct_term_entries(
     Ok(result)
 }
 
+fn handle_term_query<Q: AsRef<str> + Debug>(
+    queries: &Queries<Q>,
+    rtx: &RTransaction,
+) -> Result<(VecDBTermEntry, VecDBTermEntry), DBError> {
+    let (exps, readings): (VecDBTermEntry, VecDBTermEntry) = match queries {
+        Queries::Exact(queries) => {
+            let exps = queries
+                .iter()
+                .filter_map(|q| {
+                    if !is_kana(q.as_ref()) {
+                        return Some(query_exact(
+                            rtx,
+                            DatabaseTermEntryKey::expression,
+                            q.as_ref(),
+                        ));
+                    }
+                    None
+                })
+                .collect::<Result<Vec<VecDBTermEntry>, DBError>>()?
+                .into_iter()
+                .flatten()
+                .collect::<VecDBTermEntry>();
+            let readings = queries
+                .iter()
+                .filter_map(|q| {
+                    if is_kana(q.as_ref()) {
+                        return Some(query_exact(rtx, DatabaseTermEntryKey::reading, q.as_ref()));
+                    }
+                    None
+                })
+                .collect::<Result<Vec<VecDBTermEntry>, DBError>>()?
+                .into_iter()
+                .flatten()
+                .collect::<VecDBTermEntry>();
+
+            (exps, readings)
+        }
+        Queries::StartWith(queries) => {
+            let exps = queries
+                .iter()
+                .filter_map(|q| {
+                    if !is_kana(q.as_ref()) {
+                        return Some(query_sw(rtx, DatabaseTermEntryKey::expression, q.as_ref()));
+                    }
+                    None
+                })
+                .collect::<Result<Vec<VecDBTermEntry>, DBError>>()?
+                .into_iter()
+                .flatten()
+                .collect::<VecDBTermEntry>();
+            let readings = queries
+                .iter()
+                .filter_map(|q| {
+                    if is_kana(q.as_ref()) {
+                        return Some(query_sw(rtx, DatabaseTermEntryKey::reading, q.as_ref()));
+                    }
+                    None
+                })
+                .collect::<Result<Vec<VecDBTermEntry>, DBError>>()?
+                .into_iter()
+                .flatten()
+                .collect::<VecDBTermEntry>();
+
+            (exps, readings)
+        }
+    };
+    Ok((exps, readings))
+}
+
