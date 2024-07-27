@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
-use crate::{dictionary_database::Queries, dictionary_importer::*, settings::Options, Yomichan};
+use crate::{
+    database::dictionary_database::Queries, dictionary_importer::*, settings::Options, Yomichan,
+};
 
 #[test]
 fn dict() {
@@ -52,8 +54,7 @@ fn dict() {
 fn init_db() {
     let db_path = String::from("./a");
     let mut ycd = Yomichan::new(db_path).unwrap();
-    //let paths = ["./test_dicts/daijisen"];
-    let paths = ["./test_dicts/ajdfreq"];
+    let paths = ["./test_dicts/daijisen", "./test_dicts/ajdfreq"];
     ycd.import_dictionaries(&paths).unwrap();
 }
 
@@ -74,12 +75,19 @@ fn bulk_query() {
     let db_path = String::from("./a");
     let ycd = Yomichan::new(db_path).unwrap();
     //let yomu = Vec::from(["詠む", "読む"]);
-    let nomu = Vec::from([/*"呑む",*/ "飲む"]);
-    let terms = ycd.bulk_lookup_term(Queries::StartWith(&nomu)).unwrap();
+    let nomu = Vec::from([/*"呑む",*/ "読む"]);
+    let terms = ycd.bulk_lookup_term(Queries::Exact(&nomu)).unwrap();
 
     for t in terms {
         println!("{:#?}", t);
     }
+}
+
+#[test]
+fn is_kana() {
+    use crate::database::handlers::is_kana;
+    let kana = "む";
+    assert!(is_kana(kana));
 }
 
 // #[test]
@@ -87,7 +95,7 @@ fn bulk_query() {
 //     let db_path = String::from("./a");
 //     let ycd = Yomichan::new(db_path).unwrap();
 //
-//     // 伏線: 13975000000 
+//     // 伏線: 13975000000
 //     // ありがとう: 504000000
 //     let terms = ycd.lookup_seqs(&[16713100000], None).unwrap();
 //     //let terms = ycd.lookup_seq(13975000000).unwrap();
