@@ -337,3 +337,44 @@ pub fn is_kana(str: &str) -> bool {
     true
 }
 
+fn query_all_freq_meta(
+    query: &str,
+    rtx: &RTransaction,
+) -> Result<Vec<DatabaseMetaFrequency>, DBError> {
+    let results: Result<Vec<DatabaseMetaFrequency>, db_type::Error> = rtx
+        .scan()
+        .primary()?
+        .all()
+        .filter_map(|e: Result<DatabaseMetaFrequency, db_type::Error>| match e {
+            Ok(entry) => {
+                if entry.mode == TermMetaModeType::Freq {
+                    if query == entry.expression {
+                        return Some(Ok(entry));
+                    }
+
+                    match &entry.data {
+                        TermMetaFreqDataMatchType::Generic(gd) => {
+                            if gd.try_get_reading().is_some_and(|r| query == r) {
+                                return Some(Ok(entry));
+                            }
+                        }
+                        TermMetaFreqDataMatchType::WithReading(wr) => {
+                            if query == wr.reading {
+                                return Some(Ok(entry));
+                            }
+
+                            if wr.frequency.try_get_reading().is_some_and(|r| query == r) {
+                                return Some(Ok(entry));
+                            }
+                        }
+                    }
+                }
+                None
+            }
+            Err(err) => Some(Err(err)),
+        })
+        .collect();
+
+    Ok(results?)
+}
+
