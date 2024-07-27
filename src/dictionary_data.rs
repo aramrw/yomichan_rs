@@ -1,8 +1,9 @@
-#![feature(lazy_cell)]
+use crate::database::dictionary_database::DBMetaType;
 use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
 use crate::dictionary_importer::{FrequencyMode, StructuredContent};
 use crate::structured_content::ImageElement;
 
+use bimap::BiHashMap;
 use serde_untagged::UntaggedEnumVisitor;
 
 use serde::{Deserialize, Deserializer, Serialize};
@@ -11,122 +12,42 @@ use std::string::String;
 
 use std::sync::LazyLock;
 
-pub static KANA_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
-    HashMap::from([
-        ("ア", "あ"),
-        ("イ", "い"),
-        ("ウ", "う"),
-        ("エ", "え"),
-        ("オ", "お"),
-        ("カ", "か"),
-        ("キ", "き"),
-        ("ク", "く"),
-        ("ケ", "け"),
-        ("コ", "こ"),
-        ("サ", "さ"),
-        ("シ", "し"),
-        ("ス", "す"),
-        ("セ", "せ"),
-        ("ソ", "そ"),
-        ("タ", "た"),
-        ("チ", "ち"),
-        ("ツ", "つ"),
-        ("テ", "て"),
-        ("ト", "と"),
-        ("ナ", "な"),
-        ("ニ", "に"),
-        ("ヌ", "ぬ"),
-        ("ネ", "ね"),
-        ("ノ", "の"),
-        ("ハ", "は"),
-        ("ヒ", "ひ"),
-        ("フ", "ふ"),
-        ("ヘ", "へ"),
-        ("ホ", "ほ"),
-        ("マ", "ま"),
-        ("ミ", "み"),
-        ("ム", "む"),
-        ("メ", "め"),
-        ("モ", "も"),
-        ("ヤ", "や"),
-        ("ユ", "ゆ"),
-        ("ヨ", "よ"),
-        ("ラ", "ら"),
-        ("リ", "り"),
-        ("ル", "る"),
-        ("レ", "れ"),
-        ("ロ", "ろ"),
-        ("ワ", "わ"),
-        ("ヲ", "を"),
-        ("ン", "ん"),
-        ("ガ", "が"),
-        ("ギ", "ぎ"),
-        ("グ", "ぐ"),
-        ("ゲ", "げ"),
-        ("ゴ", "ご"),
-        ("ザ", "ざ"),
-        ("ジ", "じ"),
-        ("ズ", "ず"),
-        ("ゼ", "ぜ"),
-        ("ゾ", "ぞ"),
-        ("ダ", "だ"),
-        ("ヂ", "ぢ"),
-        ("ヅ", "づ"),
-        ("デ", "で"),
-        ("ド", "ど"),
-        ("バ", "ば"),
-        ("ビ", "び"),
-        ("ブ", "ぶ"),
-        ("ベ", "べ"),
-        ("ボ", "ぼ"),
-        ("パ", "ぱ"),
-        ("ピ", "ぴ"),
-        ("プ", "ぷ"),
-        ("ペ", "ぺ"),
-        ("ポ", "ぽ"),
-        ("キャ", "きゃ"),
-        ("キュ", "きゅ"),
-        ("キョ", "きょ"),
-        ("シャ", "しゃ"),
-        ("シュ", "しゅ"),
-        ("ショ", "しょ"),
-        ("チャ", "ちゃ"),
-        ("チュ", "ちゅ"),
-        ("チョ", "ちょ"),
-        ("ニャ", "にゃ"),
-        ("ニュ", "にゅ"),
-        ("ニョ", "にょ"),
-        ("ヒャ", "ひゃ"),
-        ("ヒュ", "ひゅ"),
-        ("ヒョ", "ひょ"),
-        ("ミャ", "みゃ"),
-        ("ミュ", "みゅ"),
-        ("ミョ", "みょ"),
-        ("リャ", "りゃ"),
-        ("リュ", "りゅ"),
-        ("リョ", "りょ"),
-        ("ギャ", "ぎゃ"),
-        ("ギュ", "ぎゅ"),
-        ("ギョ", "ぎょ"),
-        ("ジャ", "じゃ"),
-        ("ジュ", "じゅ"),
-        ("ジョ", "じょ"),
-        ("ビャ", "びゃ"),
-        ("ビュ", "びゅ"),
-        ("ビョ", "びょ"),
-        ("ピャ", "ぴゃ"),
-        ("ピュ", "ぴゅ"),
-        ("ピョ", "ぴょ"),
+#[rustfmt::skip]
+pub static KANA_MAP: LazyLock<BiHashMap<&'static str, &'static str>> = LazyLock::new(|| {
+    BiHashMap::from_iter([
+        ("ア", "あ"), ("イ", "い"), ("ウ", "う"), ("エ", "え"), ("オ", "お"),
+        ("カ", "か"), ("キ", "き"), ("ク", "く"), ("ケ", "け"), ("コ", "こ"),
+        ("サ", "さ"), ("シ", "し"), ("ス", "す"), ("セ", "せ"), ("ソ", "そ"),
+        ("タ", "た"), ("チ", "ち"), ("ツ", "つ"), ("テ", "て"), ("ト", "と"),
+        ("ナ", "な"), ("ニ", "に"), ("ヌ", "ぬ"), ("ネ", "ね"), ("ノ", "の"),
+        ("ハ", "は"), ("ヒ", "ひ"), ("フ", "ふ"), ("ヘ", "へ"), ("ホ", "ほ"),
+        ("マ", "ま"), ("ミ", "み"), ("ム", "む"), ("メ", "め"), ("モ", "も"),
+        ("ヤ", "や"), ("ユ", "ゆ"), ("ヨ", "よ"), ("ラ", "ら"), ("リ", "り"),
+        ("ル", "る"), ("レ", "れ"), ("ロ", "ろ"), ("ワ", "わ"), ("ヲ", "を"),
+        ("ン", "ん"), ("ガ", "が"), ("ギ", "ぎ"), ("グ", "ぐ"), ("ゲ", "げ"),
+        ("ゴ", "ご"), ("ザ", "ざ"), ("ジ", "じ"), ("ズ", "ず"), ("ゼ", "ぜ"),
+        ("ゾ", "ぞ"), ("ダ", "だ"), ("ヂ", "ぢ"), ("ヅ", "づ"), ("デ", "で"),
+        ("ド", "ど"), ("バ", "ば"), ("ビ", "び"), ("ブ", "ぶ"), ("ベ", "べ"),
+        ("ボ", "ぼ"), ("パ", "ぱ"), ("ピ", "ぴ"), ("プ", "ぷ"), ("ペ", "ぺ"),
+        ("ポ", "ぽ"), ("キャ", "きゃ"), ("キュ", "きゅ"), ("キョ", "きょ"),
+        ("シャ", "しゃ"), ("シュ", "しゅ"), ("ショ", "しょ"), ("チャ", "ちゃ"),
+        ("チュ", "ちゅ"), ("チョ", "ちょ"), ("ニャ", "にゃ"), ("ニュ", "にゅ"),
+        ("ニョ", "にょ"), ("ヒャ", "ひゃ"), ("ヒュ", "ひゅ"), ("ヒョ", "ひょ"),
+        ("ミャ", "みゃ"), ("ミュ", "みゅ"), ("ミョ", "みょ"), ("リャ", "りゃ"),
+        ("リュ", "りゅ"), ("リョ", "りょ"), ("ギャ", "ぎゃ"), ("ギュ", "ぎゅ"),
+        ("ギョ", "ぎょ"), ("ジャ", "じゃ"), ("ジュ", "じゅ"), ("ジョ", "じょ"),
+        ("ビャ", "びゃ"), ("ビュ", "びゅ"), ("ビョ", "びょ"), ("ピャ", "ぴゃ"),
+        ("ピュ", "ぴゅ"), ("ピョ", "ぴょ"),
     ])
 });
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct TermEntry {
-    pub dictionary: String,
-    pub expression: String,
-    pub reading: String,
-    pub sequence: Option<String>,
-}
+// #[derive(Serialize, Deserialize, Debug)]
+// pub struct TermEntry {
+//     pub dictionary: String,
+//     pub expression: String,
+//     pub reading: String,
+//     pub sequence: Option<String>,
+// }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TermGlossaryType {
@@ -231,6 +152,12 @@ pub enum TermGlossary {
     Deinflection(TermGlossaryDeinflection),
 }
 
+impl Default for TermGlossary {
+    fn default() -> Self {
+        TermGlossary::Content(Box::default())
+    }
+}
+
 /// The last three values are [`None`] for now because
 /// I have to figure them out lol
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -244,6 +171,22 @@ pub struct TermGlossaryContent {
     /// without deserialization.
     /// As such, it is up to the program to render the content properly.
     pub term_glossary_structured_content: Option<TermGlossaryStructuredContent>,
+}
+
+impl TermGlossaryContent {
+    pub fn new(
+        tgs: String,
+        tgt: Option<TermGlossaryText>,
+        tgi: Option<TermGlossaryImage>,
+        tgsc: Option<TermGlossaryStructuredContent>,
+    ) -> Self {
+        Self {
+            term_glossary_string: tgs,
+            term_glossary_text: tgt,
+            term_glossary_image: tgi,
+            term_glossary_structured_content: tgsc,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -326,7 +269,7 @@ pub struct TermMeta {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum TermMetaDataMatchType {
-    Frequency(TermMetaFrequencyDataType),
+    Frequency(TermMetaFreqDataMatchType),
     Pitch(TermMetaPitchData),
     Phonetic(TermMetaPhoneticData),
 }
@@ -339,14 +282,12 @@ impl<'de> Deserialize<'de> for TermMetaDataMatchType {
         serde_untagged::UntaggedEnumVisitor::new()
             .string(|str| {
                 Ok(TermMetaDataMatchType::Frequency(
-                    TermMetaFrequencyDataType::Generic(GenericFrequencyData::String(
-                        str.to_string(),
-                    )),
+                    TermMetaFreqDataMatchType::Generic(GenericFreqData::String(str.to_string())),
                 ))
             })
             .u32(|int| {
                 Ok(TermMetaDataMatchType::Frequency(
-                    TermMetaFrequencyDataType::Generic(GenericFrequencyData::Integer(int)),
+                    TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(int)),
                 ))
             })
             .map(|map| {
@@ -392,45 +333,49 @@ pub enum TermMetaModeType {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// The frequency metadata of a term.
+///
+/// This is currently use to [`Deserialize`] terms from
+/// term_meta_bank_$ files.
 pub struct TermMetaFrequency {
     pub expression: String,
+    // Should be changed to serde_tag instead of an enum.
     /// This will be `"freq"` in the json.
     pub mode: TermMetaModeType,
-    pub data: TermMetaFrequencyDataType,
+    pub data: TermMetaFreqDataMatchType,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
-pub enum TermMetaFrequencyDataType {
-    Generic(GenericFrequencyData),
-    WithReading(TermMetaFrequencyDataWithReading),
+pub enum TermMetaFreqDataMatchType {
+    Generic(GenericFreqData),
+    WithReading(TermMetaFreqDataWithReading),
 }
 
-impl<'de> Deserialize<'de> for TermMetaFrequencyDataType {
+impl<'de> Deserialize<'de> for TermMetaFreqDataMatchType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         serde_untagged::UntaggedEnumVisitor::new()
             .string(|str| {
-                Ok(TermMetaFrequencyDataType::Generic(
-                    GenericFrequencyData::String(str.to_string()),
-                ))
+                Ok(TermMetaFreqDataMatchType::Generic(GenericFreqData::String(
+                    str.to_string(),
+                )))
             })
             .u32(|int| {
-                Ok(TermMetaFrequencyDataType::Generic(
-                    GenericFrequencyData::Integer(int),
+                Ok(TermMetaFreqDataMatchType::Generic(
+                    GenericFreqData::Integer(int),
                 ))
             })
             .map(|map| {
                 let value = map.deserialize::<serde_json::Value>()?;
                 if value.get("reading").is_some() {
                     serde_json::from_value(value)
-                        .map(TermMetaFrequencyDataType::WithReading)
+                        .map(TermMetaFreqDataMatchType::WithReading)
                         .map_err(serde::de::Error::custom)
                 } else if value.get("value").is_some() {
                     serde_json::from_value(value)
-                        .map(TermMetaFrequencyDataType::Generic)
+                        .map(TermMetaFreqDataMatchType::Generic)
                         .map_err(serde::de::Error::custom)
                 } else {
                     Err(serde::de::Error::custom("Unknown term meta data type"))
@@ -442,7 +387,7 @@ impl<'de> Deserialize<'de> for TermMetaFrequencyDataType {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
-pub enum GenericFrequencyData {
+pub enum GenericFreqData {
     Integer(u32),
     String(String),
     Object {
@@ -452,14 +397,27 @@ pub enum GenericFrequencyData {
     },
 }
 
-impl<'de> Deserialize<'de> for GenericFrequencyData {
+impl GenericFreqData {
+    pub fn try_get_reading(&self) -> Option<&String> {
+        match self {
+            Self::Integer(_) => None,
+            Self::String(str) => Some(str),
+            Self::Object {
+                value: _,
+                display_value,
+            } => display_value.as_ref(),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for GenericFreqData {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         serde_untagged::UntaggedEnumVisitor::new()
-            .string(|str| Ok(GenericFrequencyData::String(str.to_string())))
-            .u32(|int| Ok(GenericFrequencyData::Integer(int)))
+            .string(|str| Ok(GenericFreqData::String(str.to_string())))
+            .u32(|int| Ok(GenericFreqData::Integer(int)))
             .map(|map| {
                 let obj = map.deserialize::<serde_json::Value>()?;
                 let value: u32 =
@@ -473,7 +431,7 @@ impl<'de> Deserialize<'de> for GenericFrequencyData {
                     None
                 };
 
-                Ok(GenericFrequencyData::Object {
+                Ok(GenericFreqData::Object {
                     value,
                     display_value,
                 })
@@ -481,10 +439,11 @@ impl<'de> Deserialize<'de> for GenericFrequencyData {
             .deserialize(deserializer)
     }
 }
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermMetaFrequencyDataWithReading {
-    reading: String,
-    frequency: GenericFrequencyData,
+pub struct TermMetaFreqDataWithReading {
+    pub reading: String,
+    pub frequency: GenericFreqData,
 }
 
 /************* Pitch / Speech Data *************/
@@ -540,5 +499,5 @@ pub struct TermMetaPhonetic {
 // pub struct KanjiMetaFrequency {
 //     character: String,
 //     mode: TermMetaModeType,
-//     data: GenericFrequencyData,
+//     data: GenericFreqData,
 // }
