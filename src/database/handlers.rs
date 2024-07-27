@@ -89,3 +89,59 @@ use crate::dictionary_data::{
         Ok(terms)
     }
 
+    /// Queries terms via their sequences.
+    ///
+    /// Unless there is a specific use case, its generally better
+    /// to do lookup terms via `reading` or an `expression` using
+    /// [`Self::bulk_lookup`] or [`Self::bulk_lookup_tokens`].
+    /// Both of these functions use [`Self::lookup_seqs`] under the hood.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let ycd = Yomichan::new("./db").unwrap();
+    ///
+    ///
+    /// // 504000000 matches all ありがとう terms in 大辞林第四版.
+    /// let terms = ycd.lookup_seqs(&[504000000], None).unwrap();
+    ///
+    /// for t in terms {
+    ///     assert!(t.reading == ありがとう);
+    /// }
+    /// ```
+    pub fn lookup_seqs<'a, I>(
+        &self,
+        seqs: I,
+        db: Option<&Database>,
+    ) -> Result<VecDBTermEntry, DBError>
+    where
+        I: IntoIterator<Item = &'a i128> + Debug + Clone,
+    {
+        let db = match db {
+            Some(db) => db,
+            None => &DBBuilder::new().open(&DB_MODELS, &self.db_path)?,
+        };
+        let rtx = db.r_transaction()?;
+
+        let entries: Result<VecDBTermEntry, DBError> = seqs
+            .clone()
+            .into_iter()
+            .map(|seq| query_sw(&rtx, DatabaseTermEntryKey::sequence, *seq))
+            .flat_map(|result| match result {
+                Ok(vec) => vec.into_iter().map(Ok).collect(),
+                Err(err) => vec![Err(err)],
+            })
+            .collect();
+
+        let entries = entries?;
+
+        if entries.is_empty() {
+            return Err(DBError::NoneFound(format!(
+                "no entries sequences matched for: {:?}",
+                &seqs
+            )));
+        }
+
+        Ok(entries)
+    }
+
