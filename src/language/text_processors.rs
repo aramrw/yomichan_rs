@@ -1,7 +1,7 @@
 use regex::Regex;
 use unicode_normalization::UnicodeNormalization;
 
-use super::{language_d::TextProcessor, transformer::LanguageTransformDescriptor};
+use super::{language_d::TextProcessor, transformer_d::LanguageTransformDescriptor};
 
 pub const BASIC_TEXT_PROCESSOR_OPTIONS: [bool; 2] = [false, true];
 

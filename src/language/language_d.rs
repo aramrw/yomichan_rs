@@ -1,4 +1,4 @@
-use crate::language::transformer::LanguageTransformDescriptor;
+use crate::language::transformer_d::LanguageTransformDescriptor;
 
 /// This is the following function type in yomitan:
 /// export type TextProcessorFunction<T = unknown> = (str: string, setting: T) => string;

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use regex::Regex;
 
-use super::transformer::RuleType;
+use super::transformer_d::RuleType;
 
 pub struct Transform {
     id: String,

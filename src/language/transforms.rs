@@ -1,8 +1,8 @@
 use regex::Regex;
 
-use crate::language::transformer::RuleType;
+use crate::language::transformer_d::RuleType;
 
-use super::transformer::{Condition, Rule, SuffixRule};
+use super::transformer_d::{Condition, Rule, SuffixRule};
 
 pub fn suffix_inflection<'a>(
     inflected_suffix: &'a str,
