@@ -1,0 +1,114 @@
+use crate::language::{
+    language_d::{
+        BidirectionalConversionPreprocessor, BidirectionalPreprocessorOptions, TextProcessor,
+    },
+    text_processors::BASIC_TEXT_PROCESSOR_OPTIONS,
+};
+
+use super::{
+    japanese::{
+        collapse_emphatic_sequences, convert_alphanumeric_to_fullwidth,
+        convert_fullwidth_alphanumeric_to_normal, convert_halfwidth_kana_to_fullwidth,
+        convert_hiragana_to_katakana, convert_katakana_to_hiragana, normalize_combining_characters,
+    },
+    wanakana::convert_alphabetic_to_kana,
+};
+
+pub fn alphabetic_to_hiragana_helper(text: &str, setting: bool) -> String {
+    if setting {
+        return convert_alphabetic_to_kana(text);
+    }
+    text.to_owned()
+}
+
+fn process_alphanumeric_width_variants(
+    str: &str,
+    setting: BidirectionalPreprocessorOptions,
+) -> String {
+    match setting {
+        BidirectionalPreprocessorOptions::Off => str.to_string(),
+        BidirectionalPreprocessorOptions::Direct => convert_fullwidth_alphanumeric_to_normal(str),
+        BidirectionalPreprocessorOptions::Inverse => convert_alphanumeric_to_fullwidth(str),
+    }
+}
+
+fn process_hiragana_to_katakana(str: &str, setting: BidirectionalPreprocessorOptions) -> String {
+    match setting {
+        BidirectionalPreprocessorOptions::Off => str.to_string(),
+        BidirectionalPreprocessorOptions::Direct => convert_hiragana_to_katakana(str),
+        BidirectionalPreprocessorOptions::Inverse => convert_katakana_to_hiragana(str, false),
+    }
+}
+
+pub const CONVERT_HALF_WIDTH_CHARACTERS: TextProcessor<bool, fn(&str, bool) -> String> =
+    TextProcessor {
+        name: "Convert Half Width Characters to Full Width",
+        description: "ﾖﾐﾁｬﾝ → ヨミチャン",
+        options: &BASIC_TEXT_PROCESSOR_OPTIONS,
+        process: |text: &str, setting: bool| -> String {
+            if setting {
+                return convert_halfwidth_kana_to_fullwidth(text);
+            }
+            text.to_owned()
+        },
+    };
+
+pub const ALPHABETIC_TO_HIRAGANA: TextProcessor<bool, fn(&str, bool) -> String> = TextProcessor {
+    name: "Convert Alphabetic Characters to Hiragana",
+    description: "yomichan → よみちゃん",
+    options: &BASIC_TEXT_PROCESSOR_OPTIONS,
+    process: alphabetic_to_hiragana_helper,
+};
+
+pub const ALPHANUMERIC_WIDTH_VARIANTS: BidirectionalConversionPreprocessor =
+    BidirectionalConversionPreprocessor {
+        name: "Convert Between Alphabetic Width Variants",
+        description: "ｙｏｍｉｔａｎ → yomitan and vice versa",
+        options: &[
+            BidirectionalPreprocessorOptions::Off,
+            BidirectionalPreprocessorOptions::Direct,
+            BidirectionalPreprocessorOptions::Inverse,
+        ],
+        process: process_alphanumeric_width_variants,
+    };
+
+pub const CONVERT_HIRAGANA_TO_KATAKANA: BidirectionalConversionPreprocessor =
+    BidirectionalConversionPreprocessor {
+        name: "Convert Hiragana to Katakana",
+        description: "よみちゃん → ヨミチャン and vice versa",
+        options: &[
+            BidirectionalPreprocessorOptions::Off,
+            BidirectionalPreprocessorOptions::Direct,
+            BidirectionalPreprocessorOptions::Inverse,
+        ],
+        process: process_hiragana_to_katakana,
+    };
+
+pub const COLLAPSE_EMPHATIC_SEQUENCES: TextProcessor<[bool; 2], fn(&str, &[bool; 2]) -> String> =
+    TextProcessor {
+        name: "Collapse Emphatic Character Sequences",
+        description: "すっっごーーい → すっごーい / すごい",
+        options: &[[false, false], [true, false], [true, true]],
+        process: |text: &str, setting: &[bool; 2]| -> String {
+            let text = text.to_owned();
+            let [collapse_emphatic, collapse_emphatic_full] = *setting;
+            if collapse_emphatic {
+                collapse_emphatic_sequences(text, collapse_emphatic_full)
+            } else {
+                text
+            }
+        },
+    };
+
+pub const NORMALIZE_COMBINING_CHARACTERS: TextProcessor<bool, fn(&str, bool) -> String> =
+    TextProcessor {
+        name: "Normalize Combining Characters",
+        description: "ド → ド (U+30C8 U+3099 → U+30C9)",
+        options: &BASIC_TEXT_PROCESSOR_OPTIONS,
+        process: |text: &str, setting: bool| -> String {
+            if setting {
+                return normalize_combining_characters(text);
+            }
+            text.to_owned()
+        },
+    };
