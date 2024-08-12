@@ -183,7 +183,7 @@ pub enum ContentMatchType {
     Content(Vec<Element>),
 }
 
-// daijisen: ~6.35s WITHOUT custom deserialization. 
+// daijisen: ~6.35s WITHOUT custom deserialization.
 // daijisen: ~7.13 WITH custom deserialization.
 
 // impl<'de> Deserialize<'de> for ContentMatchType {
