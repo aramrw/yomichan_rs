@@ -5,15 +5,15 @@ mod dictionary_data;
 mod dictionary_importer;
 mod errors;
 mod freq;
+mod language;
 mod settings;
 mod structured_content;
-mod language;
 mod tests;
 
 use database::dictionary_database::DB_MODELS;
-use settings::Profile;
-use settings::Options;
 use errors::InitError;
+use settings::Options;
+use settings::Profile;
 
 use native_db::*;
 use native_model::{native_model, Model};
@@ -49,7 +49,7 @@ impl Yomichan {
         } else {
             init_db_path(&path)?
         };
-        let db = native_db::Builder::new().create(&DB_MODELS, &db_path)?;
+        native_db::Builder::new().create(&DB_MODELS, &db_path)?;
 
         let mut options = Options::default();
         options.profiles.push(Profile::default());
@@ -71,25 +71,21 @@ fn check_db_exists<P: AsRef<Path>>(path: P) -> Result<Option<OsString>, InitErro
         None
     }
 
-    // Check if the direct path is a .yc file
     if let Some(db_path) = check_ext(path) {
         return Ok(Some(db_path));
     }
 
-    // Iterate over the directory entries
     if path.is_dir() {
         for entry in fs::read_dir(path)? {
             let entry = entry?;
             let entry_path = entry.path();
 
-            // Check files in the directory
             if entry_path.is_file() {
                 if let Some(db_path) = check_ext(&entry_path) {
                     return Ok(Some(db_path));
                 }
             }
 
-            // Recursively check the `yomichan` subdirectory
             if entry_path.is_dir() {
                 if let Some(dir_name) = entry_path.file_name() {
                     if dir_name == "yomichan" {

@@ -21,6 +21,8 @@ snafu = "0.8.4"
 bimap = { version = "0.6.3", features = ["std"] }
 regex = "1.10.5"
 unicode-segmentation = "1.11.0"
+unicode-normalization = "0.1.23"
+wana_kana = "3.0.0"
 
 # lindera = { version = "0.32.2", features = ["ipadic"] }
 # sqlx = { version = "0.7.4", features = ["runtime-tokio"] }

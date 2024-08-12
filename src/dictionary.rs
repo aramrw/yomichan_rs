@@ -333,4 +333,3 @@ pub struct InflectionRuleChainCandidate {
     source: InflectionSource,
     inflection_rules: Vec<String>,
 }
-
