@@ -62,13 +62,13 @@ pub struct LanguageAndReadingNormalizer {
     reading_normalizer: ReadingNormalizer,
 }
 
-// pub struct LanguageAndTransforms<'a, F>
+pub struct LanguageAndTransforms<'a>
 // where
 //     F: Fn(&str, &str, &str) -> String,
-// {
-//     iso: String,
-//     language_transforms: LanguageTransformDescriptor<'a, F>,
-// }
+{
+    iso: String,
+    language_transforms: LanguageTransformDescriptor<'a>,
+}
 
 pub struct TextProcessorWithId<'a, T, F> {
     id: String,
