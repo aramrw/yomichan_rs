@@ -4,6 +4,6 @@ pub mod ja;
 pub mod language_d;
 pub mod text_processors;
 pub mod text_utilities;
-pub mod transformer;
+pub mod transformer_d;
 pub mod transformer_interal;
 pub mod transforms;
