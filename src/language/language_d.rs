@@ -37,18 +37,18 @@ pub struct TextProcessor<'a, T, F> {
 }
 
 /// Helper function to normalize .
-pub type ReadingNormalizer = dyn Fn(&str) -> String;
+pub type ReadingNormalizer = fn(&str) -> String;
 
-pub enum BidirectionalPreprocessorOptions {
+pub enum BidirectionalPreProcessorOptions {
     Off,
     Direct,
     Inverse,
 }
 
-pub type BidirectionalConversionPreprocessor<'a> = TextProcessor<
+pub type BidirectionalConversionPreProcessor<'a> = TextProcessor<
     'a,
-    BidirectionalPreprocessorOptions,
-    fn(&str, BidirectionalPreprocessorOptions) -> String,
+    BidirectionalPreProcessorOptions,
+    fn(&str, BidirectionalPreProcessorOptions) -> String,
 >;
 
 pub struct LanguageAndProcessors<'a, T, F> {

@@ -9,7 +9,7 @@ use crate::language::{
     cjk_utils::{
         is_code_point_in_range, is_code_point_in_ranges, CodepointRange, CJK_IDEOGRAPH_RANGES,
     },
-    descriptors::collect_graphemes,
+    descriptors_d::collect_graphemes,
 };
 
 pub const HIRAGANA_SMALL_TSU_CODE_POINT: u32 = 0x3063;
