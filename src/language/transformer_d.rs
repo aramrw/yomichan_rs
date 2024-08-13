@@ -63,7 +63,7 @@ pub type TransformMap<'a> = HashMap<&'a str, Transform<'a>>;
 
 pub struct Transform<'a> {
     pub name: &'a str,
-    pub description: Option<&'a str>,
+    pub description: Option<String>,
     pub i18n: Option<Vec<TransformI18n<'a>>>,
     pub rules: Vec<SuffixRule<'a>>,
 }
@@ -85,7 +85,7 @@ pub struct SuffixRule<'a> {
     pub conditions_out: Vec<&'a str>,
 }
 
-pub struct Rule<F>
+pub struct Rule<'a, F>
 where
     F: Fn(&str, &str, &str) -> String,
 {
@@ -93,8 +93,8 @@ where
     pub is_inflected: Regex,
     /// deinflect: (inflectedWord: string) => string;
     pub deinflect: F,
-    pub conditions_in: Vec<String>,
-    pub conditions_out: Vec<String>,
+    pub conditions_in: Vec<&'a str>,
+    pub conditions_out: Vec<&'a str>,
 }
 
 pub struct RuleI18n<'a> {
@@ -117,7 +117,7 @@ impl SuffixRule<'_> {
     }
 }
 
-impl<F> Rule<F>
+impl<F> Rule<'_, F>
 where
     F: Fn(&str, &str, &str) -> String,
 {
