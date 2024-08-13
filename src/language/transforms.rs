@@ -20,13 +20,13 @@ pub fn suffix_inflection<'a>(
     }
 }
 
-pub fn prefix_inflection<T: AsRef<str>>(
-    inflected_prefix: T,
-    deinflected_prefix: T,
-    conditions_in: Vec<String>,
-    conditions_out: Vec<String>,
-) -> Rule<impl Fn(&str, &str, &str) -> String> {
-    let prefix_reg_exp = Regex::new(format!("^{}", inflected_prefix.as_ref()).as_str()).unwrap();
+pub fn prefix_inflection<'a>(
+    inflected_prefix: &'a str,
+    deinflected_prefix: &'a str,
+    conditions_in: Vec<&'a str>,
+    conditions_out: Vec<&'a str>,
+) -> Rule<'a, impl Fn(&str, &str, &str) -> String> {
+    let prefix_reg_exp = Regex::new(format!("^{}", inflected_prefix).as_str()).unwrap();
     let deinflect = move |text: &str, inflected_prefix: &str, deinflected_prefix: &str| -> String {
         format!("{}{}", deinflected_prefix, &text[inflected_prefix.len()..])
     };
@@ -40,15 +40,15 @@ pub fn prefix_inflection<T: AsRef<str>>(
     }
 }
 
-pub fn whole_word_inflection<T: AsRef<str>>(
-    inflected_word: T,
-    deinflected_word: T,
-    conditions_in: Vec<String>,
-    conditions_out: Vec<String>,
-) -> Rule<impl Fn(&str, &str, &str) -> String> {
-    let regex = Regex::new(format!("^{}$", inflected_word.as_ref()).as_str()).unwrap();
+pub fn whole_word_inflection<'a>(
+    inflected_word: &'a str,
+    deinflected_word: &'a str,
+    conditions_in: Vec<&'a str>,
+    conditions_out: Vec<&'a str>,
+) -> Rule<'a, impl Fn(&str, &str, &str) -> String> {
+    let regex = Regex::new(format!("^{}$", inflected_word).as_str()).unwrap();
 
-    let deinflected = deinflected_word.as_ref().to_owned();
+    let deinflected = deinflected_word.to_owned();
 
     let deinflect = move |_text: &str,
                           _inflected_suffix: &str,
