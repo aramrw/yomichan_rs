@@ -1,9 +1,9 @@
 pub mod cjk_utils;
-pub mod descriptors;
+pub mod descriptors_d;
 pub mod ja;
 pub mod language_d;
 pub mod text_processors;
 pub mod text_utilities;
 pub mod transformer_d;
-pub mod transformer_interal;
+pub mod transformer_internal_d;
 pub mod transforms;
