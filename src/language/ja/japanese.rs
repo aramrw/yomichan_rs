@@ -454,8 +454,7 @@ pub fn is_string_entirely_kana<T: AsRef<str>>(str: T) -> bool {
     true
 }
 
-pub fn is_string_partially_japanese<T: AsRef<str>>(str: T) -> bool {
-    let str = str.as_ref();
+pub fn is_string_partially_japanese(str: &str) -> bool {
     if str.len() == 0 {
         return false;
     }
