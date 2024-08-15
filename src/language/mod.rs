@@ -1,4 +1,5 @@
 pub mod cjk_utils;
+pub mod descriptors;
 pub mod descriptors_d;
 pub mod ja;
 pub mod language_d;
