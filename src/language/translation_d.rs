@@ -23,4 +23,10 @@ pub struct FindKanjiDictionary {
     priority: u16,
 }
 
+/// A sorting order to use when finding terms.
+pub enum FindTermsSortOrder {
+    Ascending,
+    Descending,
+}
+
 pub type TermEnabledDictionaryMap<'a> = HashMap<&'a str, FindTermDictionary>;
