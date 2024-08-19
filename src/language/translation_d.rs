@@ -15,4 +15,12 @@ pub struct FindKanjiOptions<'a> {
     remove_non_japanese_characters: bool,
 }
 
+/// Details about a dictionary.
+pub struct FindKanjiDictionary {
+    /// The index of the dictionary
+    index: u8,
+    /// The priority of the dictionary
+    priority: u16,
+}
+
 pub type TermEnabledDictionaryMap<'a> = HashMap<&'a str, FindTermDictionary>;
