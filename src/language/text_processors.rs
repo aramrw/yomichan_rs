@@ -19,36 +19,40 @@ fn remove_alphabetic_diacritics(text: &str, setting: bool) -> String {
     }
 }
 
-pub const DECAPITALIZE: TextProcessor<bool, fn(&str, bool) -> String> = TextProcessor {
+pub fn decapitalize_helper(text: &str, setting: bool) -> String {
+    if setting {
+        text.to_lowercase()
+    } else {
+        text.to_string()
+    }
+}
+
+pub const DECAPITALIZE: TextProcessor<bool, bool> = TextProcessor {
     name: "Decapitalize Text",
     description: "CAPITALIZED TEXT → capitalized text",
     options: &BASIC_TEXT_PROCESSOR_OPTIONS,
-    process: |text: &str, setting: bool| -> String {
-        if setting {
-            text.to_lowercase()
-        } else {
-            text.to_string()
-        }
-    },
+    process: decapitalize_helper,
 };
 
-pub const CAPITALIZE_FIRST_LETTER: TextProcessor<bool, fn(&str, bool) -> String> = TextProcessor {
+pub fn capitalize_first_letter_helper(text: &str, setting: bool) -> String {
+    if setting {
+        let mut str = text.to_owned();
+        if let Some(r) = str.get_mut(0..1) {
+            r.make_ascii_uppercase();
+            return str;
+        }
+    }
+    text.to_owned()
+}
+
+pub const CAPITALIZE_FIRST_LETTER: TextProcessor<bool, bool> = TextProcessor {
     name: "Capitalize First Letter",
     description: "lowercase text → Lowercase text",
     options: &BASIC_TEXT_PROCESSOR_OPTIONS,
-    process: |text: &str, setting: bool| -> String {
-        if setting {
-            let mut str = text.to_owned();
-            if let Some(r) = str.get_mut(0..1) {
-                r.make_ascii_uppercase();
-                return str;
-            }
-        }
-        text.to_owned()
-    },
+    process: capitalize_first_letter_helper,
 };
 
-pub const REMOVE_ALPHABETIC_DIACRITICS: TextProcessor<bool, fn(&str, bool) -> String> =
+pub const REMOVE_ALPHABETIC_DIACRITICS: TextProcessor<bool, bool> =
     TextProcessor {
         name: "Remove Alphabetic Diacritics",
         description: "ἄήé → αηe",
