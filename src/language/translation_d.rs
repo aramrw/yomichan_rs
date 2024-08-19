@@ -29,4 +29,12 @@ pub enum FindTermsSortOrder {
     Descending,
 }
 
+/// Information about how text should be replaced when looking up terms.
+pub struct FindTermsTextReplacement {
+    /// The pattern to replace.
+    pattern: Regex,
+    /// The replacement string. This can contain special sequences, such as `$&`.
+    replacement: String,
+}
+
 pub type TermEnabledDictionaryMap<'a> = HashMap<&'a str, FindTermDictionary>;
