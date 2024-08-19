@@ -13,7 +13,7 @@ use super::{
     },
 };
 
-static LANGUAGE_DESCRIPTORS: LazyLock<HashMap<&str, LanguageDescriptor<JapanesePreProcessors<'static>, ()>>> = LazyLock::new(|| {
+pub static LANGUAGE_DESCRIPTORS_MAP: LazyLock<HashMap<&str, LanguageDescriptor<JapanesePreProcessors<'static>, ()>>> = LazyLock::new(|| {
     HashMap::from([(
         "ja",
         LanguageDescriptor {
