@@ -38,3 +38,18 @@ pub struct FindTermsTextReplacement {
 }
 
 pub type TermEnabledDictionaryMap<'a> = HashMap<&'a str, FindTermDictionary>;
+
+/// Details about a dictionary.
+pub struct FindTermDictionary {
+    /// The index of the dictionary
+    index: u8,
+    /// The priority of the dictionary
+    priority: u16,
+    /// Whether or not secondary term searches are allowed for this dictionary.
+    allow_secondary_searches: bool,
+    /// Whether this dictionary's part of speech rules should be used to filter results.
+    parts_of_speech_filter: bool,
+    /// Whether to use the deinflections from this dictionary.
+    use_deinflections: bool,
+}
+
