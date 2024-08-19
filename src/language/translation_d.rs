@@ -4,6 +4,8 @@ use regex::Regex;
 
 use crate::{dictionary::TermSourceMatchType, settings::SearchResolution};
 
+/*************************** Kanji ***************************/
+
 pub type KanjiEnabledDictionaryMap<'a> = HashMap<&'a str, FindKanjiDictionary>;
 
 /// An options object for use with `Translator.findKanji`.
@@ -53,3 +55,29 @@ pub struct FindTermDictionary {
     use_deinflections: bool,
 }
 
+/// An options object for use with `Translator.findTerms`.
+pub struct FindTermsOptions<'a> {
+    /// The matching type for looking up terms.
+    match_type: TermSourceMatchType,
+    /// Whether or not deinflection should be performed.
+    deinflect: bool,
+    /// The name of the primary dictionary to search.
+    main_dictionary: &'a str,
+    /// The name of the frequency dictionary used for sorting
+    sort_frequency_dictionary: Option<&'a str>,
+    /// The order used when using a sorting dictionary.
+    sort_frequency_dictionary_order: FindTermsSortOrder,
+    /// Whether or not non-Japanese characters should be searched.
+    remove_non_japanese_characters: bool,
+    /// An iterable sequence of text replacements to be applied during the term lookup process.
+    text_replacements: Vec<FindTermsTextReplacement>,
+    /// The mapping of dictionaries to search for terms in.
+    /// The key is the dictionary name.
+    enabled_dictionary_map: TermEnabledDictionaryMap<'a>,
+    /// A set of dictionary names which should have definitions removed.
+    exclude_dictionary_definitions: Option<HashSet<&'a str>>,
+    /// Whether every substring should be searched for, or only whole words.
+    search_resolution: SearchResolution,
+    /// ISO-639 code of the language.
+    language: &'a str,
+}
