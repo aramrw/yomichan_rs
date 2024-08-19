@@ -29,37 +29,38 @@ trait TextProcessable<T> {
 ///
 /// When a language has multiple processors, the translator will generate
 /// variants of the text by applying all combinations of the processors.
-pub struct TextProcessor<'a, T, F> {
+#[derive(Clone)]
+pub struct TextProcessor<'a, O, S> {
     pub name: &'a str,
     pub description: &'a str,
-    pub options: &'a [T],
-    pub process: F,
+    pub options: &'a [O],
+    pub process: TextProcessorFP<S>,
 }
+
+pub type TextProcessorFP<T> = fn(&str, T) -> String;
 
 /// Helper function to normalize .
 pub type ReadingNormalizer = fn(&str) -> String;
 
+#[derive(Clone)]
 pub enum BidirectionalPreProcessorOptions {
     Off,
     Direct,
     Inverse,
 }
 
-pub type BidirectionalConversionPreProcessor<'a> = TextProcessor<
-    'a,
-    BidirectionalPreProcessorOptions,
-    fn(&str, BidirectionalPreProcessorOptions) -> String,
->;
+pub type BidirectionalConversionPreProcessor<'a> =
+    TextProcessor<'a, BidirectionalPreProcessorOptions, BidirectionalPreProcessorOptions>;
 
-pub struct LanguageAndProcessors<'a, T, F> {
-    iso: String,
-    text_preprocessors: Option<Vec<TextProcessorWithId<'a, T, F>>>,
-    text_postprocessors: Option<Vec<TextProcessorWithId<'a, T, F>>>,
+pub struct LanguageAndProcessors<'a, O, S> {
+    pub iso: String,
+    pub text_preprocessors: Option<Vec<TextProcessorWithId<'a, O, S>>>,
+    pub text_postprocessors: Option<Vec<TextProcessorWithId<'a, O, S>>>,
 }
 
 pub struct LanguageAndReadingNormalizer {
-    iso: String,
-    reading_normalizer: ReadingNormalizer,
+    pub iso: String,
+    pub reading_normalizer: ReadingNormalizer,
 }
 
 pub struct LanguageAndTransforms<'a>
@@ -70,14 +71,14 @@ pub struct LanguageAndTransforms<'a>
     language_transforms: LanguageTransformDescriptor<'a>,
 }
 
-pub struct TextProcessorWithId<'a, T, F> {
-    id: String,
-    text_processor: TextProcessor<'a, T, F>,
+pub struct TextProcessorWithId<'a, O, S> {
+    pub id: String,
+    pub text_processor: TextProcessor<'a, O, S>,
 }
 
 pub struct LanguageSummary {
-    name: String,
-    iso: String,
-    iso639_3: String,
-    example_text: String,
+    pub name: String,
+    pub iso: String,
+    pub iso639_3: String,
+    pub example_text: String,
 }
