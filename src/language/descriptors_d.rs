@@ -49,17 +49,19 @@ pub struct AllTextProcessors<'a> {
     ja: PreAndPostProcessors<JapanesePreProcessors<'a>, ()>,
 }
 
+#[derive(Clone)]
 pub struct PreAndPostProcessors<Pre, Post> {
     pub pre: Pre,
     pub post: Option<Post>,
 }
 
 // Language Processor structs get created here
+#[derive(Clone)]
 pub struct JapanesePreProcessors<'a> {
-    pub convert_half_width_characters: TextProcessor<'a, bool, fn(&str, bool) -> String>,
-    pub alphabetic_to_hiragana: TextProcessor<'a, bool, fn(&str, bool) -> String>,
-    pub normalize_combining_characters: TextProcessor<'a, bool, fn(&str, bool) -> String>,
+    pub convert_half_width_characters: TextProcessor<'a, bool, bool>,
+    pub alphabetic_to_hiragana: TextProcessor<'a, bool, bool>,
+    pub normalize_combining_characters: TextProcessor<'a, bool, bool>,
     pub alphanumeric_width_variants: BidirectionalConversionPreProcessor<'a>,
     pub convert_hiragana_to_katakana: BidirectionalConversionPreProcessor<'a>,
-    pub collapse_emphatic_sequences: TextProcessor<'a, [bool; 2], fn(&str, &[bool; 2]) -> String>,
+    pub collapse_emphatic_sequences: TextProcessor<'a, [bool; 2], &'a [bool; 2]>,
 }
