@@ -67,8 +67,8 @@ pub struct LanguageAndTransforms<'a>
 // where
 //     F: Fn(&str, &str, &str) -> String,
 {
-    iso: String,
-    language_transforms: LanguageTransformDescriptor<'a>,
+    pub iso: String,
+    pub language_transforms: &'a LanguageTransformDescriptor<'a>,
 }
 
 pub struct TextProcessorWithId<'a, O, S> {
