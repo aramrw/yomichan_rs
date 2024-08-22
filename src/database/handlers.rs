@@ -19,8 +19,6 @@ use db_type::{KeyOptions, ToKeyDefinition};
 use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
 use native_model::{native_model, Model};
 
-use once_cell::sync::Lazy;
-
 use rayon::collections::hash_set;
 use serde::{Deserialize, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
@@ -87,7 +85,7 @@ impl Yomichan {
         let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
         let rtx = db.r_transaction()?;
 
-        let (mut exps, readings) = handle_term_query(&queries, &rtx)?;
+        let (exps, readings) = handle_term_query(&queries, &rtx)?;
 
         if exps.is_empty() && readings.is_empty() {
             return Err(DBError::NoneFound(format!(
