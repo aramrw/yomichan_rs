@@ -19,8 +19,6 @@ use db_type::{KeyOptions, ToKeyDefinition};
 use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
 use native_model::{native_model, Model};
 
-use once_cell::sync::Lazy;
-
 use rayon::collections::hash_set;
 use serde::{Deserialize, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
@@ -29,15 +27,17 @@ use transaction::RTransaction;
 //use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 use uuid::Uuid;
 
+use std::cell::LazyCell;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use std::{fs, marker};
 
-pub static DB_MODELS: Lazy<Models> = Lazy::new(|| {
+pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     let mut models = Models::new();
     models.define::<DatabaseTermEntry>().unwrap();
     models.define::<DatabaseMetaFrequency>().unwrap();
