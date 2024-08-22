@@ -330,6 +330,14 @@ pub struct PhoneticTranscription {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InflectionRuleChainCandidate {
-    source: InflectionSource,
-    inflection_rules: Vec<String>,
+    pub source: InflectionSource,
+    pub inflection_rules: Vec<String>,
+}
+
+pub type InflectionRuleChain = Vec<InflectionRule>;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct InflectionRule {
+    pub name: String,
+    pub description: Option<String>,
 }
