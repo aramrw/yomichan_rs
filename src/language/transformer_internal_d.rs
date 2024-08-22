@@ -4,12 +4,12 @@ use regex::Regex;
 
 use super::transformer_d::RuleType;
 
-pub struct Transform {
-    id: String,
-    name: String,
-    rules: Vec<Rule>,
-    heuristic: Regex,
-    description: Option<String>,
+pub struct InternalTransform {
+    pub id: String,
+    pub name: String,
+    pub rules: Vec<Rule>,
+    pub heuristic: Regex,
+    pub description: Option<String>,
 }
 
 pub struct Rule {
@@ -22,23 +22,23 @@ pub struct Rule {
 }
 
 pub struct TransformedText {
-    text: String,
-    conditions: u32,
-    trace: Trace,
+    pub text: String,
+    pub conditions: u32,
+    pub trace: Trace,
 }
 
 pub type Trace = Vec<TraceFrame>;
 
 pub struct TraceFrame {
-    text: String,
-    transform: String,
-    rule_index: u32,
+    pub text: String,
+    pub transform: String,
+    pub rule_index: u32,
 }
 
 pub type ConditionTypeToConditionFlagsMap = HashMap<String, u32>;
 
 pub struct LanguageTransformDescriptorInternal {
-    transforms: Vec<Transform>,
+    transforms: Vec<InternalTransform>,
     condition_type_to_condition_flags_map: ConditionTypeToConditionFlagsMap,
     part_of_speech_to_condition_flags_map: ConditionTypeToConditionFlagsMap,
 }
