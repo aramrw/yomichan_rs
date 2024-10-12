@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{
     descriptors::{self, LANGUAGE_DESCRIPTORS_MAP},
     descriptors_d::LanguageDescriptor,
@@ -56,7 +58,7 @@ pub fn is_text_lookup_worthy(text: &str, language: &str) -> bool {
 pub fn get_all_language_transform_descriptors<'a>() -> Vec<LanguageAndTransforms<'a>> {
     let mut results: Vec<LanguageAndTransforms> = Vec::new();
     for entry in LANGUAGE_DESCRIPTORS_MAP.values() {
-        if let Some(language_transforms) = entry.language_transforms {
+        if let Some(language_transforms) = &entry.language_transforms {
             let item = LanguageAndTransforms {
                 iso: entry.iso.clone(),
                 language_transforms,
