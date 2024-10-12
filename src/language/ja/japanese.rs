@@ -254,7 +254,7 @@ impl Unicode16 for char {
 ///  If no value is provided, `true` is assumed for all inputs.
 fn is_lookup_worthy(str: &str) -> bool {
     let g = collect_graphemes(str);
-    if (g.len() == 0) {
+    if g.is_empty() {
         return false;
     }
     for c in g {
@@ -434,7 +434,7 @@ pub fn get_stem_length<T: AsRef<str>>(text1: T, text2: T) -> u32 {
 }
 
 pub fn is_code_point_kana(code_point: u32) -> bool {
-    is_code_point_in_ranges(code_point, &KANA_RANGES)
+    is_code_point_in_ranges(code_point, KANA_RANGES)
 }
 
 pub fn is_code_point_japanese(code_point: u32) -> bool {
@@ -443,7 +443,7 @@ pub fn is_code_point_japanese(code_point: u32) -> bool {
 
 pub fn is_string_entirely_kana<T: AsRef<str>>(str: T) -> bool {
     let str = str.as_ref();
-    if (str.len() == 0) {
+    if str.is_empty() {
         return false;
     }
     for c in str.chars() {
@@ -455,7 +455,7 @@ pub fn is_string_entirely_kana<T: AsRef<str>>(str: T) -> bool {
 }
 
 pub fn is_string_partially_japanese(str: &str) -> bool {
-    if str.len() == 0 {
+    if str.is_empty() {
         return false;
     }
     for c in str.chars() {
@@ -590,13 +590,13 @@ pub fn convert_alphanumeric_to_fullwidth<T: AsRef<str>>(text: T) -> String {
 
     for char in text.chars() {
         if let Some(mut code_point) = char.code_point_at(0) {
-            if code_point >= 0x30 && code_point <= 0x39 {
+            if (0x30..=0x39).contains(&code_point) {
                 // ['0', '9']
                 code_point += 0xff10 - 0x30; // 0xff10 = '0' full width
-            } else if code_point >= 0x41 && code_point <= 0x5a {
+            } else if (0x41..=0x5a).contains(&code_point) {
                 // ['A', 'Z']
                 code_point += 0xff21 - 0x41; // 0xff21 = 'A' full width
-            } else if code_point >= 0x61 && code_point <= 0x7a {
+            } else if (0x61..=0x7a).contains(&code_point) {
                 // ['a', 'z']
                 code_point += 0xff41 - 0x61; // 0xff41 = 'a' full width
             }
@@ -619,13 +619,13 @@ pub fn convert_fullwidth_alphanumeric_to_normal<T: AsRef<str>>(text: T) -> Strin
 
     for char in text.chars() {
         if let Some(mut code_point) = char.code_point_at(0) {
-            if code_point >= 0xff10 && code_point <= 0xff19 {
+            if (0xff10..=0xff19).contains(&code_point) {
                 // ['０', '９']
                 code_point -= 0xff10 - 0x30; // 0x30 = '0'
-            } else if code_point >= 0xff21 && code_point <= 0xff3a {
+            } else if (0xff21..=0xff3a).contains(&code_point) {
                 // ['Ａ', 'Ｚ']
                 code_point -= 0xff21 - 0x41; // 0x41 = 'A'
-            } else if code_point >= 0xff41 && code_point <= 0xff5a {
+            } else if (0xff41..=0xff5a).contains(&code_point) {
                 // ['ａ', 'ｚ']
                 code_point -= 0xff41 - 0x61; // 0x61 = 'a'
             }
@@ -677,7 +677,7 @@ pub fn convert_halfwidth_kana_to_fullwidth(text: &str) -> String {
             if c2 == '-' {
                 // Invalid
                 index = 0;
-                c2 = mapping.chars().nth(0).unwrap_or_default();
+                c2 = mapping.chars().next().unwrap_or_default();
             } else {
                 i += 1;
             }
@@ -695,7 +695,7 @@ pub fn get_kana_diacritic_info<T: AsRef<char>>(character: T) -> Option<Diacritic
     DIACRITIC_MAPPING.get(character);
     if let Some(info) = DIACRITIC_MAPPING.get(character) {
         return Some(DiacriticInfo {
-            character: info.character.clone(),
+            character: info.character,
             diacritic_type: info.diacritic_type.clone(),
         });
     }
@@ -708,10 +708,10 @@ pub fn dakuten_allowed(code_point: u32) -> bool {
     // combining character attached are included.
     // かがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとはばぱひびぴふぶぷへべぺほ
     // カガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトハバパヒビピフブプヘベペホ
-    (code_point >= 0x304B && code_point <= 0x3068)
-        || (code_point >= 0x306F && code_point <= 0x307B)
-        || (code_point >= 0x30AB && code_point <= 0x30C8)
-        || (code_point >= 0x30CF && code_point <= 0x30DB)
+    (0x304B..=0x3068).contains(&code_point)
+        || (0x306F..=0x307B).contains(&code_point)
+        || (0x30AB..=0x30C8).contains(&code_point)
+        || (0x30CF..=0x30DB).contains(&code_point)
 }
 
 pub fn handakuten_allowed(code_point: u32) -> bool {
@@ -720,7 +720,7 @@ pub fn handakuten_allowed(code_point: u32) -> bool {
     // combining character attached are included.
     // はばぱひびぴふぶぷへべぺほ
     // ハバパヒビピフブプヘベペホ
-    (code_point >= 0x306F && code_point <= 0x307B) || (code_point >= 0x30CF && code_point <= 0x30DB)
+    (0x306F..=0x307B).contains(&code_point) || (0x30CF..=0x30DB).contains(&code_point)
 }
 
 pub fn normalize_combining_characters(text: &str) -> String {
@@ -761,7 +761,7 @@ pub fn normalize_combining_characters(text: &str) -> String {
     }
     // i === -1 when first two characters are combined
     if i == 0 {
-        if let Some(char) = text.chars().nth(0) {
+        if let Some(char) = text.chars().next() {
             result.insert(0, char);
         }
     }
@@ -852,19 +852,23 @@ pub fn distribute_furigana_inflected(
             let text = &segment.text;
             let start = consumed;
             consumed += text.len();
-            if consumed < stem_length as usize {
-                segments.push(segment);
-            } else if consumed == stem_length as usize {
-                segments.push(segment);
-                break;
-            } else {
-                if start < stem_length as usize {
-                    segments.push(FuriganaSegment::create_furigana_segment(
-                        main_text[start..stem_length as usize].to_string(),
-                        None,
-                    ));
+            match consumed.cmp(&(stem_length as usize)) {
+                std::cmp::Ordering::Less => {
+                    segments.push(segment);
                 }
-                break;
+                std::cmp::Ordering::Equal => {
+                    segments.push(segment);
+                    break;
+                }
+                std::cmp::Ordering::Greater => {
+                    if start < stem_length as usize {
+                        segments.push(FuriganaSegment::create_furigana_segment(
+                            main_text[start..stem_length as usize].to_string(),
+                            None,
+                        ));
+                    }
+                    break;
+                }
             }
         }
     }
