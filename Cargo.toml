@@ -35,5 +35,5 @@ pprof = { version = "0.13", features = ["flamegraph"] }
 [profile.test]
 inherits = "release"
 
-[toolchain]
+# [toolchain]
 channel = "nightly-2024-07-20"
