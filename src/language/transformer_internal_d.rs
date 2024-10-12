@@ -7,18 +7,19 @@ use super::transformer_d::RuleType;
 pub struct InternalTransform {
     pub id: String,
     pub name: String,
-    pub rules: Vec<Rule>,
+    pub rules: Vec<InternalRule>,
     pub heuristic: Regex,
     pub description: Option<String>,
 }
 
-pub struct Rule {
-    rule_type: RuleType,
-    is_inflected: Regex,
+#[derive(Clone)]
+pub struct InternalRule {
+    pub rule_type: RuleType,
+    pub is_inflected: Regex,
     /// deinflect: (inflectedWord: string) => string;
-    deinflect: fn(&str) -> String,
-    conditions_in: u32,
-    conditions_out: u32,
+    //pub deinflect: fn(&str) -> String,
+    pub conditions_in: u32,
+    pub conditions_out: u32,
 }
 
 pub struct TransformedText {
