@@ -1,11 +1,18 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
+use snafu::{ensure, ensure_whatever, whatever, OptionExt, ResultExt, Whatever};
 
-use crate::dictionary::{InflectionRule, InflectionRuleChain};
+use crate::{
+    dictionary::{InflectionRule, InflectionRuleChain},
+    errors::LanguageError,
+};
 
 use super::{
-    transformer_internal_d::{InternalTransform, Trace, TraceFrame, TransformedText},
+    transformer_internal_d::{InternalRule, InternalTransform, Trace, TraceFrame, TransformedText},
     transforms::suffix_inflection,
 };
 
@@ -17,7 +24,7 @@ pub struct LanguageTransformer {
 }
 
 impl<'a> LanguageTransformer {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             next_flag_index: 0,
             transforms: Vec::new(),
@@ -33,8 +40,84 @@ impl<'a> LanguageTransformer {
         self.part_of_speech_to_condition_flags_map.clear();
     }
 
-    fn add_descriptor<T>(descriptor: LanguageTransformDescriptor) {
-        let condition_entries: Vec<Condition> = descriptor.conditions.values().cloned().collect();
+    pub fn add_descriptor(
+        &mut self,
+        descriptor: LanguageTransformDescriptor,
+    ) -> Result<(), Whatever> {
+        let transforms = descriptor.transforms;
+        let condition_entries: Vec<(&String, &Condition)> = descriptor.conditions.iter().collect();
+        let condition_flags_map = self
+            .get_condition_flags_map(condition_entries.clone(), self.next_flag_index)
+            .with_whatever_context(|_| "Failed to get condition flags map")?;
+        let mut transforms2: Vec<InternalTransform> = Vec::new();
+        for entry in transforms.into_iter() {
+            let transform_id = entry.0;
+            let transform = entry.1;
+            let Transform {
+                name,
+                description,
+                i18n,
+                rules,
+            } = transform;
+            let mut rules2: Vec<InternalRule> = Vec::new();
+            for (j, rule) in rules.iter().enumerate() {
+                let SuffixRule {
+                    rule_type,
+                    is_inflected,
+                    deinflected,
+                    conditions_in,
+                    conditions_out,
+                } = rule.clone();
+                let condition_flags_in = self
+                    .get_condition_flags_strict(&condition_flags_map.map, &conditions_in)
+                    .with_whatever_context(|| {
+                        format!("Invalid `conditions_in` for transform {transform_id}.rules[{j}]")
+                    })?;
+                let condition_flags_out = self
+                    .get_condition_flags_strict(&condition_flags_map.map, &conditions_out)
+                    .with_whatever_context(|| {
+                        format!("Invalid `conditions_out` for transform {transform_id}.rules[{j}]")
+                    })?;
+                rules2.push(InternalRule {
+                    rule_type,
+                    is_inflected: is_inflected.clone(),
+                    conditions_in: condition_flags_in as u32,
+                    conditions_out: condition_flags_out as u32,
+                });
+            }
+            let is_inflected_regex_tests = rules
+                .iter()
+                .map(|rule| rule.is_inflected.clone())
+                .collect::<Vec<Regex>>();
+            // constructing a single heuristic regex by joining all patterns with a '|'
+            let combined_pattern = is_inflected_regex_tests
+                .iter()
+                .map(|reg_exp| reg_exp.as_str()) // get pattern (similar to .source in JS)
+                .collect::<Vec<&str>>()
+                .join("|");
+            // compile the combined pattern into a new Regex
+            let heuristic = Regex::new(&combined_pattern).unwrap();
+            transforms2.push(InternalTransform {
+                id: transform_id.into(),
+                name: name.into(),
+                description: description.clone(),
+                rules: rules2,
+                heuristic,
+            });
+        }
+        self.next_flag_index = condition_flags_map.next_flag_index;
+        self.transforms.extend(transforms2);
+        for (condition_type, condition) in &condition_entries {
+            if let Some(flags) = condition_flags_map.map.get(condition_type.as_str()) {
+                self.condition_type_to_condition_flags_map
+                    .insert(condition_type.to_string(), *flags);
+                if condition.is_dictionary_form {
+                    self.part_of_speech_to_condition_flags_map
+                        .insert(condition_type.to_string(), *flags);
+                }
+            }
+        }
+        Ok(())
     }
 
     fn get_condition_flags_from_parts_of_speech(
@@ -100,6 +183,60 @@ impl<'a> LanguageTransformer {
         current_conditions == 0 || (current_conditions & next_conditions) != 0
     }
 
+    /**
+     * @param {import('language-transformer').ConditionMapEntries} conditions
+     * @param {number} nextFlagIndex
+     * @returns {{conditionFlagsMap: Map<string, number>, nextFlagIndex: number}}
+     * @throws {Error}
+     */
+    fn get_condition_flags_map(
+        &self,
+        conditions: Vec<ConditionMapEntry>,
+        next_flag_index: usize,
+    ) -> Result<ConditionFlagsMap, Whatever> {
+        let mut next_flag_index = next_flag_index;
+        let mut condition_flags_map = HashMap::new();
+        let mut targets = conditions;
+        while !targets.is_empty() {
+            let mut next_targets = Vec::new();
+            for target in &targets {
+                let condition_type = target.0.clone();
+                let condition = target.1.clone();
+                let sub_conditions: Option<Condition> = Some(condition);
+                let mut flags = 0;
+                if let Some(sub_conditions) = sub_conditions {
+                    if let Some(sub_conditions) = sub_conditions.sub_conditions {
+                        let multi_flags =
+                            self.get_condition_flags_strict(&condition_flags_map, sub_conditions);
+                        if let Some(multi_flags) = multi_flags {
+                            flags = multi_flags
+                        } else {
+                            next_targets.push(target.clone());
+                            continue;
+                        }
+                    }
+                } else {
+                    ensure_whatever!(
+                        next_flag_index < 32,
+                        "Maximum Number of Conditions was Exceeded."
+                    );
+                    flags = 1 << next_flag_index;
+                    next_flag_index += 1;
+                }
+                condition_flags_map.insert(condition_type, flags);
+            }
+            ensure_whatever!(
+                !next_targets.len() != targets.len(),
+                "Maximum number of conditions was exceeded"
+            );
+            targets = next_targets;
+        }
+        Ok(ConditionFlagsMap {
+            map: condition_flags_map,
+            next_flag_index,
+        })
+    }
+
     fn get_condition_flags_strict(
         &self,
         condition_flags_map: &HashMap<String, usize>,
@@ -143,13 +280,20 @@ impl<'a> LanguageTransformer {
 }
 
 pub struct LanguageTransformDescriptor<'a> {
-    pub language: &'a str,
-    pub conditions: &'a ConditionMap<'a>,
-    pub transforms: &'a TransformMap<'a>,
+    pub language: String,
+    pub conditions: ConditionMap<'a>,
+    pub transforms: TransformMap<'a>,
 }
 
 // Named `ConditionMapObject` in yomitan.
-pub type ConditionMap<'a> = HashMap<&'a str, Condition<'a>>;
+pub type ConditionMap<'a> = HashMap<String, Condition<'a>>;
+pub type ConditionMapEntry<'a> = (&'a String, &'a Condition<'a>);
+
+#[derive(Clone)]
+pub struct ConditionFlagsMap {
+    pub map: HashMap<String, usize>,
+    pub next_flag_index: usize,
+}
 
 #[derive(Clone)]
 pub struct Condition<'a> {
@@ -162,6 +306,7 @@ pub struct Condition<'a> {
 // Named `TransformMapObject` in yomitan.
 pub type TransformMap<'a> = HashMap<&'a str, Transform<'a>>;
 
+#[derive(Clone)]
 pub struct Transform<'a> {
     pub name: &'a str,
     pub description: Option<String>,
@@ -169,12 +314,14 @@ pub struct Transform<'a> {
     pub rules: Vec<SuffixRule<'a>>,
 }
 
+#[derive(Clone)]
 pub struct TransformI18n<'a> {
     pub language: &'a str,
     pub name: &'a str,
     pub description: Option<&'a str>,
 }
 
+#[derive(Clone)]
 pub struct SuffixRule<'a> {
     /// Is of type [`RuleType::Suffix`]
     pub rule_type: RuleType,
@@ -184,6 +331,14 @@ pub struct SuffixRule<'a> {
     // pub deinflect: fn(text: &str, inflected_suffix: &str, deinflected_suffix: &str) -> String,
     pub conditions_in: Vec<&'a str>,
     pub conditions_out: Vec<&'a str>,
+}
+
+impl SuffixRule<'_> {
+    fn deinflect(&self, text: &str, inflected_suffix: &str, deinflected_suffix: &str) -> String {
+        let base_length = text.len().saturating_sub(inflected_suffix.len());
+        let base = &text[..base_length];
+        format!("{}{}", base, deinflected_suffix)
+    }
 }
 
 pub struct Rule<'a, F>
@@ -203,6 +358,7 @@ pub struct RuleI18n<'a> {
     pub name: &'a str,
 }
 
+#[derive(Clone)]
 pub enum RuleType {
     Suffix,
     Prefix,
@@ -210,17 +366,9 @@ pub enum RuleType {
     Other,
 }
 
-impl SuffixRule<'_> {
-    fn deinflect(&self, text: &str, inflected_suffix: &str, deinflected_suffix: &str) -> String {
-        let base_length = text.len().saturating_sub(inflected_suffix.len());
-        let base = &text[..base_length];
-        format!("{}{}", base, deinflected_suffix)
-    }
-}
-
-impl<F> Rule<'_, F>
-where
-    F: Fn(&str, &str, &str) -> String,
+impl InternalRule
+// where
+//     F: Fn(&str, &str, &str) -> String,
 {
     fn deinflect_prefix(
         &self,
