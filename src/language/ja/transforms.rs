@@ -4,8 +4,10 @@ use crate::language::transformer_d::{
 };
 use crate::language::transforms::suffix_inflection;
 
+
+use std::mem;
 use std::collections::HashMap;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 const SHIMAU_ENGLISH_DESCRIPTION: &str = "1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n 3. Shows unintentional action–“accidentally”.\n";
 
@@ -14,7 +16,7 @@ const PASSIVE_ENGLISH_DESCRIPTION: &str = "1. Indicates an action received from 
 pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
     HashMap::from([
         (
-            "v",
+            String::from("v"),
             Condition {
                 name: "Verb",
                 is_dictionary_form: false,
@@ -26,7 +28,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "v1",
+            String::from("v1"),
             Condition {
                 name: "Ichidan verb",
                 is_dictionary_form: true,
@@ -38,7 +40,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "v1d",
+            String::from("v1d"),
             Condition {
                 name: "Ichidan verb, dictionary form",
                 is_dictionary_form: false,
@@ -50,7 +52,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "v1p",
+            String::from("v1p"),
             Condition {
                 name: "Ichidan verb, progressive or perfect form",
                 is_dictionary_form: false,
@@ -62,7 +64,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "v5",
+            String::from("v5"),
             Condition {
                 name: "Godan verb",
                 is_dictionary_form: true,
@@ -74,7 +76,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "v5d",
+            String::from("v5d"),
             Condition {
                 name: "Godan verb, dictionary form",
                 is_dictionary_form: false,
@@ -86,7 +88,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "v5m",
+            String::from("v5m"),
             Condition {
                 name: "Godan verb, polite (masu) form",
                 is_dictionary_form: false,
@@ -95,7 +97,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "vk",
+            String::from("vk"),
             Condition {
                 name: "Kuru verb",
                 is_dictionary_form: true,
@@ -107,7 +109,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "vs",
+            String::from("vs"),
             Condition {
                 name: "Suru verb",
                 is_dictionary_form: true,
@@ -119,7 +121,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "vz",
+            String::from("vz"),
             Condition {
                 name: "Zuru verb",
                 is_dictionary_form: true,
@@ -131,7 +133,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "adj-i",
+            String::from("adj-i"),
             Condition {
                 name: "Adjective with i ending",
                 is_dictionary_form: true,
@@ -143,7 +145,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "-te",
+            String::from("-te"),
             Condition {
                 name: "Intermediate -te endings for progressive or perfect tense",
                 is_dictionary_form: false,
@@ -152,7 +154,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "-ba",
+            String::from("-ba"),
             Condition {
                 name: "Intermediate -ba endings for conditional contraction",
                 is_dictionary_form: false,
@@ -161,7 +163,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "adv",
+            String::from("adv"),
             Condition {
                 name: "Intermediate -ku endings for adverbs",
                 is_dictionary_form: false,
@@ -170,7 +172,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
             },
         ),
         (
-            "past",
+            String::from("past"),
             Condition {
                 name: "-ta past form ending",
                 is_dictionary_form: false,
@@ -1735,7 +1737,7 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
 
 pub static JAPANESE_TRANSFORMS: LazyLock<LanguageTransformDescriptor> =
     LazyLock::new(|| LanguageTransformDescriptor {
-        language: "ja",
-        conditions: &CONDITIONS,
-        transforms: &TRANSFORMS,
+        language: String::from("ja"),
+        conditions: CONDITIONS.clone(),
+        transforms: TRANSFORMS.clone(),
     });
