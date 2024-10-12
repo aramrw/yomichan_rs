@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::language::transformer_d::LanguageTransformDescriptor;
 
 /// This is the following function type in yomitan:
@@ -63,10 +65,7 @@ pub struct LanguageAndReadingNormalizer {
     pub reading_normalizer: ReadingNormalizer,
 }
 
-pub struct LanguageAndTransforms<'a>
-// where
-//     F: Fn(&str, &str, &str) -> String,
-{
+pub struct LanguageAndTransforms<'a> {
     pub iso: String,
     pub language_transforms: &'a LanguageTransformDescriptor<'a>,
 }

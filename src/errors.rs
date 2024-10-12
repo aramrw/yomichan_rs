@@ -1,4 +1,5 @@
 use native_db::db_type;
+use snafu::Snafu;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -44,6 +45,14 @@ pub enum DBError {
     Import(#[from] ImportError),
     //#[error("token err: {0}")]
     //Token(#[from] lindera::LinderaError),
+}
+
+#[derive(Snafu, Debug)]
+pub enum LanguageError {
+    #[snafu(display("Invalid conditions_in for transform: {transform_id} at index: {index}"))]
+    InvalidConditionsIn { transform_id: usize, index: usize },
+    #[snafu(display("Invalid conditions_out for transform: {transform_id} at index: {index}"))]
+    InvalidConditionsOut { transform_id: usize, index: usize },
 }
 
 #[macro_export]
