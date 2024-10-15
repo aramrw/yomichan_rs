@@ -65,6 +65,7 @@ impl<'a> LanguageTransformer {
                     rule_type,
                     is_inflected,
                     deinflected,
+                    deinflect,
                     conditions_in,
                     conditions_out,
                 } = rule.clone();
@@ -79,8 +80,9 @@ impl<'a> LanguageTransformer {
                         format!("Invalid `conditions_out` for transform {transform_id}.rules[{j}]")
                     })?;
                 rules2.push(InternalRule {
-                    rule_type,
+                    rule_type: rule_type.clone(),
                     is_inflected: is_inflected.clone(),
+                    deinflect,
                     conditions_in: condition_flags_in as u32,
                     conditions_out: condition_flags_out as u32,
                 });
@@ -120,21 +122,21 @@ impl<'a> LanguageTransformer {
         Ok(())
     }
 
-    fn get_condition_flags_from_parts_of_speech(
+    pub fn get_condition_flags_from_parts_of_speech(
         &self,
-        parts_of_speech: &[&'a str],
+        parts_of_speech: &[impl AsRef<str>],
     ) -> Option<usize> {
         self.get_condition_flags(&self.part_of_speech_to_condition_flags_map, parts_of_speech)
     }
 
-    fn get_condition_flags_from_condition_types(
+    pub fn get_condition_flags_from_condition_types(
         &self,
-        condition_types: &[&'a str],
+        condition_types: &[impl AsRef<str>],
     ) -> Option<usize> {
         self.get_condition_flags(&self.condition_type_to_condition_flags_map, condition_types)
     }
 
-    fn get_condition_flag_from_condition_type<T: AsRef<str>>(
+    pub fn get_condition_flags_from_single_condition_type<T: AsRef<str>>(
         &self,
         condition_type: T,
     ) -> Option<usize> {
@@ -144,7 +146,6 @@ impl<'a> LanguageTransformer {
         )
     }
 
-    fn get_user_facing_inflection_rules(
     pub fn transform(
         &self,
         source_text: impl AsRef<str>,
@@ -238,9 +239,13 @@ impl<'a> LanguageTransformer {
             .collect()
     }
 
-    fn create_transformed_text(text: &str, conditions: u32, trace: Trace) -> TransformedText {
+    pub fn create_transformed_text(
+        text: impl AsRef<str>,
+        conditions: u32,
+        trace: Trace,
+    ) -> TransformedText {
         TransformedText {
-            text: text.to_string(),
+            text: text.as_ref().to_string(),
             conditions,
             trace,
         }
@@ -248,7 +253,7 @@ impl<'a> LanguageTransformer {
 
     /// If `currentConditions` is `0`, then `nextConditions` is ignored and `true` is returned.
     /// Otherwise, there must be at least one shared condition between `currentConditions` and `nextConditions`.
-    fn conditions_match(current_conditions: usize, next_conditions: usize) -> bool {
+    pub fn conditions_match(current_conditions: u32, next_conditions: u32) -> bool {
         current_conditions == 0 || (current_conditions & next_conditions) != 0
     }
 
@@ -258,7 +263,7 @@ impl<'a> LanguageTransformer {
      * @returns {{conditionFlagsMap: Map<string, number>, nextFlagIndex: number}}
      * @throws {Error}
      */
-    fn get_condition_flags_map(
+    pub fn get_condition_flags_map(
         &self,
         conditions: Vec<ConditionMapEntry>,
         next_flag_index: usize,
@@ -306,7 +311,7 @@ impl<'a> LanguageTransformer {
         })
     }
 
-    fn get_condition_flags_strict(
+    pub fn get_condition_flags_strict(
         &self,
         condition_flags_map: &HashMap<String, usize>,
         condition_types: &[&'a str],
@@ -325,12 +330,12 @@ impl<'a> LanguageTransformer {
     fn get_condition_flags(
         &self,
         condition_flags_map: &HashMap<String, usize>,
-        condition_types: &[&'a str],
+        condition_types: &[impl AsRef<str>],
     ) -> Option<usize> {
         let mut flags = 0;
         for condition_type in condition_types {
             let mut flags2 = 0;
-            if let Some(val) = condition_flags_map.get(*condition_type) {
+            if let Some(val) = condition_flags_map.get(condition_type.as_ref()) {
                 flags2 = *val;
                 return Some(flags);
             }
@@ -338,16 +343,9 @@ impl<'a> LanguageTransformer {
         }
         None
     }
-
-    fn extend_trace(trace: Trace, new_frame: TraceFrame) -> Trace {
-        let mut new_trace = vec![new_frame];
-        for t in trace {
-            new_trace.push(t);
-        }
-        new_trace
-    }
 }
 
+#[derive(Clone)]
 pub struct LanguageTransformDescriptor<'a> {
     pub language: String,
     pub conditions: ConditionMap<'a>,
@@ -390,25 +388,28 @@ pub struct TransformI18n<'a> {
     pub description: Option<&'a str>,
 }
 
+pub trait DeinflectFnTrait: Fn(String) -> String + Send + Sync + 'static {}
+impl<F: Fn(String) -> String + Send + Sync + 'static> DeinflectFnTrait for F {}
+pub type DeinflectFunction = Arc<dyn DeinflectFnTrait>;
+
 #[derive(Clone)]
 pub struct SuffixRule<'a> {
     /// Is of type [`RuleType::Suffix`]
     pub rule_type: RuleType,
     pub is_inflected: Regex,
-    pub deinflected: &'a str,
-    /// deinflect: (inflectedWord: string) => string;
-    // pub deinflect: fn(text: &str, inflected_suffix: &str, deinflected_suffix: &str) -> String,
+    pub deinflected: String,
+    pub deinflect: DeinflectFunction,
     pub conditions_in: Vec<&'a str>,
     pub conditions_out: Vec<&'a str>,
 }
 
-impl SuffixRule<'_> {
-    fn deinflect(&self, text: &str, inflected_suffix: &str, deinflected_suffix: &str) -> String {
-        let base_length = text.len().saturating_sub(inflected_suffix.len());
-        let base = &text[..base_length];
-        format!("{}{}", base, deinflected_suffix)
-    }
-}
+// impl SuffixRule<'_> {
+//     fn deinflect(&self, text: &str, inflected_suffix: &str, deinflected_suffix: &str) -> String {
+//         let base_length = text.len().saturating_sub(inflected_suffix.len());
+//         let base = &text[..base_length];
+//         format!("{}{}", base, deinflected_suffix)
+//     }
+// }
 
 pub struct Rule<'a, F>
 where
@@ -435,16 +436,16 @@ pub enum RuleType {
     Other,
 }
 
-impl InternalRule
-// where
-//     F: Fn(&str, &str, &str) -> String,
-{
-    fn deinflect_prefix(
-        &self,
-        text: &str,
-        inflected_prefix: &str,
-        deinflected_prefix: &str,
-    ) -> String {
-        format!("{}{}", deinflected_prefix, &text[inflected_prefix.len()..])
-    }
-}
+// impl InternalRule
+// // where
+// //     F: Fn(&str, &str, &str) -> String,
+// {
+//     fn deinflect_prefix(
+//         &self,
+//         text: &str,
+//         inflected_prefix: &str,
+//         deinflected_prefix: &str,
+//     ) -> String {
+//         format!("{}{}", deinflected_prefix, &text[inflected_prefix.len()..])
+//     }
+// }
