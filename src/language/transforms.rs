@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use regex::Regex;
 
 use crate::language::transformer_d::RuleType;
@@ -9,12 +11,20 @@ pub fn suffix_inflection<'a>(
     deinflected_suffix: &'a str,
     conditions_in: Vec<&'a str>,
     conditions_out: Vec<&'a str>,
-) -> SuffixRule<'a> {
+) -> SuffixRule<'a /*, impl Fn(&str) -> String + 'a*/> {
+    let inflected_suffix = inflected_suffix.to_string();
+    let deinflected_suffix = deinflected_suffix.to_string();
+    let deinflected_suffix_2 = deinflected_suffix.to_string();
     let suffix_regex = Regex::new(format!("{}$", inflected_suffix).as_str()).unwrap();
+    let deinflect = Arc::new(move |text: String| -> String {
+        let base = &text[..text.len() - inflected_suffix.len()];
+        format!("{}{}", base, deinflected_suffix)
+    });
     SuffixRule {
         rule_type: RuleType::Suffix,
         is_inflected: suffix_regex,
-        deinflected: deinflected_suffix,
+        deinflected: deinflected_suffix_2,
+        deinflect,
         conditions_in,
         conditions_out,
     }
