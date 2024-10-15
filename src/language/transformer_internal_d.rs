@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use regex::Regex;
 
-use super::transformer_d::RuleType;
+use super::transformer_d::{DeinflectFunction, RuleType};
 
 pub struct InternalTransform {
     pub id: String,
@@ -16,8 +16,7 @@ pub struct InternalTransform {
 pub struct InternalRule {
     pub rule_type: RuleType,
     pub is_inflected: Regex,
-    /// deinflect: (inflectedWord: string) => string;
-    //pub deinflect: fn(&str) -> String,
+    pub deinflect: DeinflectFunction,
     pub conditions_in: u32,
     pub conditions_out: u32,
 }
@@ -30,6 +29,7 @@ pub struct TransformedText {
 
 pub type Trace = Vec<TraceFrame>;
 
+#[derive(Debug, Clone)]
 pub struct TraceFrame {
     pub text: String,
     pub transform: String,
