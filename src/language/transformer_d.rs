@@ -145,6 +145,75 @@ impl<'a> LanguageTransformer {
     }
 
     fn get_user_facing_inflection_rules(
+    pub fn transform(
+        &self,
+        source_text: impl AsRef<str>,
+    ) -> Result<Vec<TransformedText>, Whatever> {
+        let source_text = source_text.as_ref();
+        let mut results = vec![LanguageTransformer::create_transformed_text(
+            source_text,
+            0,
+            Vec::new(),
+        )];
+
+        for i in 0..results.len() {
+            let entry = &results[i];
+            let text = entry.text.clone();
+            let conditions = entry.conditions;
+            let trace = entry.trace.clone();
+
+            for transform in &self.transforms {
+                if !transform.heuristic.is_match(&text) {
+                    continue;
+                }
+
+                let id = &transform.id;
+                for (j, rule) in transform.rules.iter().enumerate() {
+                    if !LanguageTransformer::conditions_match(conditions, rule.conditions_in) {
+                        continue;
+                    }
+                    if !rule.is_inflected.is_match(&text) {
+                        continue;
+                    }
+
+                    let is_cycle = trace.iter().any(|frame| {
+                        &frame.transform == id && frame.rule_index == j as u32 && frame.text == text
+                    });
+                    if is_cycle {
+                        return whatever!("Cycle detected in transform[{}] rule[{j}] for text: {text}\nTrace: {:?}", transform.name, trace);
+                    }
+
+                    let new_text = (rule.deinflect)(text.clone());
+                    let new_trace = self.extend_trace(
+                        trace.clone(),
+                        TraceFrame {
+                            transform: id.clone(),
+                            rule_index: j as u32,
+                            text: text.clone(),
+                        },
+                    );
+
+                    results.push(LanguageTransformer::create_transformed_text(
+                        new_text,
+                        rule.conditions_out,
+                        new_trace,
+                    ));
+                }
+            }
+        }
+
+        Ok(results)
+    }
+
+    pub fn extend_trace(&self, trace: Trace, new_frame: TraceFrame) -> Trace {
+        let mut new_trace = vec![new_frame];
+        for t in trace {
+            new_trace.push(t);
+        }
+        new_trace
+    }
+
+    pub fn get_user_facing_inflection_rules(
         &self,
         inflection_rules: &[&'a str],
     ) -> InflectionRuleChain {
