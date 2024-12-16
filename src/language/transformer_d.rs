@@ -4,6 +4,7 @@ use std::{
 };
 
 use regex::Regex;
+use serde_json::error;
 use snafu::{ensure, ensure_whatever, whatever, OptionExt, ResultExt, Whatever};
 
 use crate::{
@@ -15,6 +16,32 @@ use super::{
     transformer_internal_d::{InternalRule, InternalTransform, Trace, TraceFrame, TransformedText},
     transforms::suffix_inflection,
 };
+
+#[derive(thiserror::Error, Debug)]
+pub enum LanguageTransformerError {
+    #[error("Invalid `conditions_in` for transform: {transform_id}.rules[{index}]")]
+    InvalidConditionsIn { transform_id: String, index: usize },
+    #[error("Invalid `conditions_out` for transform: {transform_id}.rules[{index}]")]
+    InvalidConditionsOut { transform_id: String, index: usize },
+    #[error("Failed to get conditions_flag_map: {0}")]
+    ConditionsFlagMap(String),
+}
+
+#[cfg(test)]
+mod language_transformer_tests {
+    use crate::language::ja::transforms::JAPANESE_TRANSFORMS;
+
+    use super::*;
+
+    #[test]
+    fn add_descriptor_test() -> Result<(), LanguageTransformerError> {
+        let mut language_transformer = LanguageTransformer::new();
+        if let Err(e) = language_transformer.add_descriptor(&JAPANESE_TRANSFORMS) {
+            panic!("{e}")
+        }
+        Ok(())
+    }
+}
 
 pub struct LanguageTransformer {
     next_flag_index: usize,
@@ -42,15 +69,19 @@ impl<'a> LanguageTransformer {
 
     pub fn add_descriptor(
         &mut self,
-        descriptor: LanguageTransformDescriptor,
-    ) -> Result<(), Whatever> {
-        let transforms = descriptor.transforms;
+        descriptor: &LanguageTransformDescriptor,
+    ) -> Result<(), LanguageTransformerError> {
+        let transforms = &descriptor.transforms;
         let condition_entries: Vec<(&String, &Condition)> = descriptor.conditions.iter().collect();
-        let condition_flags_map = self
-            .get_condition_flags_map(condition_entries.clone(), self.next_flag_index)
-            .with_whatever_context(|_| "Failed to get condition flags map")?;
+        let condition_flags_map =
+            match self.get_condition_flags_map(condition_entries.clone(), self.next_flag_index) {
+                Ok(cfm) => cfm,
+                Err(e) => return Err(LanguageTransformerError::ConditionsFlagMap(e.to_string())),
+            };
+
         let mut transforms2: Vec<InternalTransform> = Vec::new();
-        for entry in transforms.into_iter() {
+
+        for entry in transforms.iter() {
             let transform_id = entry.0;
             let transform = entry.1;
             let Transform {
@@ -69,16 +100,28 @@ impl<'a> LanguageTransformer {
                     conditions_in,
                     conditions_out,
                 } = rule.clone();
-                let condition_flags_in = self
+                let condition_flags_in = match self
                     .get_condition_flags_strict(&condition_flags_map.map, &conditions_in)
-                    .with_whatever_context(|| {
-                        format!("Invalid `conditions_in` for transform {transform_id}.rules[{j}]")
-                    })?;
-                let condition_flags_out = self
+                {
+                    Some(cfi) => cfi,
+                    None => {
+                        return Err(LanguageTransformerError::InvalidConditionsIn {
+                            transform_id: transform_id.to_string(),
+                            index: j,
+                        });
+                    }
+                };
+                let condition_flags_out = match self
                     .get_condition_flags_strict(&condition_flags_map.map, &conditions_out)
-                    .with_whatever_context(|| {
-                        format!("Invalid `conditions_out` for transform {transform_id}.rules[{j}]")
-                    })?;
+                {
+                    Some(cfo) => cfo,
+                    None => {
+                        return Err(LanguageTransformerError::InvalidConditionsIn {
+                            transform_id: transform_id.to_string(),
+                            index: j,
+                        });
+                    }
+                };
                 rules2.push(InternalRule {
                     rule_type: rule_type.clone(),
                     is_inflected: is_inflected.clone(),
@@ -100,8 +143,8 @@ impl<'a> LanguageTransformer {
             // compile the combined pattern into a new Regex
             let heuristic = Regex::new(&combined_pattern).unwrap();
             transforms2.push(InternalTransform {
-                id: transform_id.into(),
-                name: name.into(),
+                id: transform_id.to_string(),
+                name: name.to_string(),
                 description: description.clone(),
                 rules: rules2,
                 heuristic,
@@ -285,7 +328,7 @@ impl<'a> LanguageTransformer {
                         if let Some(multi_flags) = multi_flags {
                             flags = multi_flags
                         } else {
-                            next_targets.push(target.clone());
+                            next_targets.push(*target);
                             continue;
                         }
                     }

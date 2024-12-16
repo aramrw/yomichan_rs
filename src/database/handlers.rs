@@ -6,7 +6,7 @@ use crate::dictionary_data::{
 };
 
 use crate::dictionary_data::KANA_MAP;
-use crate::dictionary_importer::{prepare_dictionary, Summary, TermMetaBank};
+use crate::database::dictionary_importer::{prepare_dictionary, Summary, TermMetaBank};
 use crate::errors::{DBError, ImportError};
 use crate::settings::{DictionaryOptions, Options, Profile};
 use crate::Yomichan;
