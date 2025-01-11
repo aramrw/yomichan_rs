@@ -8,6 +8,11 @@ use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, LazyLock};
 
+/// serializes both javascript & rust conditions to see if they are
+/// an exact match
+#[test]
+fn compare_conditions_json() {}
+
 const SHIMAU_ENGLISH_DESCRIPTION: &str = "1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n 3. Shows unintentional action–“accidentally”.\n";
 
 const PASSIVE_ENGLISH_DESCRIPTION: &str = "1. Indicates an action received from an action performer.\n2. Expresses respect for the subject of action performer.\n";
@@ -30,33 +35,35 @@ pub static TEST_CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
 /// a smaller version of japanese transformmap for testing.
 pub static TEST_TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
     HashMap::from([(
-        "-ya",
-        Transform {
-            name: "-ya",
-            description: Some("Contraction of -ba.".into()),
-            i18n: Some(vec![TransformI18n {
-                language: "ja",
-                name: "～ゃ",
-                description: Some("仮定形の縮約系"),
-            }]),
-            rules: vec![
-                suffix_inflection("けりゃ", "ければ", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("きゃ", "ければ", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("や", "えば", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("きゃ", "けば", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("ぎゃ", "げば", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("しゃ", "せば", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("ちゃ", "てば", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("にゃ", "ねば", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("びゃ", "べば", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("みゃ", "めば", vec!["-ya"], vec!["-ba"]),
-                suffix_inflection("りゃ", "れば", vec!["-ya"], vec!["-ba"]),
-            ],
-        },
-    )])
+            "-ba",
+            Transform {
+                name: "-ba",
+                description: Some(
+                    "(1) Conditional form; shows that the previous stated condition's establishment is the condition for the latter stated condition to occur. (2) Shows a trigger for a latter stated perception or judgment. Usage: Attach ば to the hypothetical/realis form (kateikei/izenkei) of verbs and i-adjectives.".into(),
+                ),
+                i18n: Some(vec![TransformI18n {
+                    language: "ja",
+                    name: "～ば",
+                    description: Some("仮定形"),
+                }]),
+                rules: vec![
+                    suffix_inflection("ければ", "い", vec!["-ba"], vec!["adj-i"]),
+                    suffix_inflection("えば", "う", vec!["-ba"], vec!["v5"]),
+                    suffix_inflection("けば", "く", vec!["-ba"], vec!["v5"]),
+                    suffix_inflection("げば", "ぐ", vec!["-ba"], vec!["v5"]),
+                    suffix_inflection("せば", "す", vec!["-ba"], vec!["v5"]),
+                    suffix_inflection("てば", "つ", vec!["-ba"], vec!["v5"]),
+                    suffix_inflection("ねば", "ぬ", vec!["-ba"], vec!["v5"]),
+                    suffix_inflection("べば", "ぶ", vec!["-ba"], vec!["v5"]),
+                    suffix_inflection("めば", "む", vec!["-ba"], vec!["v5"]),
+                    suffix_inflection("れば", "る", vec!["-ba"], vec!["v1", "v5", "vk", "vs", "vz"]),
+                    suffix_inflection("れば", "", vec!["-ば"], vec!["-ます"]),
+                ],
+            },
+        )])
 });
 
-/// a smaller version of japanese trabsforms for testing.
+/// a smaller version of japanese transforms for testing.
 pub static TEST_JAPANESE_TRANSFORMS: LazyLock<LanguageTransformDescriptor> =
     LazyLock::new(|| LanguageTransformDescriptor {
         language: String::from("ja"),
@@ -241,9 +248,7 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
             Transform {
                 name: "-ba",
                 description: Some(
-                    "1. Conditional form; shows that the previous stated condition's establishment is the condition \
-                    for the latter stated condition to occur.\n2. Shows a trigger for a latter stated perception or \
-                    judgment.\nUsage: Attach ば to the hypothetical/realis form (kateikei/izenkei) of verbs and i-adjectives.".into(),
+                    "(1) Conditional form; shows that the previous stated condition's establishment is the condition for the latter stated condition to occur. (2) Shows a trigger for a latter stated perception or judgment. Usage: Attach ば to the hypothetical/realis form (kateikei/izenkei) of verbs and i-adjectives.".into(),
                 ),
                 i18n: Some(vec![TransformI18n {
                     language: "ja",
@@ -261,6 +266,7 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                     suffix_inflection("べば", "ぶ", vec!["-ba"], vec!["v5"]),
                     suffix_inflection("めば", "む", vec!["-ba"], vec!["v5"]),
                     suffix_inflection("れば", "る", vec!["-ba"], vec!["v1", "v5", "vk", "vs", "vz"]),
+                    suffix_inflection("れば", "", vec!["-ば"], vec!["-ます"]),
                 ],
             },
         ),
