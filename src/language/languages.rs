@@ -20,6 +20,12 @@ pub fn get_language_summaries() -> Vec<LanguageSummary> {
         .collect::<Vec<LanguageSummary>>()
 }
 
+#[test_log::test]
+fn test_get_language_summaries() {
+    let s = get_language_summaries();
+    dbg!(s);
+}
+
 pub fn get_all_language_reading_normalizers() -> Vec<LanguageAndReadingNormalizer> {
     LANGUAGE_DESCRIPTORS_MAP
         .values()

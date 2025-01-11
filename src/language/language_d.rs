@@ -75,6 +75,7 @@ pub struct TextProcessorWithId<'a, O, S> {
     pub text_processor: TextProcessor<'a, O, S>,
 }
 
+#[derive(Debug, Clone)]
 pub struct LanguageSummary {
     pub name: String,
     pub iso: String,

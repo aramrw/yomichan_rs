@@ -4,14 +4,65 @@ use crate::language::transformer_d::{
 };
 use crate::language::transforms::suffix_inflection;
 
-
-use std::mem;
 use std::collections::HashMap;
+use std::mem;
 use std::sync::{Arc, LazyLock};
 
 const SHIMAU_ENGLISH_DESCRIPTION: &str = "1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n 3. Shows unintentional action–“accidentally”.\n";
 
 const PASSIVE_ENGLISH_DESCRIPTION: &str = "1. Indicates an action received from an action performer.\n2. Expresses respect for the subject of action performer.\n";
+
+/// a smaller version of japanese conditions for testing.
+pub static TEST_CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
+    HashMap::from([(
+        String::from("v"),
+        Condition {
+            name: "Verb",
+            is_dictionary_form: false,
+            i18n: Some(&[RuleI18n {
+                language: "ja",
+                name: "動詞",
+            }]),
+            sub_conditions: Some(&["v1", "v5", "vk", "vs", "vz"]),
+        },
+    )])
+});
+/// a smaller version of japanese transformmap for testing.
+pub static TEST_TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
+    HashMap::from([(
+        "-ya",
+        Transform {
+            name: "-ya",
+            description: Some("Contraction of -ba.".into()),
+            i18n: Some(vec![TransformI18n {
+                language: "ja",
+                name: "～ゃ",
+                description: Some("仮定形の縮約系"),
+            }]),
+            rules: vec![
+                suffix_inflection("けりゃ", "ければ", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("きゃ", "ければ", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("や", "えば", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("きゃ", "けば", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("ぎゃ", "げば", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("しゃ", "せば", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("ちゃ", "てば", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("にゃ", "ねば", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("びゃ", "べば", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("みゃ", "めば", vec!["-ya"], vec!["-ba"]),
+                suffix_inflection("りゃ", "れば", vec!["-ya"], vec!["-ba"]),
+            ],
+        },
+    )])
+});
+
+/// a smaller version of japanese trabsforms for testing.
+pub static TEST_JAPANESE_TRANSFORMS: LazyLock<LanguageTransformDescriptor> =
+    LazyLock::new(|| LanguageTransformDescriptor {
+        language: String::from("ja"),
+        conditions: CONDITIONS.clone(),
+        transforms: TRANSFORMS.clone(),
+    });
 
 pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
     HashMap::from([
