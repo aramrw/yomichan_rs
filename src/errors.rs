@@ -47,14 +47,6 @@ pub enum DBError {
     //Token(#[from] lindera::LinderaError),
 }
 
-#[derive(Snafu, Debug)]
-pub enum LanguageError {
-    #[snafu(display("Invalid conditions_in for transform: {transform_id} at index: {index}"))]
-    InvalidConditionsIn { transform_id: usize, index: usize },
-    #[snafu(display("Invalid conditions_out for transform: {transform_id} at index: {index}"))]
-    InvalidConditionsOut { transform_id: usize, index: usize },
-}
-
 #[macro_export]
 macro_rules! try_with_line {
     () => {
