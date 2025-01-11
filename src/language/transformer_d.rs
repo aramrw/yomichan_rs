@@ -7,10 +7,7 @@ use regex::Regex;
 use serde_json::error;
 use snafu::{ensure, ensure_whatever, whatever, OptionExt, ResultExt, Whatever};
 
-use crate::{
-    dictionary::{InflectionRule, InflectionRuleChain},
-    errors::LanguageError,
-};
+use crate::dictionary::{InflectionRule, InflectionRuleChain};
 
 use super::{
     transformer_internal_d::{InternalRule, InternalTransform, Trace, TraceFrame, TransformedText},
@@ -22,7 +19,7 @@ use super::{
 pub enum LanguageTransformerError {
     #[snafu(display("Invalid for transform: {transform_id}.rules[{index}]"))]
     InvalidConditions {
-        source: InvalidConditionsErrorKind,
+        source: ConditionError,
         transform_id: String,
         index: usize,
     },
@@ -31,18 +28,11 @@ pub enum LanguageTransformerError {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum InvalidConditionsErrorKind {
-    #[error("Invalid `conditions_in` for transform: {transform_id}.rules[{index}]")]
-    ConditionsIn { transform_id: String, index: usize },
-    #[error("Invalid `conditions_out` for transform: {transform_id}.rules[{index}]")]
-    ConditionsOut { transform_id: String, index: usize },
-    #[error("no condition types match flag map {flags_map:?} (searched {types:?})")]
-    IdkYet {
-        flags_map: HashMap<String, usize>,
-        types: Vec<String>,
-    },
+pub enum ConditionError {
+    #[error("map does not contain condition: ({condition:?})")]
+    Missing { index: usize, condition: String },
     #[error("`condition_types` is empty.")]
-    EmptyConditionTypes,
+    EmptyTypes,
 }
 
 #[cfg(test)]
@@ -61,21 +51,18 @@ mod language_transformer_tests {
             .add_descriptor(&TEST_JAPANESE_TRANSFORMS)
             .unwrap();
     }
-
     #[test]
-    fn get_condition_flags_strict() {
-        color_eyre::install().unwrap();
-        let mut condition_flags_map = HashMap::new();
-        condition_flags_map.insert("type1".to_string(), 1);
-        condition_flags_map.insert("type2".to_string(), 2);
-        condition_flags_map.insert("type3".to_string(), 4);
-
-        let condition_types = ["type1", "type2"];
-        let result =
-            LanguageTransformer::get_condition_flags_strict(&condition_flags_map, &condition_types)
-                .unwrap();
-
-        assert_eq!(result, 3);
+    fn get_condition_flags_map() {
+        let mut lt = LanguageTransformer::new();
+        let condition_entries =
+            LanguageTransformer::_get_condition_entries(&TEST_JAPANESE_TRANSFORMS);
+        let condition_flags_map = LanguageTransformer::get_condition_flags_map(
+            &lt,
+            condition_entries.clone(),
+            lt.next_flag_index,
+        );
+        //dbg!("conditions:\n   {:#?}", condition_entries);
+        dbg!("map: {:#?}", condition_flags_map);
     }
 }
 
@@ -103,6 +90,7 @@ impl<'a> LanguageTransformer {
         self.part_of_speech_to_condition_flags_map.clear();
     }
 
+    //
     fn _get_condition_entries(
         descriptor: &'a LanguageTransformDescriptor,
     ) -> Vec<ConditionMapEntry<'a>> {
@@ -400,26 +388,19 @@ impl<'a> LanguageTransformer {
     pub fn get_condition_flags_strict(
         condition_flags_map: &HashMap<String, usize>,
         condition_types: &[&'a str],
-    ) -> Result<usize, InvalidConditionsErrorKind> {
+    ) -> Result<usize, ConditionError> {
         let mut flags = 0;
 
-        for condition_type in condition_types.iter() {
-            if let Some(flags2) = condition_flags_map.get(*condition_type) {
-                flags |= flags2;
-            }
+        for (index, condition_type) in condition_types.iter().enumerate() {
+            let Some(flags2) = condition_flags_map.get(*condition_type) else {
+                return Err(ConditionError::Missing {
+                    index,
+                    condition: condition_type.to_string(),
+                });
+            };
+            flags |= flags2;
         }
-
-        if flags != 0 {
-            Ok(flags)
-        } else {
-            Err(InvalidConditionsErrorKind::IdkYet {
-                flags_map: condition_flags_map.clone(),
-                types: condition_types
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>(),
-            })
-        }
+        Ok(flags)
     }
 
     fn get_condition_flags(
