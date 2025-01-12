@@ -1,3 +1,5 @@
+use serde_json::from_reader;
+
 use crate::language::transformer_d::{
     Condition, ConditionMap, LanguageTransformDescriptor, RuleI18n, Transform, TransformI18n,
     TransformMap,
@@ -11,40 +13,29 @@ use std::sync::{Arc, LazyLock};
 /// serializes both javascript & rust conditions to see if they are
 /// an exact match
 #[test]
-fn compare_conditions_json() {}
+fn compare_conditions_json() {
+    let file = std::fs::File::open("C:/Users/arami/Desktop/TEST_JP_TRANSFORMS.json").unwrap();
+    let reader = std::io::BufReader::new(file);
+    let transforms: TransformMap = from_reader(reader).unwrap();
+}
 
 const SHIMAU_ENGLISH_DESCRIPTION: &str = "1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n 3. Shows unintentional action–“accidentally”.\n";
 
 const PASSIVE_ENGLISH_DESCRIPTION: &str = "1. Indicates an action received from an action performer.\n2. Expresses respect for the subject of action performer.\n";
 
-/// a smaller version of japanese conditions for testing.
-pub static TEST_CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
-    HashMap::from([(
-        String::from("v"),
-        Condition {
-            name: "Verb",
-            is_dictionary_form: false,
-            i18n: Some(&[RuleI18n {
-                language: "ja",
-                name: "動詞",
-            }]),
-            sub_conditions: Some(&["v1", "v5", "vk", "vs", "vz"]),
-        },
-    )])
-});
 /// a smaller version of japanese transformmap for testing.
 pub static TEST_TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
-    HashMap::from([(
-            "-ba",
+    TransformMap(HashMap::from([(
+            "-ば".into(),
             Transform {
-                name: "-ba",
+                name: "-ば".to_string(),
                 description: Some(
                     "(1) Conditional form; shows that the previous stated condition's establishment is the condition for the latter stated condition to occur. (2) Shows a trigger for a latter stated perception or judgment. Usage: Attach ば to the hypothetical/realis form (kateikei/izenkei) of verbs and i-adjectives.".into(),
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ば",
-                    description: Some("仮定形"),
+                    language: "ja".to_string(),
+                    name: "～ば".to_string(),
+                    description: None,
                 }]),
                 rules: vec![
                     suffix_inflection("ければ", "い", vec!["-ba"], vec!["adj-i"]),
@@ -60,7 +51,7 @@ pub static TEST_TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                     suffix_inflection("れば", "", vec!["-ば"], vec!["-ます"]),
                 ],
             },
-        )])
+        )]))
 });
 
 /// a smaller version of japanese transforms for testing.
@@ -68,7 +59,7 @@ pub static TEST_JAPANESE_TRANSFORMS: LazyLock<LanguageTransformDescriptor> =
     LazyLock::new(|| LanguageTransformDescriptor {
         language: String::from("ja"),
         conditions: CONDITIONS.clone(),
-        transforms: TRANSFORMS.clone(),
+        transforms: TEST_TRANSFORMS.clone(),
     });
 
 pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
@@ -76,11 +67,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("v"),
             Condition {
-                name: "Verb",
+                name: "Verb".to_string(),
                 is_dictionary_form: false,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "動詞",
+                    language: "ja".to_string(),
+                    name: "動詞".to_string(),
                 }]),
                 sub_conditions: Some(&["v1", "v5", "vk", "vs", "vz"]),
             },
@@ -88,11 +79,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("v1"),
             Condition {
-                name: "Ichidan verb",
+                name: "Ichidan verb".to_string(),
                 is_dictionary_form: true,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "一段動詞",
+                    language: "ja".to_string(),
+                    name: "一段動詞".to_string(),
                 }]),
                 sub_conditions: Some(&["v1d", "v1p"]),
             },
@@ -100,11 +91,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("v1d"),
             Condition {
-                name: "Ichidan verb, dictionary form",
+                name: "Ichidan verb, dictionary form".to_string(),
                 is_dictionary_form: false,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "一段動詞、辞書形",
+                    language: "ja".to_string(),
+                    name: "一段動詞、辞書形".to_string(),
                 }]),
                 sub_conditions: None,
             },
@@ -112,11 +103,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("v1p"),
             Condition {
-                name: "Ichidan verb, progressive or perfect form",
+                name: "Ichidan verb, progressive or perfect form".to_string(),
                 is_dictionary_form: false,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "一段動詞、進行形または完了形",
+                    language: "ja".to_string(),
+                    name: "一段動詞、進行形または完了形".to_string(),
                 }]),
                 sub_conditions: None,
             },
@@ -124,11 +115,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("v5"),
             Condition {
-                name: "Godan verb",
+                name: "Godan verb".to_string(),
                 is_dictionary_form: true,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "五段動詞",
+                    language: "ja".to_string(),
+                    name: "五段動詞".to_string(),
                 }]),
                 sub_conditions: Some(&["v5d", "v5m"]),
             },
@@ -136,11 +127,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("v5d"),
             Condition {
-                name: "Godan verb, dictionary form",
+                name: "Godan verb, dictionary form".to_string(),
                 is_dictionary_form: false,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "五段動詞、辞書形",
+                    language: "ja".to_string(),
+                    name: "五段動詞、辞書形".to_string(),
                 }]),
                 sub_conditions: None,
             },
@@ -148,7 +139,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("v5m"),
             Condition {
-                name: "Godan verb, polite (masu) form",
+                name: "Godan verb, polite (masu) form".to_string(),
                 is_dictionary_form: false,
                 i18n: None,
                 sub_conditions: None,
@@ -157,11 +148,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("vk"),
             Condition {
-                name: "Kuru verb",
+                name: "Kuru verb".to_string(),
                 is_dictionary_form: true,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "来る動詞",
+                    language: "ja".to_string(),
+                    name: "来る動詞".to_string(),
                 }]),
                 sub_conditions: None,
             },
@@ -169,11 +160,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("vs"),
             Condition {
-                name: "Suru verb",
+                name: "Suru verb".to_string(),
                 is_dictionary_form: true,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "する動詞",
+                    language: "ja".to_string(),
+                    name: "する動詞".to_string(),
                 }]),
                 sub_conditions: None,
             },
@@ -181,11 +172,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("vz"),
             Condition {
-                name: "Zuru verb",
+                name: "Zuru verb".to_string(),
                 is_dictionary_form: true,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "ずる動詞",
+                    language: "ja".to_string(),
+                    name: "ずる動詞".to_string(),
                 }]),
                 sub_conditions: None,
             },
@@ -193,11 +184,11 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("adj-i"),
             Condition {
-                name: "Adjective with i ending",
+                name: "Adjective with i ending".to_string(),
                 is_dictionary_form: true,
                 i18n: Some(&[RuleI18n {
-                    language: "ja",
-                    name: "形容詞",
+                    language: "ja".to_string(),
+                    name: "形容詞".to_string(),
                 }]),
                 sub_conditions: None,
             },
@@ -205,7 +196,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("-te"),
             Condition {
-                name: "Intermediate -te endings for progressive or perfect tense",
+                name: "Intermediate -te endings for progressive or perfect tense".to_string(),
                 is_dictionary_form: false,
                 i18n: None,
                 sub_conditions: None,
@@ -214,7 +205,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("-ba"),
             Condition {
-                name: "Intermediate -ba endings for conditional contraction",
+                name: "Intermediate -ba endings for conditional contraction".to_string(),
                 is_dictionary_form: false,
                 i18n: None,
                 sub_conditions: None,
@@ -223,7 +214,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("adv"),
             Condition {
-                name: "Intermediate -ku endings for adverbs",
+                name: "Intermediate -ku endings for adverbs".to_string(),
                 is_dictionary_form: false,
                 i18n: None,
                 sub_conditions: None,
@@ -232,7 +223,7 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
         (
             String::from("past"),
             Condition {
-                name: "-ta past form ending",
+                name: "-ta past form ending".to_string(),
                 is_dictionary_form: false,
                 i18n: None,
                 sub_conditions: None,
@@ -242,17 +233,17 @@ pub static CONDITIONS: LazyLock<ConditionMap> = LazyLock::new(|| {
 });
 
 pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
-    HashMap::from([
+    TransformMap(HashMap::from([
         (
-            "-ba",
+            "-ba".to_string(),
             Transform {
-                name: "-ba",
+                name: "-ba".to_string(),
                 description: Some(
                     "(1) Conditional form; shows that the previous stated condition's establishment is the condition for the latter stated condition to occur. (2) Shows a trigger for a latter stated perception or judgment. Usage: Attach ば to the hypothetical/realis form (kateikei/izenkei) of verbs and i-adjectives.".into(),
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ば",
+                    language: "ja".to_string(),
+                    name: "～ば".to_string(),
                     description: Some("仮定形"),
                 }]),
                 rules: vec![
@@ -271,13 +262,13 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
             },
         ),
         (
-            "-ya",
+            "-ya".to_string(),
             Transform {
-                name: "-ya",
+                name: "-ya".to_string(),
                 description: Some("Contraction of -ba.".into()),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ゃ",
+                    language: "ja".to_string(),
+                    name: "～ゃ".to_string(),
                     description: Some("仮定形の縮約系"),
                 }]),
                 rules: vec![
@@ -295,10 +286,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-cha",
+        (            "-cha".to_string(),
             Transform {
-                name: "-cha",
+                name: "-cha".to_string(),
                 description: Some(
                     "Contraction of ～ては.\n1. Explains how something always happens under the condition that it marks.\n\
                     2. Expresses the repetition (of a series of) actions.\n3. Indicates a hypothetical situation in \
@@ -307,8 +297,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                     contract ては into ちゃ.".into(),
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ちゃ",
+                    language: "ja".to_string(),
+                    name: "～ちゃ".to_string(),
                     description: Some("「～ては」の縮約系"),
                 }]),
                 rules: vec![
@@ -332,14 +322,13 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-chau",
+        (            "-chau".to_string(),
             Transform {
-                name: "-chau",
+                name: "-chau".to_string(),
                 description: Some(format!("Contraction of -shimau.\n{SHIMAU_ENGLISH_DESCRIPTION}Usage: Attach しまう after the te-form of verbs, contract てしまう into ちゃう.")),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ちゃう",
+                    language: "ja".to_string(),
+                    name: "～ちゃう".to_string(),
                     description: Some("「～てしまう」のややくだけた口頭語的表現"),
                 }]),
                 rules: vec![
@@ -363,17 +352,16 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-chimau",
+        (            "-chimau".to_string(),
             Transform {
-                name: "-chimau",
+                name: "-chimau".to_string(),
                 description: Some(format!(
                     "Contraction of -shimau.\n{SHIMAU_ENGLISH_DESCRIPTION}Usage: 
                     Attach しまう after the te-form of verbs, contract てしまう into ちまう."
                 )),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ちまう",
+                    language: "ja".to_string(),
+                    name: "～ちまう".to_string(),
                     description: Some("「～てしまう」の音変化"),
                 }]),
                 rules: vec![
@@ -397,16 +385,15 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-shimau",
+        (            "-shimau".to_string(),
             Transform {
-                name: "-shimau",
+                name: "-shimau".to_string(),
                 description: Some(format!(
                     "{SHIMAU_ENGLISH_DESCRIPTION}Usage: Attach しまう after the te-form of verbs."
                 )),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～しまう",
+                    language: "ja".to_string(),
+                    name: "～しまう".to_string(),
                     description: Some("その動作がすっかり終わる、その状態が完成することを表す。
                     終わったことを強調したり、不本意である、困ったことになった、などの気持ちを添えたりすることもある。"),
                 }]),
@@ -416,16 +403,15 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-nasai",
+        (            "-nasai".to_string(),
             Transform {
-                name: "-nasai",
+                name: "-nasai".to_string(),
                 description: Some(
                     "Polite imperative suffix.\nUsage: Attach なさい after the continuative form (renyoukei) of verbs.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～なさい",
+                    language: "ja".to_string(),
+                    name: "～なさい".to_string(),
                     description: Some("動詞「なさる」の命令形"),
                 }]),
                 rules: vec![
@@ -448,17 +434,16 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-sou",
+        (            "-sou".to_string(),
             Transform {
-                name: "-sou",
+                name: "-sou".to_string(),
                 description: Some(
                     "Appearing that; looking like.\n
                      Usage: Attach そう to the continuative form (renyoukei) of verbs, or to the stem of adjectives.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～そう",
+                    language: "ja".to_string(),
+                    name: "～そう".to_string(),
                     description: Some("そういう様子だ、そうなる様子だということ、すなわち様態を表す助動詞。"),
                 }]),
                 rules: vec![
@@ -482,17 +467,16 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-sugiru",
+        (            "-sugiru".to_string(),
             Transform {
-                name: "-sugiru",
+                name: "-sugiru".to_string(),
                 description: Some(
                     "Shows something \"is too...\" or someone is doing something \"too much\".\n
                     Usage: Attach すぎる to the continuative form (renyoukei) of verbs, or to the stem of adjectives.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～すぎる",
+                    language: "ja".to_string(),
+                    name: "～すぎる".to_string(),
                     description: Some("程度や限度を超える"),
                 }]),
                 rules: vec![
@@ -516,18 +500,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-tai",
+        (            "-tai".to_string(),
             Transform {
-                name: "-tai",
+                name: "-tai".to_string(),
                 description: Some(
                     "1. Expresses the feeling of desire or hope.\n
                     2. Used in ...たいと思います, an indirect way of saying what the speaker intends to do.\n
                     Usage: Attach たい to the continuative form (renyoukei) of verbs. たい itself conjugates as i-adjective.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～たい",
+                    language: "ja".to_string(),
+                    name: "～たい".to_string(),
                     description: Some("することをのぞんでいる、という、希望や願望の気持ちをあらわす。"),
                 }]),
                 rules: vec![
@@ -550,10 +533,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-tara",
+        (            "-tara".to_string(),
             Transform {
-                name: "-tara",
+                name: "-tara".to_string(),
                 description: Some(
                     "1. Denotes the latter stated event is a continuation of the previous stated event.\n
                         2. Assumes that a matter has been completed or concluded.\n
@@ -561,8 +543,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                         of verbs after euphonic change form, かったら to the stem of i-adjectives.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～たら",
+                    language: "ja".to_string(),
+                    name: "～たら".to_string(),
                     description: Some("仮定をあらわす・…すると・したあとに"),
                 }]),
                 rules: vec![
@@ -604,10 +586,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-tari",
+        (            "-tari".to_string(),
             Transform {
-                name: "-tari",
+                name: "-tari".to_string(),
                 description: Some(
                     "1. Shows two actions occurring back and forth (when used with two verbs).\n
                     2. Shows examples of actions and states (when used with multiple verbs and adjectives).\n
@@ -615,8 +596,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                     of verbs after euphonic change form, かったり to the stem of i-adjectives.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～たり",
+                    language: "ja".to_string(),
+                    name: "～たり".to_string(),
                     description: Some("ある動作を例示的にあげることを表わす。"),
                 }]),
                 rules: vec![
@@ -658,18 +639,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-te",
+        (            "-te".to_string(),
             Transform {
-                name: "-te",
+                name: "-te".to_string(),
                 description: Some(
                     "te-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\n
                     Usage: Attach て to the continuative form (renyoukei) 
                     of verbs after euphonic change form, くて to the stem of i-adjectives.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～て",
+                    language: "ja".to_string(),
+                    name: "～て".to_string(),
                     description: Some("て（で）形"),
                 }]),
                 rules: vec![
@@ -712,18 +692,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-zu",
+        (            "-zu".to_string(),
             Transform {
-                name: "-zu",
+                name: "-zu".to_string(),
                 description: Some(
                     "1. Negative form of verbs.\n
                         2. Continuative form (renyoukei) of the particle ぬ (nu).\n
                         Usage: Attach ず to the irrealis form (mizenkei) of verbs.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ず",
+                    language: "ja".to_string(),
+                    name: "～ず".to_string(),
                     description: Some("口語の否定の助動詞「ぬ」の連用形"),
                 }]),
                 rules: vec![
@@ -746,16 +725,15 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-nu",
+        (            "-nu".to_string(),
             Transform {
-                name: "-nu",
+                name: "-nu".to_string(),
                 description: Some(
                     "Negative form of verbs.\nUsage: Attach ぬ to the irrealis form (mizenkei) of verbs.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ぬ",
+                    language: "ja".to_string(),
+                    name: "～ぬ".to_string(),
                     description: Some("動作・状態などを「…ない」と否定することを表わす。"),
                 }]),
                 rules: vec![
@@ -778,18 +756,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-n",
+        (            "-n".to_string(),
             Transform {
-                name: "-n",
+                name: "-n".to_string(),
                 description: Some(
                     "1. Negative form of verbs; a sound change of ぬ.\n
                         2. (As …んばかり) Shows an action or condition is on the verge of occurring, or an excessive/extreme degree.\n
                         Usage: Attach ん to the irrealis form (mizenkei) of verbs.".into()
                 ),
                 i18n: Some(vec![TransformI18n {
-                    language: "ja",
-                    name: "～ん",
+                    language: "ja".to_string(),
+                    name: "～ん".to_string(),
                     description: Some("〔否定の助動詞〕…ない"),
                 }]),
                 rules: vec![
@@ -812,10 +789,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             }
         ),
-        (
-            "-mu",
+        (            "-mu".to_string(),
             Transform {
-                name: "-mu",
+                name: "-mu".to_string(),
                 description: Some(
                     "Archaic.\n
                     Shows an inference of a certain matter.\n 
@@ -824,8 +800,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～む",
+                        language: "ja".to_string(),
+                        name: "～む".to_string(),
                         description: Some("…だろう"),
                     },
                 ]),
@@ -849,18 +825,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-zaru",
+        (            "-zaru".to_string(),
             Transform {
-                name: "-zaru",
+                name: "-zaru".to_string(),
                 description: Some(
                     "Negative form of verbs.\n
                     Usage: Attach ざる to the irrealis form (mizenkei) of verbs.".into()
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～ざる",
+                        language: "ja".to_string(),
+                        name: "～ざる".to_string(),
                         description: Some("…ない…"),
                     },
                 ]),
@@ -884,10 +859,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-neba",
+        (            "-neba".to_string(),
             Transform {
-                name: "-neba",
+                name: "-neba".to_string(),
                 description: Some(
                     "1. Shows a hypothetical negation; if not ...\n. 
                     Shows a must. Used with or without ならぬ.\n
@@ -895,8 +869,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～ねば",
+                        language: "ja".to_string(),
+                        name: "～ねば".to_string(),
                         description: Some("もし…ないなら。…なければならない。"),
                     },
                 ]),
@@ -920,17 +894,16 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-ku",
+        (            "-ku".to_string(),
             Transform {
-                name: "-ku",
+                name: "-ku".to_string(),
                 description: Some(
                     "Adverbial form of i-adjectives.\n".into()
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "連用形",
+                        language: "ja".to_string(),
+                        name: "連用形".to_string(),
                         description: Some("〔形容詞で〕用言へ続く。例、「大きく育つ」の「大きく」。"),
                     },
                 ]),
@@ -939,10 +912,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "causative",
+        (            "causative".to_string(),
             Transform {
-                name: "causative",
+                name: "causative".to_string(),
                 description: Some(
                     "Describes the intention to make someone do something.\n
                     Usage: Attach させる to the irrealis form (mizenkei) of ichidan verbs and くる.\n
@@ -951,8 +923,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "使役形",
+                        language: "ja".to_string(),
+                        name: "使役形".to_string(),
                         description: Some("だれかにある行為をさせる意を表わす時の言い方。例、「行かせる」の「せる」。"),
                     },
                 ]),
@@ -979,10 +951,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "imperative",
+        (            "imperative".to_string(),
             Transform {
-                name: "imperative",
+                name: "imperative".to_string(),
                 description: Some(
                     "1. To give orders.\n
                     2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n
@@ -990,8 +961,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "命令形",
+                        language: "ja".to_string(),
+                        name: "命令形".to_string(),
                         description: Some("命令の意味を表わすときの形。例、「行け」。"),
                     },
                 ]),
@@ -1019,10 +990,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "imperative negative",
+        (            "imperative negative".to_string(),
             Transform {
-                name: "imperative negative",
+                name: "imperative negative".to_string(),
                 description: None,
                 i18n: None,
                 rules: vec![
@@ -1030,18 +1000,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "continuative",
+        (            "continuative".to_string(),
             Transform {
-                name: "continuative",
+                name: "continuative".to_string(),
                 description: Some(
                     "Used to indicate actions that are (being) carried out.\n
                     Refers to the renyoukei, the part of the verb after conjugating with -masu and dropping masu.".into()
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "連用形",
+                        language: "ja".to_string(),
+                        name: "連用形".to_string(),
                         description: Some(
                             "〔動詞などで〕「ます」などに続く。例、「バスを降りて歩きます」の「降り」「歩き」。"
                         ),
@@ -1086,10 +1055,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "negative",
+        (            "negative".to_string(),
             Transform {
-                name: "negative",
+                name: "negative".to_string(),
                 description: Some(
                     "1. Negative form of verbs.\n
                     2. Expresses a feeling of solicitation to the other party.\n
@@ -1097,8 +1065,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～ない",
+                        language: "ja".to_string(),
+                        name: "～ない".to_string(),
                         description: Some(
                             "その動作・作用・状態の成立を否定することを表わす。"
                         ),
@@ -1126,18 +1094,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-sa",
+        (            "-sa".to_string(),
             Transform {
-                name: "-sa",
+                name: "-sa".to_string(),
                 description: Some(
                     "Nominalizing suffix of i-adjectives indicating nature, state, mind or degree.\n
                     Usage: Attach さ to the stem of i-adjectives.".into()
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～さ",
+                        language: "ja".to_string(),
+                        name: "～さ".to_string(),
                         description: Some("こと。程度。"),
                     },
                 ]),
@@ -1146,16 +1113,15 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "passive",
+        (            "passive".to_string(),
             Transform {
-                name: "passive",
+                name: "passive".to_string(),
                 description: Some(format!("{PASSIVE_ENGLISH_DESCRIPTION} 
                 Usage: Attach れる to the irrealis form (mizenkei) of godan verbs.")),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "受身形",
+                        language: "ja".to_string(),
+                        name: "受身形".to_string(),
                         description: None,
                     },
                 ]),
@@ -1179,10 +1145,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-ta",
+        (            "-ta".to_string(),
             Transform {
-                name: "-ta",
+                name: "-ta".to_string(),
                 description: Some(
                     "1. Indicates a reality that has happened in the past.\n
                     2. Indicates the completion of an action.\n
@@ -1195,8 +1160,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～た・かった形",
+                        language: "ja".to_string(),
+                        name: "～た・かった形".to_string(),
                         description: None,
                     },
                 ]),
@@ -1241,18 +1206,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-masu",
+        (            "-masu".to_string(),
             Transform {
-                name: "-masu",
+                name: "-masu".to_string(),
                 description: Some(
                     "Polite conjugation of verbs and adjectives.\n\
                     Usage: Attach ます to the continuative form (renyoukei) of verbs.".into()
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～ます",
+                        language: "ja".to_string(),
+                        name: "～ます".to_string(),
                         description: None,
                     },
                 ]),
@@ -1277,10 +1241,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "potential",
+        (            "potential".to_string(),
             Transform {
-                name: "potential",
+                name: "potential".to_string(),
                 description: Some(
                     "Indicates a state of being (naturally) capable of doing an action.\n\
                     Usage: Attach (ら)れる to the irrealis form (mizenkei) of ichidan verbs.\n\
@@ -1289,8 +1252,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "可能",
+                        language: "ja".to_string(),
+                        name: "可能".to_string(),
                         description: None,
                     },
                 ]),
@@ -1312,10 +1275,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "potential or passive",
+        (            "potential or passive".to_string(),
             Transform {
-                name: "potential or passive",
+                name: "potential or passive".to_string(),
                 description: Some(
                     "Usage: Attach られる to the irrealis form (mizenkei) of ichidan verbs.\n\
                     する becomes せられる, くる becomes こられる\n\
@@ -1323,8 +1285,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "受身・自発・可能・尊敬",
+                        language: "ja".to_string(),
+                        name: "受身・自発・可能・尊敬".to_string(),
                         description: None,
                     },
                 ]),
@@ -1340,10 +1302,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "volitional",
+        (            "volitional".to_string(),
             Transform {
-                name: "volitional",
+                name: "volitional".to_string(),
                 description: Some(
                     "1. Expresses speaker's will or intention; volitional form.\n
                     2. Expresses an invitation to the other party.\n
@@ -1355,8 +1316,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～う形",
+                        language: "ja".to_string(),
+                        name: "～う形".to_string(),
                         description: Some("主体の意志を表わす"),
                     },
                 ]),
@@ -1382,10 +1343,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "causative-passive",
+        (            "causative-passive".to_string(),
             Transform {
-                name: "causative-passive",
+                name: "causative-passive".to_string(),
                 description: Some(
                     "Contraction of the passive of the causative form of verbs.\n\
                     Someone was made to do something by someone else.\n\
@@ -1393,8 +1353,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "使役受け身形",
+                        language: "ja".to_string(),
+                        name: "使役受け身形".to_string(),
                         description: None,
                     },
                 ]),
@@ -1410,10 +1370,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-toku",
+        (            "-toku".to_string(),
             Transform {
-                name: "-toku",
+                name: "-toku".to_string(),
                 description: Some(
                     "Contraction of -teoku.\n\
                     To do certain things in advance in preparation (or in anticipation) of latter needs.\n\
@@ -1421,8 +1380,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～とく",
+                        language: "ja".to_string(),
+                        name: "～とく".to_string(),
                         description: Some("「～テオク」の縮約系"),
                     },
                 ]),
@@ -1446,10 +1405,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-teiru",
+        (            "-teiru".to_string(),
             Transform {
-                name: "-teiru",
+                name: "-teiru".to_string(),
                 description: Some(
                     "1. Indicates an action continues or progresses to a point in time.\n\
                     2. Indicates an action is completed and remains as is.\n\
@@ -1459,8 +1417,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～ている",
+                        language: "ja".to_string(),
+                        name: "～ている".to_string(),
                         description: None,
                     },
                 ]),
@@ -1476,17 +1434,16 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-ki",
+        (            "-ki".to_string(),
             Transform {
-                name: "-ki",
+                name: "-ki".to_string(),
                 description: Some(
                     "Attributive form (rentaikei) of i-adjectives. An archaic form that remains in modern Japanese.".into()
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～き",
+                        language: "ja".to_string(),
+                        name: "～き".to_string(),
                         description: Some("連体形"),
                     },
                 ]),
@@ -1495,18 +1452,17 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-ge",
+        (            "-ge".to_string(),
             Transform {
-                name: "-ge",
+                name: "-ge".to_string(),
                 description: Some(
                     "Describes a person's appearance. Shows feelings of the person.\n\
                     Usage: Attach げ or 気 to the stem of i-adjectives".into()
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～げ",
+                        language: "ja".to_string(),
+                        name: "～げ".to_string(),
                         description: Some("…でありそうな様子。いかにも…らしいさま。"),
                     },
                 ]),
@@ -1516,10 +1472,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-garu",
+        (            "-garu".to_string(),
             Transform {
-                name: "-garu",
+                name: "-garu".to_string(),
                 description: Some(
                     "1. Shows subject’s feelings contrast with what is thought/known about them.\n\
                     2. Indicates subject's behavior (stands out).\n\
@@ -1527,8 +1482,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～がる",
+                        language: "ja".to_string(),
+                        name: "～がる".to_string(),
                         description: Some("いかにもその状態にあるという印象を相手に与えるような言動をする。"),
                     },
                 ]),
@@ -1537,10 +1492,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "-e",
+        (            "-e".to_string(),
             Transform {
-                name: "-e",
+                name: "-e".to_string(),
                 description: Some(
                     "Slang. A sound change of i-adjectives.\n\
                     ai：やばい → やべぇ\n\
@@ -1549,8 +1503,8 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ),
                 i18n: Some(vec![
                     TransformI18n {
-                        language: "ja",
-                        name: "～え",
+                        language: "ja".to_string(),
+                        name: "～え".to_string(),
                         description: Some("方言。例、「ない→ねえ」"),
                     },
                 ]),
@@ -1599,10 +1553,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "slang",
+        (            "slang".to_string(),
             Transform {
-                name: "slang",
+                name: "slang".to_string(),
                 description: None,
                 i18n: None,
                 rules: vec![
@@ -1619,10 +1572,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "n-slang",
+        (            "n-slang".to_string(),
             Transform {
-                name: "n-slang",
+                name: "n-slang".to_string(),
                 description: Some("Slang sound change of r-column syllables to n (when before an n-sound, usually の or な)".into()),
                 i18n: None,
                 rules: vec![
@@ -1635,10 +1587,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "kansai-ben negative",
+        (            "kansai-ben negative".to_string(),
             Transform {
-                name: "kansai-ben",
+                name: "kansai-ben".to_string(),
                 description: Some("Negative form of kansai-ben verbs".into()),
                 i18n: None,
                 rules: vec![
@@ -1651,10 +1602,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "kansai-ben -te",
+        (            "kansai-ben -te".to_string(),
             Transform {
-                name: "kansai-ben",
+                name: "kansai-ben".to_string(),
                 description: Some("-te form of kansai-ben verbs".into()),
                 i18n: None,
                 rules: vec![
@@ -1676,10 +1626,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "kansai-ben past",
+        (            "kansai-ben past".to_string(),
             Transform {
-                name: "kansai-ben",
+                name: "kansai-ben".to_string(),
                 description: Some("Past form of kansai-ben terms".into()),
                 i18n: None,
                 rules: vec![
@@ -1701,10 +1650,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "kansai-ben -tara",
+        (            "kansai-ben -tara".to_string(),
             Transform {
-                name: "kansai-ben",
+                name: "kansai-ben".to_string(),
                 description: Some("-tara form of kansai-ben terms".into()),
                 i18n: None,
                 rules: vec![
@@ -1726,10 +1674,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "kansai-ben -ku",
+        (            "kansai-ben -ku".to_string(),
             Transform {
-                name: "kansai-ben",
+                name: "kansai-ben".to_string(),
                 description: Some("-ku stem of kansai-ben adjectives".into()),
                 i18n: None,
                 rules: vec![
@@ -1747,10 +1694,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "kansai-ben adjective -te",
+        (            "kansai-ben adjective -te".to_string(),
             Transform {
-                name: "kansai-ben",
+                name: "kansai-ben".to_string(),
                 description: Some("-te form of kansai-ben adjectives".into()),
                 i18n: None,
                 rules: vec![
@@ -1768,10 +1714,9 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-        (
-            "kansai-ben adjective negative",
+        (            "kansai-ben adjective negative".to_string(),
             Transform {
-                name: "kansai-ben",
+                name: "kansai-ben".to_string(),
                 description: Some("Negative form of kansai-ben adjectives".into()),
                 i18n: None,
                 rules: vec![
@@ -1789,7 +1734,7 @@ pub static TRANSFORMS: LazyLock<TransformMap> = LazyLock::new(|| {
                 ],
             },
         ),
-    ])
+    ]))
 });
 
 pub static JAPANESE_TRANSFORMS: LazyLock<LanguageTransformDescriptor> =
