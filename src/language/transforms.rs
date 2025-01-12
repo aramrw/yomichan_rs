@@ -11,7 +11,7 @@ pub fn suffix_inflection<'a>(
     deinflected_suffix: &'a str,
     conditions_in: Vec<&'a str>,
     conditions_out: Vec<&'a str>,
-) -> SuffixRule<'a /*, impl Fn(&str) -> String + 'a*/> {
+) -> SuffixRule {
     let inflected_suffix = inflected_suffix.to_string();
     let deinflected_suffix = deinflected_suffix.to_string();
     let deinflected_suffix_2 = deinflected_suffix.to_string();
