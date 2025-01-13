@@ -30,38 +30,10 @@ pub enum LanguageTransformerError {
 
 #[derive(thiserror::Error, Debug)]
 pub enum ConditionError {
-    #[error("map does not contain condition: ({condition:?})")]
+    #[error("Map does not contain condition: ({condition:?})")]
     Missing { index: usize, condition: String },
     #[error("`condition_types` is empty.")]
     EmptyTypes,
-}
-
-#[cfg(test)]
-mod language_transformer_tests {
-    use std::ops::Deref;
-
-    use crate::language::ja::transforms::{JAPANESE_TRANSFORMS, TEST_JAPANESE_TRANSFORMS};
-
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn add_descriptor_test() {
-        let mut language_transformer = LanguageTransformer::new();
-        language_transformer
-            .add_descriptor(&TEST_JAPANESE_TRANSFORMS)
-            .unwrap();
-    }
-    #[test]
-    fn get_condition_flags_map() {
-        let mut lt = LanguageTransformer::new();
-        let conditions =
-            LanguageTransformDescriptor::_get_condition_entries(&TEST_JAPANESE_TRANSFORMS);
-        let condition_flags_map =
-            LanguageTransformer::get_condition_flags_map(&lt, conditions, lt.next_flag_index);
-        //dbg!("conditions:\n   {:#?}", condition_entries);
-        dbg!("map: {:#?}", condition_flags_map);
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -336,25 +308,27 @@ impl LanguageTransformer {
             let mut next_targets = Vec::with_capacity(targets.len());
             let targets_len = targets.len();
             for target in targets {
-                let condition_type = target.0.clone();
-                let condition = target.1.clone();
+                let ConditionMapEntry(condition_type, condition) = target.clone();
                 let sub_conditions = condition.sub_conditions;
                 let mut flags = 0;
-                if let Some(sub_conditions) = sub_conditions {
-                    let Ok(multi_flags) = LanguageTransformer::get_condition_flags_strict(
-                        &condition_flags_map,
-                        &sub_conditions,
-                    ) else {
-                        next_targets.push(target);
-                        continue;
-                    };
-                    flags = multi_flags;
-                } else {
-                    if next_flag_index >= MAX_FLAG_LIMIT {
-                        return Err(whatever!("Maximum Number of Conditions was Exceeded."));
+                match sub_conditions {
+                    Some(sub_conditions) => {
+                        let Ok(multi_flags) = LanguageTransformer::get_condition_flags_strict(
+                            &condition_flags_map,
+                            &sub_conditions,
+                        ) else {
+                            next_targets.push(target);
+                            continue;
+                        };
+                        flags = multi_flags
                     }
-                    flags = 1 << next_flag_index;
-                    next_flag_index += 1;
+                    None => {
+                        if next_flag_index >= MAX_FLAG_LIMIT {
+                            return Err(whatever!("Maximum Number of Conditions was Exceeded."));
+                        }
+                        flags = 1 << next_flag_index;
+                        next_flag_index += 1;
+                    }
                 }
                 condition_flags_map.insert(condition_type, flags);
             }
@@ -436,7 +410,7 @@ impl std::ops::Deref for ConditionMap {
 #[derive(Debug, Clone)]
 pub struct ConditionMapEntry(String, Condition);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ConditionFlagsMap {
     pub map: HashMap<String, usize>,
     pub next_flag_index: usize,
@@ -631,6 +605,70 @@ pub enum RuleType {
     Prefix,
     WholeWord,
     Other,
+}
+
+#[cfg(test)]
+mod language_transformer_tests {
+    use std::ops::Deref;
+
+    use crate::language::ja::transforms::{
+        JAPANESE_TRANSFORMS, TEST_DESC, TEST_JAPANESE_TRANSFORMS,
+    };
+
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn add_descriptor_test() {
+        let mut language_transformer = LanguageTransformer::new();
+        language_transformer
+            .add_descriptor(&TEST_JAPANESE_TRANSFORMS)
+            .unwrap();
+    }
+    #[test]
+    fn get_condition_flags_map() {
+        let assert_map = ConditionFlagsMap {
+            map: HashMap::from_iter([
+                ("v1d".to_string(), 1),
+                ("v1p".to_string(), 2),
+                ("v5d".to_string(), 4),
+                ("v5ss".to_string(), 8),
+                ("v5sp".to_string(), 16),
+                ("vk".to_string(), 32),
+                ("vs".to_string(), 64),
+                ("vz".to_string(), 128),
+                ("adj-i".to_string(), 256),
+                ("-ます".to_string(), 512),
+                ("-ません".to_string(), 1024),
+                ("-て".to_string(), 2048),
+                ("-ば".to_string(), 4096),
+                ("-く".to_string(), 8192),
+                ("-た".to_string(), 16384),
+                ("-ん".to_string(), 32768),
+                ("-なさい".to_string(), 65536),
+                ("-ゃ".to_string(), 131072),
+                ("v1".to_string(), 3),
+                ("v5s".to_string(), 24),
+                ("v5".to_string(), 28),
+                ("v".to_string(), 255),
+            ]),
+            next_flag_index: 18,
+        };
+
+        let mut lt = LanguageTransformer::new();
+        let conditions = LanguageTransformDescriptor::_get_condition_entries(&TEST_DESC);
+        //dbg!("conditions:\n   {:#?}", condition_entries);
+        let condition_flags_map =
+            LanguageTransformer::get_condition_flags_map(&lt, conditions, lt.next_flag_index);
+
+        //dbg!("map: {:#?}", condition_flags_map);
+        assert_eq!(condition_flags_map.unwrap(), assert_map);
+    }
+
+    #[test]
+    fn get_condition_flags_strict() {
+        //LanguageTransformer::get_condition_flags_strict(condition_flags_map, condition_types)
+    }
 }
 
 // impl InternalRule
