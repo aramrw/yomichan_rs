@@ -60,13 +60,13 @@ pub fn is_text_lookup_worthy(text: &str, language: &str) -> bool {
     false
 }
 
-pub fn get_all_language_transform_descriptors<'a>() -> Vec<LanguageAndTransforms<'a>> {
+pub fn get_all_language_transform_descriptors() -> Vec<LanguageAndTransforms> {
     let mut results: Vec<LanguageAndTransforms> = Vec::new();
     for entry in LANGUAGE_DESCRIPTORS_MAP.values() {
         if let Some(language_transforms) = &entry.language_transforms {
             let item = LanguageAndTransforms {
                 iso: entry.iso.clone(),
-                language_transforms,
+                language_transforms: language_transforms.clone(),
             };
             results.push(item);
         }

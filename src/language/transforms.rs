@@ -9,8 +9,8 @@ use super::transformer_d::{Condition, Rule, SuffixRule};
 pub fn suffix_inflection<'a>(
     inflected_suffix: &'a str,
     deinflected_suffix: &'a str,
-    conditions_in: Vec<&'a str>,
-    conditions_out: Vec<&'a str>,
+    conditions_in: Vec<String>,
+    conditions_out: Vec<String>,
 ) -> SuffixRule {
     let inflected_suffix = inflected_suffix.to_string();
     let deinflected_suffix = deinflected_suffix.to_string();

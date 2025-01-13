@@ -23,7 +23,7 @@ impl MultiLanguageTransformer {
         let languages_with_transformers = get_all_language_transform_descriptors();
         for descriptor in languages_with_transformers {
             let mut language_transformer = LanguageTransformer::new();
-            language_transformer.add_descriptor(descriptor.language_transforms);
+            language_transformer.add_descriptor(&descriptor.language_transforms);
             self.language_transformers.insert(
                 descriptor.language_transforms.language.clone(),
                 language_transformer,

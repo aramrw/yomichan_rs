@@ -65,9 +65,9 @@ pub struct LanguageAndReadingNormalizer {
     pub reading_normalizer: ReadingNormalizer,
 }
 
-pub struct LanguageAndTransforms<'a> {
+pub struct LanguageAndTransforms {
     pub iso: String,
-    pub language_transforms: &'a LanguageTransformDescriptor<'a>,
+    pub language_transforms: LanguageTransformDescriptor,
 }
 
 pub struct TextProcessorWithId<'a, O, S> {
