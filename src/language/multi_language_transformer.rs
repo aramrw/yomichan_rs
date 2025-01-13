@@ -8,11 +8,11 @@ use crate::{
 use super::{transformer_d::LanguageTransformer, transformer_internal_d::TransformedText};
 use std::collections::HashMap;
 
-pub struct MultiLanguageTransformer<'a> {
-    pub language_transformers: HashMap<&'a str, LanguageTransformer>,
+pub struct MultiLanguageTransformer {
+    pub language_transformers: HashMap<String, LanguageTransformer>,
 }
 
-impl<'a> MultiLanguageTransformer<'a> {
+impl MultiLanguageTransformer {
     fn new() -> Self {
         Self {
             language_transformers: HashMap::new(),
@@ -23,9 +23,9 @@ impl<'a> MultiLanguageTransformer<'a> {
         let languages_with_transformers = get_all_language_transform_descriptors();
         for descriptor in languages_with_transformers {
             let mut language_transformer = LanguageTransformer::new();
-            language_transformer.add_descriptor(descriptor.language_transforms.clone());
+            language_transformer.add_descriptor(&descriptor.language_transforms);
             self.language_transformers.insert(
-                &descriptor.language_transforms.language,
+                descriptor.language_transforms.language.clone(),
                 language_transformer,
             ).with_whatever_context(|| {
                 format!("Could not insert descriptor.language_transforms.language ({}) into `MultiLanguageTransformer's `language_transformers",descriptor.language_transforms.language)

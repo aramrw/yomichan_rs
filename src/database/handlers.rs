@@ -5,8 +5,8 @@ use crate::dictionary_data::{
     TermMetaPitch, TermMetaPitchData,
 };
 
+use crate::database::dictionary_importer::{prepare_dictionary, Summary, TermMetaBank};
 use crate::dictionary_data::KANA_MAP;
-use crate::dictionary_importer::{prepare_dictionary, Summary, TermMetaBank};
 use crate::errors::{DBError, ImportError};
 use crate::settings::{DictionaryOptions, Options, Profile};
 use crate::Yomichan;
@@ -422,6 +422,23 @@ fn query_all_freq_meta(
         .collect();
 
     Ok(results?)
+}
+
+#[cfg(test)]
+mod standalone_tests {
+    // Example test
+    use super::*;
+
+    #[test]
+    fn lookup_exact() {
+        assert_eq!(2 + 2, 4);
+    }
+
+    // Mock data only for tests
+    #[cfg(test)]
+    fn get_test_data() -> String {
+        "Test data".to_string()
+    }
 }
 
 // fn handle_meta_freq_query<Q: AsRef<str> + Debug>(

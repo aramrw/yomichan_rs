@@ -80,10 +80,8 @@ pub struct ProfileConditionGroup {
 /// Profile usage conditions are used to automatically select certain profiles based on context.
 /// For example, different profiles can be used,
 /// depending on the nested level of the popup, or based on the website's URL.
-
 /// Conditions are organized into groups corresponding to the order in which they are checked.
 /// If all of the conditions in any group of a profile are met, then that profile will be used for that context.
-
 /// If no conditions are specified, the profile will only be used if it is selected as the default profile.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum ProfileConditionType {

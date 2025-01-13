@@ -1,6 +1,6 @@
 use crate::database::dictionary_database::DBMetaType;
+use crate::database::dictionary_importer::{FrequencyMode, StructuredContent};
 use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
-use crate::dictionary_importer::{FrequencyMode, StructuredContent};
 use crate::structured_content::ImageElement;
 
 use bimap::BiHashMap;

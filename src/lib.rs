@@ -2,7 +2,6 @@
 mod database;
 mod dictionary;
 mod dictionary_data;
-mod dictionary_importer;
 mod errors;
 mod freq;
 mod language;
@@ -41,7 +40,7 @@ impl Yomichan {
     /// use yomichan_rs::Yomichan;
     ///
     /// // create the database at `C:\\Users\\1\\Desktop\\yomichan\\data.db`
-    /// let mut ycd = Yomichan::new("C:\\Users\\1\\Desktop");
+    /// let mut ycd = Yomichan::new("c:/users/name/desktop");
     /// ```
     pub fn new(path: impl AsRef<Path>) -> Result<Self, errors::InitError> {
         let db_path = if let Some(existing) = check_db_exists(&path)? {

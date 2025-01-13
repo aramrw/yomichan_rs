@@ -4,18 +4,67 @@ use std::{
 };
 
 use regex::Regex;
+use serde::{Deserialize, Deserializer};
+use serde_json::error;
 use snafu::{ensure, ensure_whatever, whatever, OptionExt, ResultExt, Whatever};
 
-use crate::{
-    dictionary::{InflectionRule, InflectionRuleChain},
-    errors::LanguageError,
-};
+use crate::dictionary::{InflectionRule, InflectionRuleChain};
 
 use super::{
     transformer_internal_d::{InternalRule, InternalTransform, Trace, TraceFrame, TransformedText},
     transforms::suffix_inflection,
 };
 
+/// Errors for [`LanguageTransformer`].
+#[derive(snafu::Snafu, Debug)]
+pub enum LanguageTransformerError {
+    #[snafu(display("Invalid for transform: {transform_id}.rules[{index}]"))]
+    InvalidConditions {
+        source: ConditionError,
+        transform_id: String,
+        index: usize,
+    },
+    #[snafu(display("Failed to get conditions_flag_map: {e}"))]
+    ConditionsFlagMap { e: String },
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ConditionError {
+    #[error("map does not contain condition: ({condition:?})")]
+    Missing { index: usize, condition: String },
+    #[error("`condition_types` is empty.")]
+    EmptyTypes,
+}
+
+#[cfg(test)]
+mod language_transformer_tests {
+    use std::ops::Deref;
+
+    use crate::language::ja::transforms::{JAPANESE_TRANSFORMS, TEST_JAPANESE_TRANSFORMS};
+
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn add_descriptor_test() {
+        let mut language_transformer = LanguageTransformer::new();
+        language_transformer
+            .add_descriptor(&TEST_JAPANESE_TRANSFORMS)
+            .unwrap();
+    }
+    #[test]
+    fn get_condition_flags_map() {
+        let mut lt = LanguageTransformer::new();
+        let conditions =
+            LanguageTransformDescriptor::_get_condition_entries(&TEST_JAPANESE_TRANSFORMS);
+        let condition_flags_map =
+            LanguageTransformer::get_condition_flags_map(&lt, conditions, lt.next_flag_index);
+        //dbg!("conditions:\n   {:#?}", condition_entries);
+        dbg!("map: {:#?}", condition_flags_map);
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct LanguageTransformer {
     next_flag_index: usize,
     transforms: Vec<InternalTransform>,
@@ -23,7 +72,7 @@ pub struct LanguageTransformer {
     part_of_speech_to_condition_flags_map: HashMap<String, usize>,
 }
 
-impl<'a> LanguageTransformer {
+impl LanguageTransformer {
     pub fn new() -> Self {
         Self {
             next_flag_index: 0,
@@ -40,19 +89,25 @@ impl<'a> LanguageTransformer {
         self.part_of_speech_to_condition_flags_map.clear();
     }
 
+    //
+
     pub fn add_descriptor(
         &mut self,
-        descriptor: LanguageTransformDescriptor,
-    ) -> Result<(), Whatever> {
-        let transforms = descriptor.transforms;
-        let condition_entries: Vec<(&String, &Condition)> = descriptor.conditions.iter().collect();
-        let condition_flags_map = self
+        descriptor: &LanguageTransformDescriptor,
+    ) -> Result<(), LanguageTransformerError> {
+        let transforms: &TransformMapInner = &descriptor.transforms;
+        let condition_entries = LanguageTransformDescriptor::_get_condition_entries(descriptor);
+        let condition_flags_map = match self
             .get_condition_flags_map(condition_entries.clone(), self.next_flag_index)
-            .with_whatever_context(|_| "Failed to get condition flags map")?;
+        {
+            Ok(cfm) => cfm,
+            Err(e) => return Err(LanguageTransformerError::ConditionsFlagMap { e: e.to_string() }),
+        };
+
         let mut transforms2: Vec<InternalTransform> = Vec::new();
-        for entry in transforms.into_iter() {
-            let transform_id = entry.0;
-            let transform = entry.1;
+
+        for entry in transforms.iter() {
+            let (transform_id, transform) = entry;
             let Transform {
                 name,
                 description,
@@ -69,16 +124,25 @@ impl<'a> LanguageTransformer {
                     conditions_in,
                     conditions_out,
                 } = rule.clone();
-                let condition_flags_in = self
-                    .get_condition_flags_strict(&condition_flags_map.map, &conditions_in)
-                    .with_whatever_context(|| {
-                        format!("Invalid `conditions_in` for transform {transform_id}.rules[{j}]")
-                    })?;
-                let condition_flags_out = self
-                    .get_condition_flags_strict(&condition_flags_map.map, &conditions_out)
-                    .with_whatever_context(|| {
-                        format!("Invalid `conditions_out` for transform {transform_id}.rules[{j}]")
-                    })?;
+
+                let condition_flags_in = LanguageTransformer::get_condition_flags_strict(
+                    &condition_flags_map.map,
+                    &conditions_in,
+                )
+                .context(InvalidConditionsSnafu {
+                    index: j,
+                    transform_id: transform_id.to_string(),
+                })?;
+
+                let condition_flags_out = LanguageTransformer::get_condition_flags_strict(
+                    &condition_flags_map.map,
+                    &conditions_out,
+                )
+                .context(InvalidConditionsSnafu {
+                    index: j,
+                    transform_id: transform_id.to_string(),
+                })?;
+
                 rules2.push(InternalRule {
                     rule_type: rule_type.clone(),
                     is_inflected: is_inflected.clone(),
@@ -87,6 +151,7 @@ impl<'a> LanguageTransformer {
                     conditions_out: condition_flags_out as u32,
                 });
             }
+
             let is_inflected_regex_tests = rules
                 .iter()
                 .map(|rule| rule.is_inflected.clone())
@@ -97,11 +162,12 @@ impl<'a> LanguageTransformer {
                 .map(|reg_exp| reg_exp.as_str()) // get pattern (similar to .source in JS)
                 .collect::<Vec<&str>>()
                 .join("|");
+
             // compile the combined pattern into a new Regex
             let heuristic = Regex::new(&combined_pattern).unwrap();
             transforms2.push(InternalTransform {
-                id: transform_id.into(),
-                name: name.into(),
+                id: transform_id.to_string(),
+                name: name.to_string(),
                 description: description.clone(),
                 rules: rules2,
                 heuristic,
@@ -109,7 +175,7 @@ impl<'a> LanguageTransformer {
         }
         self.next_flag_index = condition_flags_map.next_flag_index;
         self.transforms.extend(transforms2);
-        for (condition_type, condition) in &condition_entries {
+        for ConditionMapEntry(condition_type, condition) in &condition_entries {
             if let Some(flags) = condition_flags_map.map.get(condition_type.as_str()) {
                 self.condition_type_to_condition_flags_map
                     .insert(condition_type.to_string(), *flags);
@@ -216,7 +282,7 @@ impl<'a> LanguageTransformer {
 
     pub fn get_user_facing_inflection_rules(
         &self,
-        inflection_rules: &[&'a str],
+        inflection_rules: &[&str],
     ) -> InflectionRuleChain {
         inflection_rules
             .iter()
@@ -257,53 +323,45 @@ impl<'a> LanguageTransformer {
         current_conditions == 0 || (current_conditions & next_conditions) != 0
     }
 
-    /**
-     * @param {import('language-transformer').ConditionMapEntries} conditions
-     * @param {number} nextFlagIndex
-     * @returns {{conditionFlagsMap: Map<string, number>, nextFlagIndex: number}}
-     * @throws {Error}
-     */
     pub fn get_condition_flags_map(
         &self,
         conditions: Vec<ConditionMapEntry>,
         next_flag_index: usize,
     ) -> Result<ConditionFlagsMap, Whatever> {
+        const MAX_FLAG_LIMIT: usize = 32;
         let mut next_flag_index = next_flag_index;
-        let mut condition_flags_map = HashMap::new();
+        let mut condition_flags_map = HashMap::with_capacity(conditions.len());
         let mut targets = conditions;
         while !targets.is_empty() {
-            let mut next_targets = Vec::new();
-            for target in &targets {
+            let mut next_targets = Vec::with_capacity(targets.len());
+            let targets_len = targets.len();
+            for target in targets {
                 let condition_type = target.0.clone();
                 let condition = target.1.clone();
-                let sub_conditions: Option<Condition> = Some(condition);
+                let sub_conditions = condition.sub_conditions;
                 let mut flags = 0;
                 if let Some(sub_conditions) = sub_conditions {
-                    if let Some(sub_conditions) = sub_conditions.sub_conditions {
-                        let multi_flags =
-                            self.get_condition_flags_strict(&condition_flags_map, sub_conditions);
-                        if let Some(multi_flags) = multi_flags {
-                            flags = multi_flags
-                        } else {
-                            next_targets.push(target.clone());
-                            continue;
-                        }
-                    }
+                    let Ok(multi_flags) = LanguageTransformer::get_condition_flags_strict(
+                        &condition_flags_map,
+                        &sub_conditions,
+                    ) else {
+                        next_targets.push(target);
+                        continue;
+                    };
+                    flags = multi_flags;
                 } else {
-                    ensure_whatever!(
-                        next_flag_index < 32,
-                        "Maximum Number of Conditions was Exceeded."
-                    );
+                    if next_flag_index >= MAX_FLAG_LIMIT {
+                        return Err(whatever!("Maximum Number of Conditions was Exceeded."));
+                    }
                     flags = 1 << next_flag_index;
                     next_flag_index += 1;
                 }
                 condition_flags_map.insert(condition_type, flags);
             }
-            ensure_whatever!(
-                !next_targets.len() != targets.len(),
-                "Maximum number of conditions was exceeded"
-            );
-            targets = next_targets;
+            if next_targets.len() == targets_len {
+                return Err(whatever!("Cycle in sub-Rule declaration"));
+            }
+            targets = std::mem::take(&mut next_targets);
         }
         Ok(ConditionFlagsMap {
             map: condition_flags_map,
@@ -311,20 +369,23 @@ impl<'a> LanguageTransformer {
         })
     }
 
-    pub fn get_condition_flags_strict(
-        &self,
+    pub fn get_condition_flags_strict<'a>(
         condition_flags_map: &HashMap<String, usize>,
-        condition_types: &[&'a str],
-    ) -> Option<usize> {
+        condition_types: &'a impl IntoDeref<'a>,
+    ) -> Result<usize, ConditionError> {
         let mut flags = 0;
-        for condition_type in condition_types {
-            let flags2 = condition_flags_map.get(*condition_type);
-            if let Some(flags2) = flags2 {
-                flags |= flags2;
-                return Some(flags);
-            }
+
+        for (index, condition_type) in condition_types.into_deref().enumerate() {
+            let Some(flags2) = condition_flags_map.get(condition_type) else {
+                return Err(ConditionError::Missing {
+                    index,
+                    condition: condition_type.to_string(),
+                });
+            };
+            flags |= flags2;
         }
-        None
+
+        Ok(flags)
     }
 
     fn get_condition_flags(
@@ -345,62 +406,196 @@ impl<'a> LanguageTransformer {
     }
 }
 
-#[derive(Clone)]
-pub struct LanguageTransformDescriptor<'a> {
+#[derive(Debug, Clone, Deserialize)]
+pub struct LanguageTransformDescriptor {
     pub language: String,
-    pub conditions: ConditionMap<'a>,
-    pub transforms: TransformMap<'a>,
+    pub conditions: ConditionMap,
+    pub transforms: TransformMap,
 }
 
-// Named `ConditionMapObject` in yomitan.
-pub type ConditionMap<'a> = HashMap<String, Condition<'a>>;
-pub type ConditionMapEntry<'a> = (&'a String, &'a Condition<'a>);
+impl LanguageTransformDescriptor {
+    pub fn _get_condition_entries(&self) -> Vec<ConditionMapEntry> {
+        self.conditions
+            .iter()
+            .map(|(str, cond)| ConditionMapEntry(str.to_string(), cond.to_owned()))
+            .collect()
+    }
+}
 
-#[derive(Clone)]
+/// Named [ConditionMapObject](https://github.com/yomidevs/yomitan/blob/37d13a8a1abc15f4e91cef5bfdc1623096855bb0/types/ext/language-transformer.d.ts#L24) in yomitan.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConditionMap(pub HashMap<String, Condition>);
+
+impl std::ops::Deref for ConditionMap {
+    type Target = HashMap<String, Condition>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConditionMapEntry(String, Condition);
+
+#[derive(Debug, Clone)]
 pub struct ConditionFlagsMap {
     pub map: HashMap<String, usize>,
     pub next_flag_index: usize,
 }
 
-#[derive(Clone)]
-pub struct Condition<'a> {
-    pub name: &'a str,
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Condition {
+    pub name: String,
     pub is_dictionary_form: bool,
-    pub i18n: Option<&'a [RuleI18n<'a>]>,
-    pub sub_conditions: Option<&'a [&'a str]>,
+    pub i18n: Option<Vec<RuleI18n>>,
+    pub sub_conditions: Option<Vec<String>>,
 }
 
+#[derive(thiserror::Error, Clone, Debug, Deserialize)]
+enum DeserializeTransformMapError {
+    #[error("failed to deserialize transform map")]
+    Failed,
+}
+
+type TransformMapInner = HashMap<String, Transform>;
 // Named `TransformMapObject` in yomitan.
-pub type TransformMap<'a> = HashMap<&'a str, Transform<'a>>;
+#[derive(Debug, Clone)]
+pub struct TransformMap(pub TransformMapInner);
 
-#[derive(Clone)]
-pub struct Transform<'a> {
-    pub name: &'a str,
-    pub description: Option<String>,
-    pub i18n: Option<Vec<TransformI18n<'a>>>,
-    pub rules: Vec<SuffixRule<'a>>,
+/// [needless_lifetimes]
+/// the following explicit lifetimes could be elided: 'a
+impl<'de> Deserialize<'de> for TransformMap {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Use the HashMap's deserialization
+        let inner = TransformMapInner::deserialize(deserializer)?;
+        Ok(TransformMap(inner))
+    }
 }
 
-#[derive(Clone)]
-pub struct TransformI18n<'a> {
-    pub language: &'a str,
-    pub name: &'a str,
-    pub description: Option<&'a str>,
+impl std::ops::Deref for TransformMap {
+    type Target = TransformMapInner;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Transform {
+    pub name: String,
+    pub description: Option<String>,
+    pub i18n: Option<Vec<TransformI18n>>,
+    pub rules: Vec<SuffixRule>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TransformI18n {
+    pub language: String,
+    pub name: String,
+    pub description: Option<String>,
 }
 
 pub trait DeinflectFnTrait: Fn(String) -> String + Send + Sync + 'static {}
 impl<F: Fn(String) -> String + Send + Sync + 'static> DeinflectFnTrait for F {}
 pub type DeinflectFunction = Arc<dyn DeinflectFnTrait>;
 
-#[derive(Clone)]
-pub struct SuffixRule<'a> {
-    /// Is of type [`RuleType::Suffix`]
+fn regex_default() -> Regex {
+    Regex::new(r"\d").unwrap()
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SuffixRule {
+    #[serde(rename = "type")]
     pub rule_type: RuleType,
+    // Use custom deserialization function for `Regex`
+    #[serde(deserialize_with = "deserialize_regex")]
     pub is_inflected: Regex,
     pub deinflected: String,
-    pub deinflect: DeinflectFunction,
-    pub conditions_in: Vec<&'a str>,
-    pub conditions_out: Vec<&'a str>,
+    #[serde(skip_deserializing, default = "arc_default")]
+    pub deinflect: Arc<dyn DeinflectFnTrait>,
+    pub conditions_in: Vec<String>,
+    pub conditions_out: Vec<String>,
+}
+
+fn arc_default() -> Arc<dyn DeinflectFnTrait> {
+    std::sync::Arc::new(|_| "<unimplemented_deinflect_fn_trait>".into())
+}
+
+pub trait IntoDeref<'a> {
+    fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a>;
+}
+
+impl<'a> IntoDeref<'a> for Vec<String> {
+    fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {
+        Box::new(self.iter().map(|s| s.as_str()))
+    }
+}
+
+impl<'a> IntoDeref<'a> for &'a Vec<String> {
+    fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {
+        Box::new(self.iter().map(|s| s.as_str()))
+    }
+}
+
+/// Custom deserialization function for javascript Regex.
+///
+/// Note: If `RegExp.prototype.toJSON()` isn't used to serialize the regex,
+/// it will default to an object: `{}`.
+///> {"rgx":"/qux$/gi","date":"2014-03-21T23:11:33.749Z"}"
+fn deserialize_regex<'de, D>(deserializer: D) -> Result<Regex, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: serde_json::Value = Deserialize::deserialize(deserializer)?;
+    if let serde_json::Value::Object(obj) = s {
+        if let Some(re_val) = obj.get("rgx") {
+            if let serde_json::Value::String(re_str) = re_val {
+                return Regex::new(re_str).map_err(serde::de::Error::custom);
+            }
+            unreachable!();
+        }
+        let def = Regex::new(r"").unwrap();
+        return Ok(def);
+    }
+    panic!("'isInflected': was expected to be a regex object, found {s:?}");
+}
+
+impl std::fmt::Debug for SuffixRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SuffixRule")
+            .field("rule_type", &self.rule_type)
+            .field("is_inflected", &self.is_inflected)
+            .field("deinflected", &self.deinflected)
+            .field("deinflect", &"<deinflect_function>")
+            .field("conditions_in", &self.conditions_in)
+            .field("conditions_out", &self.conditions_out)
+            .finish()
+    }
+}
+
+#[cfg(test)]
+mod suffix_rule {
+    use std::sync::Arc;
+
+    use regex::Regex;
+
+    use super::{RuleType, SuffixRule};
+
+    #[test]
+    fn debug_display() {
+        let sr = SuffixRule {
+            rule_type: RuleType::Suffix,
+            is_inflected: Regex::new(r"\d").unwrap(),
+            deinflected: "食べる".into(),
+            deinflect: Arc::new(|a: String| a),
+            conditions_in: vec!["".to_string()],
+            conditions_out: vec!["".to_string()],
+        };
+        dbg!(sr);
+    }
 }
 
 // impl SuffixRule<'_> {
@@ -423,12 +618,14 @@ where
     pub conditions_out: Vec<&'a str>,
 }
 
-pub struct RuleI18n<'a> {
-    pub language: &'a str,
-    pub name: &'a str,
+#[derive(Debug, Clone, Deserialize)]
+pub struct RuleI18n {
+    pub language: String,
+    pub name: String,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum RuleType {
     Suffix,
     Prefix,
@@ -448,4 +645,4 @@ pub enum RuleType {
 //     ) -> String {
 //         format!("{}{}", deinflected_prefix, &text[inflected_prefix.len()..])
 //     }
-// }
+// &self}

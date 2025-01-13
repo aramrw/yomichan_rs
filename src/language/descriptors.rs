@@ -36,7 +36,7 @@ pub static LANGUAGE_DESCRIPTORS_MAP: LazyLock<
                 },
                 post: None,
             },
-            language_transforms: Some(&JAPANESE_TRANSFORMS),
+            language_transforms: Some(JAPANESE_TRANSFORMS.clone()),
         },
     )])
 });

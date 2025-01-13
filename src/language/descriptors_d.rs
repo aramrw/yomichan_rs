@@ -21,7 +21,7 @@ pub fn collect_graphemes(text: &str) -> Vec<&str> {
 
 type IsTextLookupWorthyFP = fn(text: &str) -> bool;
 
-pub struct LanguageDescriptor<'a, Pre, Post> {
+pub struct LanguageDescriptor<Pre, Post> {
     pub iso: String,
     pub iso639_3: String,
     pub name: String,
@@ -29,7 +29,7 @@ pub struct LanguageDescriptor<'a, Pre, Post> {
     pub is_text_lookup_worthy: Option<IsTextLookupWorthyFP>,
     pub reading_normalizer: Option<ReadingNormalizer>,
     pub text_processors: PreAndPostProcessors<Pre, Post>,
-    pub language_transforms: Option<&'a LanguageTransformDescriptor<'a>>,
+    pub language_transforms: Option<LanguageTransformDescriptor>,
 }
 
 type TextProcessorDescriptor<'a, T, F> = HashMap<String, TextProcessor<'a, T, F>>;

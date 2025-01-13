@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
+use derive_more::Debug;
 use regex::Regex;
 
 use super::transformer_d::{DeinflectFunction, RuleType};
-
+#[derive(Debug, Clone)]
 pub struct InternalTransform {
     pub id: String,
     pub name: String,
@@ -12,10 +13,11 @@ pub struct InternalTransform {
     pub description: Option<String>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct InternalRule {
     pub rule_type: RuleType,
     pub is_inflected: Regex,
+    #[debug("<deinflect_fn>")]
     pub deinflect: DeinflectFunction,
     pub conditions_in: u32,
     pub conditions_out: u32,
