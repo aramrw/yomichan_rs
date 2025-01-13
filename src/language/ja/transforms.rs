@@ -10,15 +10,26 @@ use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, LazyLock};
 
+/// TODO: instead of hand writing the transforms, deserialize them from js
+/// and then put the deserialized version in the lazylock;
+///
 /// serializes both javascript & rust conditions to see if they are
 /// an exact match
 #[test]
 fn compare_json() {
-    let file = std::fs::File::open("C:/Users/arami/Desktop/TEST_JP_TRANSFORMS.json").unwrap();
+    let file =
+        std::fs::File::open("C:/Users/arami/Desktop/pretty_REAL_JP_TRANSFORMS.json").unwrap();
     let reader = std::io::BufReader::new(file);
     let transforms: LanguageTransformDescriptor = from_reader(reader).unwrap();
-    dbg!(&transforms);
 }
+
+pub static TEST_DESC: LazyLock<LanguageTransformDescriptor> = LazyLock::new(|| {
+    let file =
+        std::fs::File::open("C:/Users/arami/Desktop/pretty_REAL_JP_TRANSFORMS.json").unwrap();
+    let reader = std::io::BufReader::new(file);
+    let d: LanguageTransformDescriptor = from_reader(reader).unwrap();
+    d
+});
 
 const SHIMAU_ENGLISH_DESCRIPTION: &str = "1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n 3. Shows unintentional action–“accidentally”.\n";
 
