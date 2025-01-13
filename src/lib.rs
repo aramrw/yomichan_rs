@@ -33,14 +33,14 @@ impl Yomichan {
     /// Initializes _(or if one already exists, opens)_ a Yomichan Dictionary Database.
     ///
     /// # Arguments
-    ///
     /// * `db_path` - The location where the `yomichan/data.db` will be created/opened.
     ///
+    /// # Examples
     /// ```
     /// use yomichan_rs::Yomichan;
     ///
-    /// // create the database at `C:\\Users\\1\\Desktop\\yomichan\\data.db`
-    /// let mut ycd = Yomichan::new("c:/users/name/desktop");
+    /// // creates a database at `C:/Users/1/Desktop/yomichan/data.db`
+    /// let mut ycd = Yomichan::new("c:/users/one/desktop");
     /// ```
     pub fn new(path: impl AsRef<Path>) -> Result<Self, errors::InitError> {
         let db_path = if let Some(existing) = check_db_exists(&path)? {
@@ -60,7 +60,7 @@ impl Yomichan {
 fn check_db_exists<P: AsRef<Path>>(path: P) -> Result<Option<OsString>, InitError> {
     let path = path.as_ref();
 
-    // Function to check if the path has a .yc extension
+    // check if the path has a .yc extension
     fn check_ext(path: &Path) -> Option<OsString> {
         if let Some(ext) = path.extension() {
             if ext == "yc" {
