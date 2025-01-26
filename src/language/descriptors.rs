@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::LazyLock};
 
+use indexmap::IndexMap;
+
 use super::{
     descriptors_d::{JapanesePreProcessors, LanguageDescriptor, PreAndPostProcessors},
     ja::{
@@ -14,9 +16,9 @@ use super::{
 };
 
 pub static LANGUAGE_DESCRIPTORS_MAP: LazyLock<
-    HashMap<&str, LanguageDescriptor<JapanesePreProcessors<'static>, ()>>,
+    IndexMap<&str, LanguageDescriptor<JapanesePreProcessors<'static>, ()>>,
 > = LazyLock::new(|| {
-    HashMap::from([(
+    IndexMap::from([(
         "ja",
         LanguageDescriptor {
             iso: "ja".into(),
