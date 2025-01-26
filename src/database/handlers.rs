@@ -4,6 +4,7 @@ use crate::dictionary_data::{
     TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPhoneticData,
     TermMetaPitch, TermMetaPitchData,
 };
+use pretty_assertions::assert_eq;
 
 use crate::database::dictionary_importer::{prepare_dictionary, Summary, TermMetaBank};
 use crate::dictionary_data::KANA_MAP;
@@ -52,7 +53,8 @@ impl Yomichan {
     ///
     /// if you need to lookup a sentence, see: [`Self::lookup_tokens`]
     pub fn lookup_exact<Q: AsRef<str> + Debug>(&self, query: Q) -> Result<VecDBTermEntry, DBError> {
-        let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
+        //let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
+        let db = &self.db;
         let rtx = db.r_transaction()?;
 
         let mut exps = query_sw(&rtx, DatabaseTermEntryKey::expression, query.as_ref())?;
@@ -66,7 +68,6 @@ impl Yomichan {
         }
 
         exps.extend(readings);
-
         Ok(exps)
     }
 
@@ -82,7 +83,8 @@ impl Yomichan {
         &self,
         queries: Queries<Q>,
     ) -> Result<VecTermEntry, DBError> {
-        let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
+        //let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
+        let db = &self.db;
         let rtx = db.r_transaction()?;
 
         let (exps, readings) = handle_term_query(&queries, &rtx)?;
@@ -425,19 +427,27 @@ fn query_all_freq_meta(
 }
 
 #[cfg(test)]
-mod standalone_tests {
-    // Example test
-    use super::*;
+mod db_tests {
+    use crate::{database::dictionary_database::Queries, Yomichan};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn lookup_exact() {
-        assert_eq!(2 + 2, 4);
+        let ycd = Yomichan::new("./a/yomichan/data.yc").unwrap();
+        let res = ycd.lookup_exact("日本語").unwrap();
+        let first = res.first().unwrap();
+        assert_eq!(
+            ("日本語", "にほんご"),
+            (&*first.expression, &*first.reading)
+        )
     }
 
-    // Mock data only for tests
-    #[cfg(test)]
-    fn get_test_data() -> String {
-        "Test data".to_string()
+    #[test]
+    fn bulk_lookup_term() {
+        let ycd = Yomichan::new("./a/yomichan/data.yc").unwrap();
+        let res = ycd.bulk_lookup_term(Queries::Exact(&["日本語"])).unwrap();
+        let first = res.first().unwrap();
+        assert_eq!(("日本語", "にほんご"), (&*first.term, &*first.reading))
     }
 }
 
