@@ -7,7 +7,6 @@ mod freq;
 mod language;
 mod settings;
 mod structured_content;
-mod tests;
 
 use database::dictionary_database::DB_MODELS;
 use errors::InitError;
@@ -16,6 +15,7 @@ use settings::Profile;
 
 use native_db::*;
 use native_model::{native_model, Model};
+use transaction::RTransaction;
 
 use std::{
     ffi::{OsStr, OsString},
@@ -25,6 +25,7 @@ use std::{
 
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
+    db: Database<'static>,
     db_path: OsString,
     options: Options,
 }
@@ -48,12 +49,16 @@ impl Yomichan {
         } else {
             init_db_path(&path)?
         };
-        native_db::Builder::new().create(&DB_MODELS, &db_path)?;
+        let db = native_db::Builder::new().create(&DB_MODELS, &db_path)?;
 
         let mut options = Options::default();
         options.profiles.push(Profile::default());
 
-        Ok(Self { db_path, options })
+        Ok(Self {
+            db,
+            db_path,
+            options,
+        })
     }
 }
 
