@@ -1,8 +1,6 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
+use indexmap::IndexMap;
 use regex::Regex;
 use serde::{Deserialize, Deserializer};
 use serde_json::error;
@@ -28,20 +26,30 @@ pub enum LanguageTransformerError {
     ConditionsFlagMap { e: String },
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error)]
 pub enum ConditionError {
     #[error("Map does not contain condition: ({condition:?})")]
     Missing { index: usize, condition: String },
     #[error("`condition_types` is empty.")]
     EmptyTypes,
+    #[error("Cycle detected in sub-rule declarations. The conditions [{conditions}] form a dependency cycle. Sub-rules cannot reference each other in a loop.")]
+    SubRuleCycle { conditions: String },
+    #[error("Maximum Number of Conditions was Exceeded.")]
+    MaxConditions,
+}
+
+impl std::fmt::Debug for ConditionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({})", self)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct LanguageTransformer {
     next_flag_index: usize,
     transforms: Vec<InternalTransform>,
-    condition_type_to_condition_flags_map: HashMap<String, usize>,
-    part_of_speech_to_condition_flags_map: HashMap<String, usize>,
+    condition_type_to_condition_flags_map: IndexMap<String, usize>,
+    part_of_speech_to_condition_flags_map: IndexMap<String, usize>,
 }
 
 impl LanguageTransformer {
@@ -49,8 +57,8 @@ impl LanguageTransformer {
         Self {
             next_flag_index: 0,
             transforms: Vec::new(),
-            condition_type_to_condition_flags_map: HashMap::new(),
-            part_of_speech_to_condition_flags_map: HashMap::new(),
+            condition_type_to_condition_flags_map: IndexMap::new(),
+            part_of_speech_to_condition_flags_map: IndexMap::new(),
         }
     }
 
@@ -299,10 +307,10 @@ impl LanguageTransformer {
         &self,
         conditions: Vec<ConditionMapEntry>,
         next_flag_index: usize,
-    ) -> Result<ConditionFlagsMap, Whatever> {
+    ) -> Result<ConditionFlagsMap, ConditionError> {
         const MAX_FLAG_LIMIT: usize = 32;
         let mut next_flag_index = next_flag_index;
-        let mut condition_flags_map = HashMap::with_capacity(conditions.len());
+        let mut condition_flags_map = IndexMap::with_capacity(conditions.len());
         let mut targets = conditions;
         while !targets.is_empty() {
             let mut next_targets = Vec::with_capacity(targets.len());
@@ -324,7 +332,7 @@ impl LanguageTransformer {
                     }
                     None => {
                         if next_flag_index >= MAX_FLAG_LIMIT {
-                            return Err(whatever!("Maximum Number of Conditions was Exceeded."));
+                            return Err(ConditionError::MaxConditions);
                         }
                         flags = 1 << next_flag_index;
                         next_flag_index += 1;
@@ -333,7 +341,14 @@ impl LanguageTransformer {
                 condition_flags_map.insert(condition_type, flags);
             }
             if next_targets.len() == targets_len {
-                return Err(whatever!("Cycle in sub-Rule declaration"));
+                // Collect condition identifiers for error reporting
+                let cycle_conditions: Vec<String> = next_targets
+                    .iter()
+                    .map(|entry| format!("{:?}", entry.0)) // Adjust based on your ConditionType's Display/Debug
+                    .collect();
+                return Err(ConditionError::SubRuleCycle {
+                    conditions: cycle_conditions.join(" -> "),
+                });
             }
             targets = std::mem::take(&mut next_targets);
         }
@@ -344,7 +359,7 @@ impl LanguageTransformer {
     }
 
     pub fn get_condition_flags_strict<'a>(
-        condition_flags_map: &HashMap<String, usize>,
+        condition_flags_map: &IndexMap<String, usize>,
         condition_types: &'a impl IntoDeref<'a>,
     ) -> Result<usize, ConditionError> {
         let mut flags = 0;
@@ -364,7 +379,7 @@ impl LanguageTransformer {
 
     fn get_condition_flags(
         &self,
-        condition_flags_map: &HashMap<String, usize>,
+        condition_flags_map: &IndexMap<String, usize>,
         condition_types: &[impl AsRef<str>],
     ) -> Option<usize> {
         let mut flags = 0;
@@ -379,6 +394,20 @@ impl LanguageTransformer {
         None
     }
 }
+
+/// Named [ConditionMapObject](https://github.com/yomidevs/yomitan/blob/37d13a8a1abc15f4e91cef5bfdc1623096855bb0/types/ext/language-transformer.d.ts#L24) in yomitan.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConditionMap(pub IndexMap<String, Condition>);
+
+impl std::ops::Deref for ConditionMap {
+    type Target = IndexMap<String, Condition>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConditionMapEntry(String, Condition);
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct LanguageTransformDescriptor {
@@ -396,23 +425,9 @@ impl LanguageTransformDescriptor {
     }
 }
 
-/// Named [ConditionMapObject](https://github.com/yomidevs/yomitan/blob/37d13a8a1abc15f4e91cef5bfdc1623096855bb0/types/ext/language-transformer.d.ts#L24) in yomitan.
-#[derive(Debug, Clone, Deserialize)]
-pub struct ConditionMap(pub HashMap<String, Condition>);
-
-impl std::ops::Deref for ConditionMap {
-    type Target = HashMap<String, Condition>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ConditionMapEntry(String, Condition);
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConditionFlagsMap {
-    pub map: HashMap<String, usize>,
+    pub map: IndexMap<String, usize>,
     pub next_flag_index: usize,
 }
 
@@ -431,7 +446,7 @@ enum DeserializeTransformMapError {
     Failed,
 }
 
-type TransformMapInner = HashMap<String, Transform>;
+type TransformMapInner = IndexMap<String, Transform>;
 // Named `TransformMapObject` in yomitan.
 #[derive(Debug, Clone)]
 pub struct TransformMap(pub TransformMapInner);
@@ -443,7 +458,7 @@ impl<'de> Deserialize<'de> for TransformMap {
     where
         D: Deserializer<'de>,
     {
-        // Use the HashMap's deserialization
+        // Use the IndexMap's deserialization
         let inner = TransformMapInner::deserialize(deserializer)?;
         Ok(TransformMap(inner))
     }
@@ -611,24 +626,24 @@ pub enum RuleType {
 mod language_transformer_tests {
     use std::ops::Deref;
 
-    use crate::language::ja::transforms::{
-        JAPANESE_TRANSFORMS, TEST_DESC, TEST_JAPANESE_TRANSFORMS,
+    use crate::language::{
+        descriptors::LANGUAGE_DESCRIPTORS_MAP, ja::transforms::JAPANESE_TRANSFORMS,
     };
 
     use super::*;
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn add_descriptor_test() {
+    fn add_descriptor() {
         let mut language_transformer = LanguageTransformer::new();
         language_transformer
-            .add_descriptor(&TEST_JAPANESE_TRANSFORMS)
+            .add_descriptor(&JAPANESE_TRANSFORMS)
             .unwrap();
     }
     #[test]
     fn get_condition_flags_map() {
         let assert_map = ConditionFlagsMap {
-            map: HashMap::from_iter([
+            map: IndexMap::from_iter([
                 ("v1d".to_string(), 1),
                 ("v1p".to_string(), 2),
                 ("v5d".to_string(), 4),
@@ -656,18 +671,10 @@ mod language_transformer_tests {
         };
 
         let mut lt = LanguageTransformer::new();
-        let conditions = LanguageTransformDescriptor::_get_condition_entries(&TEST_DESC);
-        //dbg!("conditions:\n   {:#?}", condition_entries);
+        let conditions = LanguageTransformDescriptor::_get_condition_entries(&JAPANESE_TRANSFORMS);
         let condition_flags_map =
             LanguageTransformer::get_condition_flags_map(&lt, conditions, lt.next_flag_index);
-
-        //dbg!("map: {:#?}", condition_flags_map);
         assert_eq!(condition_flags_map.unwrap(), assert_map);
-    }
-
-    #[test]
-    fn get_condition_flags_strict() {
-        //LanguageTransformer::get_condition_flags_strict(condition_flags_map, condition_types)
     }
 }
 
