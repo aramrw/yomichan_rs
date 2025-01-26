@@ -25,6 +25,7 @@ wana_kana = "3.0.0"
 pretty_assertions = "1.4.1"
 color-eyre = "0.6.3"
 derive_more = { version = "1.0.0", features = ["debug"] }
+indexmap = { version = "2.7.0", features = ["serde"] }
 
 # lindera = { version = "0.32.2", features = ["ipadic"] }
 # sqlx = { version = "0.7.4", features = ["runtime-tokio"] }
