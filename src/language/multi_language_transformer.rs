@@ -42,11 +42,9 @@ impl MultiLanguageTransformer {
     ) -> usize {
         let language = language.as_ref();
         if let Some(language_transformer) = self.language_transformers.get(language) {
-            if let Some(condition_flags) =
-                language_transformer.get_condition_flags_from_parts_of_speech(parts_of_speech)
-            {
-                return condition_flags;
-            }
+            let condition_flags =
+                language_transformer.get_condition_flags_from_parts_of_speech(parts_of_speech);
+            return condition_flags;
         }
         0
     }
@@ -58,8 +56,8 @@ impl MultiLanguageTransformer {
     ) -> usize {
         let language = language.as_ref();
         if let Some(language_transformer) = self.language_transformers.get(language) {
-            if let Some(condition_flags) =
-                language_transformer.get_condition_flags_from_condition_types(condition_types)
+            let condition_flags =
+                language_transformer.get_condition_flags_from_condition_types(condition_types);
             {
                 return condition_flags;
             }
@@ -74,11 +72,9 @@ impl MultiLanguageTransformer {
     ) -> usize {
         let language = language.as_ref();
         if let Some(language_transformer) = self.language_transformers.get(language) {
-            if let Some(condition_flags) =
-                language_transformer.get_condition_flags_from_single_condition_type(condition_type)
-            {
-                return condition_flags;
-            }
+            let condition_flags =
+                language_transformer.get_condition_flags_from_single_condition_type(condition_type);
+            return condition_flags;
         }
         0
     }
