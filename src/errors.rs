@@ -35,8 +35,6 @@ pub enum ImportError {
 pub enum DBError {
     #[error("db err: {0}")]
     Database(#[from] db_type::Error),
-    #[error("binary err: {0}")]
-    Binary(#[from] bincode::Error),
     #[error("query err: {0}")]
     Query(String),
     #[error("none found err: {0}")]
