@@ -12,8 +12,6 @@ use crate::errors::{DBError, ImportError};
 use crate::settings::{DictionaryOptions, Options, Profile};
 use crate::Yomichan;
 
-use bincode::Error;
-
 //use lindera::{LinderaError, Token, Tokenizer};
 
 use db_type::{KeyOptions, ToKeyDefinition};
@@ -53,18 +51,16 @@ impl Yomichan {
     ///
     /// if you need to lookup a sentence, see: [`Self::lookup_tokens`]
     pub fn lookup_exact<Q: AsRef<str> + Debug>(&self, query: Q) -> Result<VecDBTermEntry, DBError> {
+        let query = query.as_ref();
         //let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
         let db = &self.db;
         let rtx = db.r_transaction()?;
 
-        let mut exps = query_sw(&rtx, DatabaseTermEntryKey::expression, query.as_ref())?;
-        let readings = query_sw(&rtx, DatabaseTermEntryKey::reading, query.as_ref())?;
+        let mut exps = query_sw(&rtx, DatabaseTermEntryKey::expression, query)?;
+        let readings = query_sw(&rtx, DatabaseTermEntryKey::reading, query)?;
 
         if exps.is_empty() && readings.is_empty() {
-            return Err(DBError::Query(format!(
-                "no entries found for: {}",
-                query.as_ref()
-            )));
+            return Err(DBError::Query(format!("no entries found for: {}", query)));
         }
 
         exps.extend(readings);
@@ -381,7 +377,6 @@ pub fn is_kana(str: &str) -> bool {
             return false;
         }
     }
-
     true
 }
 
