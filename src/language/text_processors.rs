@@ -52,10 +52,9 @@ pub const CAPITALIZE_FIRST_LETTER: TextProcessor<bool, bool> = TextProcessor {
     process: capitalize_first_letter_helper,
 };
 
-pub const REMOVE_ALPHABETIC_DIACRITICS: TextProcessor<bool, bool> =
-    TextProcessor {
-        name: "Remove Alphabetic Diacritics",
-        description: "ἄήé → αηe",
-        options: &BASIC_TEXT_PROCESSOR_OPTIONS,
-        process: remove_alphabetic_diacritics,
-    };
+pub const REMOVE_ALPHABETIC_DIACRITICS: TextProcessor<bool, bool> = TextProcessor {
+    name: "Remove Alphabetic Diacritics",
+    description: "ἄήé → αηe",
+    options: &BASIC_TEXT_PROCESSOR_OPTIONS,
+    process: remove_alphabetic_diacritics,
+};
