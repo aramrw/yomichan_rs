@@ -1798,7 +1798,6 @@ name = "yomichan_rs"
 version = "0.1.0"
 dependencies = [
  "bimap",
- "bincode",
  "chrono",
  "color-eyre",
  "derive_more",
