@@ -23,6 +23,7 @@ pub struct InternalRule {
     pub conditions_out: u32,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransformedText {
     pub text: String,
     pub conditions: u32,
@@ -31,7 +32,7 @@ pub struct TransformedText {
 
 pub type Trace = Vec<TraceFrame>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TraceFrame {
     pub text: String,
     pub transform: String,
