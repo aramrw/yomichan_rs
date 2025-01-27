@@ -11,8 +11,6 @@ use crate::errors::{DBError, ImportError};
 use crate::settings::{DictionaryOptions, Options, Profile};
 use crate::Yomichan;
 
-use bincode::Error;
-
 //use lindera::{LinderaError, Token, Tokenizer};
 
 use db_type::{KeyOptions, ToKeyDefinition};
@@ -202,9 +200,7 @@ impl DatabaseMeta {
         outpath: PathBuf,
         dict_name: String,
     ) -> Result<Vec<DatabaseMeta>, ImportError> {
-        let file = fs::File::open(&outpath).map_err(|e| {
-            ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
-        })?;
+        let file = fs::File::open(&outpath)?;
         let reader = BufReader::new(file);
 
         let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermMetaBank>();
