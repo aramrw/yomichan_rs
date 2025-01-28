@@ -109,7 +109,6 @@ fn check_db_exists<P: AsRef<Path>>(path: P) -> Result<Option<OsString>, InitErro
 fn init_db_path<P: AsRef<Path>>(path: P) -> Result<OsString, InitError> {
     let path_ref = path.as_ref();
 
-    // Check if the parent directory exists
     if let Some(parent_path) = path_ref.parent() {
         if !parent_path.exists() {
             return Err(InitError::Path(format!(
@@ -124,7 +123,7 @@ fn init_db_path<P: AsRef<Path>>(path: P) -> Result<OsString, InitError> {
         )));
     }
 
-    // Create the `yomichan` subdirectory
+    // create the `yomichan` subdirectory
     let yomichan_dir = path_ref.join("yomichan");
     if !yomichan_dir.exists() {
         fs::create_dir_all(&yomichan_dir).map_err(|e| {
@@ -136,7 +135,7 @@ fn init_db_path<P: AsRef<Path>>(path: P) -> Result<OsString, InitError> {
         })?;
     }
 
-    // Create the path for the database file with the .yc extension
+    // format the path for the database file with the .yc extension
     let db_path = yomichan_dir.join("data").with_extension("yc");
 
     Ok(db_path.into_os_string())
