@@ -425,10 +425,13 @@ fn query_all_freq_meta(
 mod db_tests {
     use crate::{database::dictionary_database::Queries, Yomichan};
     use pretty_assertions::assert_eq;
+    use tempfile::{tempdir, tempfile};
 
     #[test]
     fn lookup_exact() {
-        let ycd = Yomichan::new("./a/yomichan/data.yc").unwrap();
+        let temp_dir = tempdir().unwrap();
+        let temp = temp_dir.path();
+        let ycd = Yomichan::new(&temp.join("data.yc")).unwrap();
         let res = ycd.lookup_exact("日本語").unwrap();
         let first = res.first().unwrap();
         assert_eq!(
@@ -439,6 +442,9 @@ mod db_tests {
 
     #[test]
     fn bulk_lookup_term() {
+        let temp_dir = tempdir().unwrap();
+        let temp = temp_dir.path();
+        let ycd = Yomichan::new(&temp.join("data.yc")).unwrap();
         let ycd = Yomichan::new("./a/yomichan/data.yc").unwrap();
         let res = ycd.bulk_lookup_term(Queries::Exact(&["日本語"])).unwrap();
         let first = res.first().unwrap();
