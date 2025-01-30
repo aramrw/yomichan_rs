@@ -29,12 +29,12 @@ pub static KANA_MAP: LazyLock<BiHashMap<&'static str, &'static str>> = LazyLock:
         ("ゾ", "ぞ"), ("ダ", "だ"), ("ヂ", "ぢ"), ("ヅ", "づ"), ("デ", "で"),
         ("ド", "ど"), ("バ", "ば"), ("ビ", "び"), ("ブ", "ぶ"), ("ベ", "べ"),
         ("ボ", "ぼ"), ("パ", "ぱ"), ("ピ", "ぴ"), ("プ", "ぷ"), ("ペ", "ぺ"),
-        ("ポ", "ぽ"), ("キャ", "きゃ"), ("キュ", "きゅ"), ("キョ", "きょ"),
+        ("ポ", "ぽ"),   ("キャ", "きゃ"), ("キュ", "きゅ"), ("キョ", "きょ"),
         ("シャ", "しゃ"), ("シュ", "しゅ"), ("ショ", "しょ"), ("チャ", "ちゃ"),
         ("チュ", "ちゅ"), ("チョ", "ちょ"), ("ニャ", "にゃ"), ("ニュ", "にゅ"),
         ("ニョ", "にょ"), ("ヒャ", "ひゃ"), ("ヒュ", "ひゅ"), ("ヒョ", "ひょ"),
         ("ミャ", "みゃ"), ("ミュ", "みゅ"), ("ミョ", "みょ"), ("リャ", "りゃ"),
-        ("リュ", "りゅ"), ("リョ", "りょ"), ("ギャ", "ぎゃ"), ("ギュ", "ぎゅ"),
+        ("リュ", "りゅ"), ("リョ", "りょ"),  ("ギャ", "ぎゃ"), ("ギュ", "ぎゅ"),
         ("ギョ", "ぎょ"), ("ジャ", "じゃ"), ("ジュ", "じゅ"), ("ジョ", "じょ"),
         ("ビャ", "びゃ"), ("ビュ", "びゅ"), ("ビョ", "びょ"), ("ピャ", "ぴゃ"),
         ("ピュ", "ぴゅ"), ("ピョ", "ぴょ"),
@@ -107,7 +107,7 @@ pub struct Index {
     pub tag_meta: Option<HashMap<String, IndexTag>>,
 }
 
-//#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
+// #[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Tag information for terms and kanji.
 ///
@@ -162,8 +162,9 @@ impl Default for TermGlossary {
 /// I have to figure them out lol
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct TermGlossaryContent {
-    /// The `entry`'s String data is simply extracted and concatenated-
-    /// meaning that there is _no_ formatting; A single string of continuous text.
+    /// A single string of continuous text containing the entry's definition.
+    /// The `entry`'s definition is simply extracted and concatenated-
+    /// meaning that there is no formatting.
     pub term_glossary_string: String,
     pub term_glossary_text: Option<TermGlossaryText>,
     pub term_glossary_image: Option<TermGlossaryImage>,
@@ -198,7 +199,7 @@ pub struct TermGlossaryText {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Represents the structured content of a term.
 ///
-/// An entry's entire HTML [`StructuredContent`]is [`Deserialize`]d into a String and pushed into `content`.
+/// An entry's entire HTML [`StructuredContent`] is [`Deserialize`]d into a String and pushed into `content`.
 /// As such, it is up to the program to render `content` properly.
 ///
 /// If the program is unable/unwilling to render html:
@@ -229,8 +230,7 @@ pub struct TermV3 {
 }
 
 /// Custom `Yomichan.rs`-unique term model.
-/// Allows access to `entry` data _(ie: definitions)_-
-/// as concatenated String instead of raw HTML.
+/// Allows access to `entry` data _(ie: definitions)_ as a concatenated String instead of raw HTML.
 ///
 /// The String data is simply extracted and concatenated-
 /// meaning that there is _no_ formatting; A single string of continuous text.
