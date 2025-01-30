@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use derive_more::Debug;
 use regex::Regex;
 
-use super::transformer_d::{DeinflectFunction, RuleType};
+use super::transformer_d::{DeinflectFnTrait, Rule, RuleType, SuffixRule};
 #[derive(Debug, Clone)]
 pub struct InternalTransform {
     pub id: String,
@@ -17,10 +17,18 @@ pub struct InternalTransform {
 pub struct InternalRule {
     pub rule_type: RuleType,
     pub is_inflected: Regex,
-    #[debug("<deinflect_fn>")]
-    pub deinflect: DeinflectFunction,
+    pub deinflected: &'static str,
     pub conditions_in: u32,
     pub conditions_out: u32,
+}
+
+impl DeinflectFnTrait for InternalRule {
+    fn inflected(&self) -> &str {
+        self.is_inflected.as_str()
+    }
+    fn deinflected(&self) -> &str {
+        self.deinflected
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -28,6 +36,16 @@ pub struct TransformedText {
     pub text: String,
     pub conditions: u32,
     pub trace: Trace,
+}
+
+impl TransformedText {
+    pub fn create_transformed_text(text: String, conditions: u32, trace: Trace) -> TransformedText {
+        TransformedText {
+            text,
+            conditions,
+            trace,
+        }
+    }
 }
 
 pub type Trace = Vec<TraceFrame>;
