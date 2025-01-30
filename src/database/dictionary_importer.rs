@@ -370,10 +370,11 @@ impl Yomichan {
     ) -> Result<(), DBError> {
         let settings = self.options.get_options_mut();
         let db_path = &self.db_path;
+        let db = &self.db;
 
         let mut dictionary_options: Vec<DictionaryOptions> = zip_paths
             .par_iter()
-            .map(|path| import_dictionary(path, settings, db_path))
+            .map(|path| import_dictionary(path, settings, db))
             .collect::<Result<Vec<DictionaryOptions>, DBError>>()?;
 
         let current_profile = settings.get_current_profile_mut();
@@ -389,10 +390,11 @@ impl Yomichan {
 pub fn import_dictionary<P: AsRef<Path>>(
     zip_path: P,
     settings: &Options,
-    db_path: &OsString,
+    //db_path: &OsString,
+    db: &Database,
 ) -> Result<DictionaryOptions, DBError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
-    let db = DBBuilder::new().open(&DB_MODELS, db_path)?;
+    // let db = DBBuilder::new().open(&DB_MODELS, db_path)?;
     let rwtx = db.rw_transaction()?;
     db_rwriter(&rwtx, data.term_list)?;
     {
@@ -757,37 +759,7 @@ fn read_dir_helper<P: AsRef<Path>>(
     })
 }
 
-fn print_timer<T>(inst: Instant, print: T)
-where
-    T: std::fmt::Debug,
-{
-    let duration = inst.elapsed();
-    #[allow(unused_assignments)]
-    let mut time = String::new();
-    {
-        let dur_sec = duration.as_secs();
-        let dur_mill = duration.as_millis();
-        let dur_nan = duration.as_nanos();
-
-        if dur_sec == 0 {
-            if dur_mill == 0 {
-                time = format!("{}ns", dur_mill);
-            } else {
-                time = format!("{}ms", dur_nan);
-            }
-        } else if dur_sec > 60 {
-            let min = dur_sec / 60;
-            let sec = dur_sec % 60;
-            time = format!("{}m{}s", min, sec);
-        } else {
-            time = format!("{}s", dur_sec);
-        }
-    }
-
-    println!("{:?} files", print);
-    println!("in {}", time);
-}
-
+#[cfg(test)]
 mod importer_tests {
     use std::collections::HashSet;
 
@@ -797,7 +769,7 @@ mod importer_tests {
             dictionary_importer::{self, prepare_dictionary},
         },
         settings::Options,
-        Yomichan,
+        yomichan_test_utils, Yomichan,
     };
 
     #[test]
@@ -818,13 +790,5 @@ mod importer_tests {
             let file = std::fs::File::create("flamegraph.svg").unwrap();
             report.flamegraph(file).unwrap();
         };
-    }
-
-    #[test]
-    fn init_db() {
-        let db_path = String::from("./a");
-        let mut ycd = Yomichan::new(db_path).unwrap();
-        let paths = ["./test_dicts/daijisen", "./test_dicts/ajdfreq"];
-        ycd.import_dictionaries(&paths).unwrap();
     }
 }
