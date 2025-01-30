@@ -26,6 +26,12 @@ color-eyre = "0.6.3"
 derive_more = { version = "1.0.0", features = ["debug"] }
 indexmap = { version = "2.7.0", features = ["serde"] }
 
+# https://www.reddit.com/r/rust/comments/gaeiwm/how_to_optionally_run_certain_tests/
+[features]
+default = []
+use_proprietary_tools = []
+use_test_hw = []
+
 # pprof is linux only
 [target.'cfg(unix)'.dependencies]
 pprof = { version = "0.13", features = ["flamegraph"] }
@@ -34,5 +40,5 @@ pprof = { version = "0.13", features = ["flamegraph"] }
 [profile.test]
 inherits = "release"
 
-[net]
-git-fetch-with-cli = true
+# [net]
+# git-fetch-with-cli = true
