@@ -423,32 +423,44 @@ fn query_all_freq_meta(
 
 #[cfg(test)]
 mod db_tests {
-    use crate::{database::dictionary_database::Queries, Yomichan};
+    use crate::{
+        database::dictionary_database::Queries,
+        yomichan_test_utils::{self, TEST_PATHS},
+        Yomichan,
+    };
     use pretty_assertions::assert_eq;
-    use tempfile::{tempdir, tempfile};
+    use tempfile::{tempdir, tempdir_in, tempfile, tempfile_in};
 
     #[test]
     fn lookup_exact() {
-        let temp_dir = tempdir().unwrap();
-        let temp = temp_dir.path();
-        let ycd = Yomichan::new(&temp.join("data.yc")).unwrap();
+        let (f_path, handle) = yomichan_test_utils::copy_test_db();
+        let ycd = Yomichan::new(&f_path).unwrap();
         let res = ycd.lookup_exact("日本語").unwrap();
         let first = res.first().unwrap();
         assert_eq!(
-            ("日本語", "にほんご"),
-            (&*first.expression, &*first.reading)
+            (&*first.expression, &*first.reading),
+            ("日本語", "にほんご")
         )
     }
 
     #[test]
     fn bulk_lookup_term() {
-        let temp_dir = tempdir().unwrap();
-        let temp = temp_dir.path();
-        let ycd = Yomichan::new(&temp.join("data.yc")).unwrap();
-        let ycd = Yomichan::new("./a/yomichan/data.yc").unwrap();
+        let (f_path, handle) = yomichan_test_utils::copy_test_db();
+        let ycd = Yomichan::new(&f_path).unwrap();
         let res = ycd.bulk_lookup_term(Queries::Exact(&["日本語"])).unwrap();
         let first = res.first().unwrap();
-        assert_eq!(("日本語", "にほんご"), (&*first.term, &*first.reading))
+        assert_eq!((&*first.term, &*first.reading), ("日本語", "にほんご"))
+    }
+
+    #[test]
+    #[ignore]
+    /// Initializes the repo's yomichan database with all test dictionaries.
+    fn init_db() {
+        let td = &*yomichan_test_utils::TEST_PATHS.tests_dir;
+        let tdcs = &*yomichan_test_utils::TEST_PATHS.test_dicts_dir;
+        let mut ycd = Yomichan::new(td).unwrap();
+        let paths = [tdcs.join("daijisen"), tdcs.join("ajdfreq")];
+        ycd.import_dictionaries(&paths).unwrap();
     }
 }
 
