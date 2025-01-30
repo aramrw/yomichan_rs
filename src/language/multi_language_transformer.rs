@@ -79,22 +79,18 @@ impl MultiLanguageTransformer {
         0
     }
 
-    pub fn transform(
-        &self,
-        language: impl AsRef<str>,
-        source_text: impl AsRef<str>,
-    ) -> Vec<TransformedText> {
-        let language = language.as_ref();
-        if let Some(language_transformer) = self.language_transformers.get(language) {
-            let transformed_text = language_transformer.transform(source_text).unwrap();
-            return transformed_text;
-        }
-        vec![LanguageTransformer::create_transformed_text(
-            source_text,
-            0,
-            Vec::new(),
-        )]
-    }
+    // pub fn transform(&self, language: &str, source_text: &str) -> Vec<TransformedText> {
+    //     let language = language.as_ref();
+    //     if let Some(language_transformer) = self.language_transformers.get(language) {
+    //         let transformed_text = language_transformer.transform(source_text).unwrap();
+    //         return transformed_text;
+    //     }
+    //     vec![TransformedText::create_transformed_text(
+    //         source_text.to_string(),
+    //         0,
+    //         Vec::new(),
+    //     )]
+    // }
 
     pub fn get_user_facing_inflection_rules(
         &self,
