@@ -23,6 +23,62 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod yomichan_test_utils {
+    use std::{path::PathBuf, sync::LazyLock};
+    use tempfile::{tempdir_in, TempDir};
+
+    pub(crate) struct TestPaths {
+        pub tests_dir: PathBuf,
+        pub tests_yomichan_db_path: PathBuf,
+        pub test_dicts_dir: PathBuf,
+    }
+
+    pub(crate) static TEST_PATHS: LazyLock<TestPaths> = LazyLock::new(|| TestPaths {
+        tests_dir: PathBuf::from("./tests"),
+        tests_yomichan_db_path: PathBuf::from("./tests").join("yomichan").join("data.yc"),
+        test_dicts_dir: PathBuf::from("tests").join("test_dicts"),
+    });
+
+    /// Copies the test database to a temporary directory.
+    /// Necessary because native_db cannot have two test threads open the same database at the same time.
+    pub(crate) fn copy_test_db() -> (PathBuf, TempDir) {
+        let dir = tempdir_in(&*TEST_PATHS.tests_dir).unwrap();
+        let tydbp = &*TEST_PATHS.tests_yomichan_db_path;
+        let f_path = dir.path().join("data.yc");
+        std::fs::copy(tydbp, &f_path).unwrap();
+        (f_path, dir)
+    }
+
+    fn print_timer<T>(inst: std::time::Instant, print: T)
+    where
+        T: std::fmt::Debug,
+    {
+        let duration = inst.elapsed();
+        #[allow(unused_assignments)]
+        let mut time = String::new();
+        {
+            let dur_sec = duration.as_secs();
+            let dur_mill = duration.as_millis();
+            let dur_nan = duration.as_nanos();
+            if dur_sec == 0 {
+                if dur_mill == 0 {
+                    time = format!("{}ns", dur_mill);
+                } else {
+                    time = format!("{}ms", dur_nan);
+                }
+            } else if dur_sec > 60 {
+                let min = dur_sec / 60;
+                let sec = dur_sec % 60;
+                time = format!("{}m{}s", min, sec);
+            } else {
+                time = format!("{}s", dur_sec);
+            }
+        }
+        println!("{:?} files", print);
+        println!("in {}", time);
+    }
+}
+
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
     db: Database<'static>,
@@ -49,7 +105,7 @@ impl Yomichan {
         } else {
             init_db_path(&path)?
         };
-        let db = native_db::Builder::new().create(&DB_MODELS, &db_path)?;
+        let db = native_db::Builder::new().open(&DB_MODELS, &db_path)?;
 
         let mut options = Options::default();
         options.profiles.push(Profile::default());
@@ -65,7 +121,7 @@ impl Yomichan {
 fn check_db_exists<P: AsRef<Path>>(path: P) -> Result<Option<OsString>, InitError> {
     let path = path.as_ref();
 
-    // check if the path has a .yc extension
+    /// return Some($path) if the $path has a .yc extension
     fn check_ext(path: &Path) -> Option<OsString> {
         if let Some(ext) = path.extension() {
             if ext == "yc" {
@@ -75,8 +131,8 @@ fn check_db_exists<P: AsRef<Path>>(path: P) -> Result<Option<OsString>, InitErro
         None
     }
 
-    if let Some(db_path) = check_ext(path) {
-        return Ok(Some(db_path));
+    if let Some(valid) = check_ext(path) {
+        return Ok(Some(valid));
     }
 
     if path.is_dir() {
