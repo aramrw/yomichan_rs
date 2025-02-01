@@ -49,7 +49,7 @@ mod yomichan_test_utils {
         (f_path, dir)
     }
 
-    fn print_timer<T>(inst: std::time::Instant, print: T)
+    pub(crate) fn print_timer<T>(inst: std::time::Instant, print: T)
     where
         T: std::fmt::Debug,
     {
