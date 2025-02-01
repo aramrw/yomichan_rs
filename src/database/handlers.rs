@@ -32,7 +32,7 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
-use std::{fs, marker};
+use std::{fs, marker, thread};
 
 use super::dictionary_database::{
     DBMetaType, DatabaseMeta, DatabaseMetaFrequency, DatabaseMetaFrequencyKey,
@@ -56,8 +56,20 @@ impl Yomichan {
         let db = &self.db;
         let rtx = db.r_transaction()?;
 
-        let mut exps = query_sw(&rtx, DatabaseTermEntryKey::expression, query)?;
-        let readings = query_sw(&rtx, DatabaseTermEntryKey::reading, query)?;
+        #[cfg(feature = "rayon")]
+        let (mut exps, readings) = {
+            let mut exps: VecDBTermEntry = Vec::new();
+            let mut readings: VecDBTermEntry = Vec::new();
+            rayon::join(
+                || exps = query_sw(&rtx, DatabaseTermEntryKey::expression, query).unwrap(),
+                || readings = query_sw(&rtx, DatabaseTermEntryKey::reading, query).unwrap(),
+            );
+            (exps, readings)
+        };
+
+        #[cfg(not(feature = "rayon"))]
+        let mut exps = query_sw(&rtx, DatabaseTermEntryKey::expression, query).unwrap();
+        let readings = query_sw(&rtx, DatabaseTermEntryKey::reading, query).unwrap();
 
         if exps.is_empty() && readings.is_empty() {
             return Err(DBError::Query(format!("no entries found for: {}", query)));
@@ -110,7 +122,7 @@ impl Yomichan {
             .chain(reading_terms.iter().filter_map(|e| e.sequence.as_ref()))
             .collect();
 
-        let seqs = self.lookup_seqs(seqs, Some(&db))?;
+        let seqs = self.lookup_seqs(seqs, Some(db))?;
         let seq_terms = construct_term_entries(
             seqs,
             TermSourceMatchSource::Sequence,
@@ -461,6 +473,18 @@ mod db_tests {
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [tdcs.join("daijisen"), tdcs.join("ajdfreq")];
         ycd.import_dictionaries(&paths).unwrap();
+    }
+
+    #[test]
+    #[ignore]
+    /// only debug print
+    fn __lookup__() {
+        //let (f_path, handle) = yomichan_test_utils::copy_test_db();
+        let f_path = &yomichan_test_utils::TEST_PATHS.tests_yomichan_db_path;
+        let start = std::time::Instant::now();
+        let ycd = Yomichan::new(f_path).unwrap();
+        let res = ycd.lookup_exact("有り付く").unwrap();
+        yomichan_test_utils::print_timer(start, "");
     }
 }
 
