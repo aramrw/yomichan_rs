@@ -1,4 +1,4 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::{Arc, LazyLock, RwLock};
 
 use derive_more::Debug;
 use indexmap::IndexMap;
@@ -27,6 +27,15 @@ pub enum LanguageTransformerError {
     },
     #[snafu(display("Failed to get conditions_flag_map: {e}"))]
     ConditionsFlagMap { e: String },
+    #[snafu(display(
+        "Cycle detected in transform[{}] rule[{j}] for text: {text}\nTrace: {trace:?}"
+    ))]
+    CycleDetected {
+        transform_name: String,
+        j: usize,
+        text: String,
+        trace: Vec<TraceFrame>,
+    },
 }
 
 #[derive(thiserror::Error)]
@@ -125,6 +134,8 @@ impl LanguageTransformer {
                     transform_id: transform_id.to_string(),
                 })?;
 
+                println!("{}", condition_flags_in);
+
                 rules2.push(InternalRule {
                     rule_type,
                     is_inflected,
@@ -194,54 +205,57 @@ impl LanguageTransformer {
         )
     }
 
+    // Excerpt from: impl LanguageTransformer
     /// https://github.com/yomidevs/yomitan/blob/c3bec65bc44a33b1b1686e5d81a6910e42889174/ext/js/language/language-transformer.js#L120C11-L120C11
-    pub(crate) fn transform(
-        &self,
-        source_text: impl AsRef<str>,
-    ) -> Result<Vec<TransformedText>, Whatever> {
+    pub(crate) fn transform(&self, source_text: impl AsRef<str>) -> Vec<TransformedText> {
         let source_text = source_text.as_ref();
         let mut results = vec![TransformedText::create_transformed_text(
             source_text.to_string(),
             0,
-            vec![],
+            Vec::new(),
         )];
 
-        for i in 0..results.len() {
-            let entry = &results[i];
-            let text = entry.text.clone();
-            let conditions = entry.conditions;
-            let trace = entry.trace.clone();
+        let mut i = 0;
+        while i < results.len() {
+            // Isolate the borrow scope using a block
+            let (text, conditions, trace) = {
+                let entry = &results[i];
+                (entry.text.clone(), entry.conditions, entry.trace.clone())
+            };
 
             for transform in &self.transforms {
                 if !transform.heuristic.is_match(&text) {
                     continue;
                 }
 
-                let id = &transform.id;
-                for (j, rule) in transform.rules.iter().enumerate() {
-                    if !LanguageTransformer::conditions_match(conditions, rule.conditions_in) {
-                        continue;
-                    }
-                    if !rule.is_inflected.is_match(&text) {
+                let transform_id = transform.id.clone();
+                for (rule_idx, rule) in transform.rules.iter().enumerate() {
+                    if !Self::conditions_match(conditions, rule.conditions_in)
+                        || !rule.is_inflected.is_match(&text)
+                    {
                         continue;
                     }
 
-                    let is_cycle = trace.iter().any(|frame| {
-                        &frame.transform == id && frame.rule_index == j as u32 && frame.text == text
-                    });
-                    if is_cycle {
-                        return whatever!("Cycle detected in transform[{}] rule[{j}] for text: {text}\nTrace: {:?}", transform.name, trace);
+                    // Cycle detection
+                    if trace.iter().any(|frame| {
+                        frame.transform == transform_id
+                            && frame.rule_index == rule_idx as u32
+                            && frame.text == text
+                    }) {
+                        eprintln!(
+                            "Cycle detected in transform[{}] rule[{}] for text: {}\nTrace: {:?}",
+                            transform.name, rule_idx, text, trace
+                        );
+                        continue;
                     }
 
                     let new_text = rule.deinflect(&text);
-                    let new_trace = self.extend_trace(
-                        trace.clone(),
-                        TraceFrame {
-                            transform: id.clone(),
-                            rule_index: j as u32,
-                            text: text.clone(),
-                        },
-                    );
+                    let mut new_trace = trace.clone();
+                    new_trace.push(TraceFrame {
+                        transform: transform_id.clone(),
+                        rule_index: rule_idx as u32,
+                        text: text.clone(),
+                    });
 
                     results.push(TransformedText::create_transformed_text(
                         new_text,
@@ -250,9 +264,11 @@ impl LanguageTransformer {
                     ));
                 }
             }
+
+            i += 1;
         }
 
-        Ok(results)
+        results
     }
 
     pub(crate) fn extend_trace(&self, trace: Trace, new_frame: TraceFrame) -> Trace {
@@ -314,7 +330,7 @@ impl LanguageTransformer {
                     Some(sub_conditions) => {
                         let Ok(multi_flags) = LanguageTransformer::get_condition_flags_strict(
                             &condition_flags_map,
-                            &sub_conditions,
+                            sub_conditions,
                         ) else {
                             next_targets.push(target);
                             continue;
@@ -355,7 +371,7 @@ impl LanguageTransformer {
     ) -> Result<usize, ConditionError> {
         let mut flags = 0;
 
-        for (index, cond_type) in condition_types.into_iter().enumerate() {
+        for (index, cond_type) in condition_types.iter().enumerate() {
             let Some(flags2) = condition_flags_map.get(*cond_type) else {
                 return Err(ConditionError::Missing {
                     index,
@@ -535,21 +551,21 @@ impl PartialEq for SuffixRule {
 //     std::sync::Arc::new(|_| "<unimplemented_deinflect_fn_trait>".into())
 // }
 
-pub trait IntoDeref<'a> {
-    fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a>;
-}
-
-impl<'a> IntoDeref<'a> for Vec<String> {
-    fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {
-        Box::new(self.iter().map(|s| s.as_str()))
-    }
-}
-
-impl<'a> IntoDeref<'a> for &'a Vec<String> {
-    fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {
-        Box::new(self.iter().map(|s| s.as_str()))
-    }
-}
+// pub trait IntoDeref<'a> {
+//     fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a>;
+// }
+//
+// impl<'a> IntoDeref<'a> for Vec<String> {
+//     fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {
+//         Box::new(self.iter().map(|s| s.as_str()))
+//     }
+// }
+//
+// impl<'a> IntoDeref<'a> for &'a Vec<String> {
+//     fn into_deref(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {
+//         Box::new(self.iter().map(|s| s.as_str()))
+//     }
+// }
 
 /// Custom deserialization function for javascript Regex.
 ///
@@ -587,7 +603,7 @@ mod suffix_rule {
         let sr = SuffixRule {
             rule_type: RuleType::Suffix,
             is_inflected: Regex::new(r"\d").unwrap(),
-            deinflected: "食べる".into(),
+            deinflected: "食べる",
             conditions_in: &[""],
             conditions_out: &[""],
         };
@@ -680,127 +696,19 @@ mod language_transformer_tests {
     fn transform() {
         let mut lt = LanguageTransformer::new();
         lt.add_descriptor(&JAPANESE_TRANSFORMS).unwrap();
-        let tests = [
-            TransformedText {
-                text: "愛しくありません".to_string(),
-                conditions: 0,
-                trace: vec![],
-            },
-            TransformedText {
-                text: "愛しくありませる".to_string(),
-                conditions: 3,
-                trace: vec![TraceFrame {
-                    transform: "-ん".to_string(),
-                    rule_index: 0,
-                    text: "愛しくありません".to_string(),
-                }],
-            },
-            TransformedText {
-                text: "愛しくありまする".to_string(),
-                conditions: 64,
-                trace: vec![TraceFrame {
-                    transform: "-ん".to_string(),
-                    rule_index: 11,
-                    text: "愛しくありません".to_string(),
-                }],
-            },
-            TransformedText {
-                text: "愛しくあります".to_string(),
-                conditions: 512,
-                trace: vec![TraceFrame {
-                    transform: "negative".to_string(),
-                    rule_index: 17,
-                    text: "愛しくありません".to_string(),
-                }],
-            },
-            TransformedText {
-                text: "愛しくありむ".to_string(),
-                conditions: 28,
-                trace: vec![
-                    TraceFrame {
-                        transform: "causative".to_string(),
-                        rule_index: 7,
-                        text: "愛しくありませる".to_string(),
-                    },
-                    TraceFrame {
-                        transform: "-ん".to_string(),
-                        rule_index: 0,
-                        text: "愛しくありません".to_string(),
-                    },
-                ],
-            },
-            TransformedText {
-                text: "愛しくあります".to_string(),
-                conditions: 4,
-                trace: vec![
-                    TraceFrame {
-                        transform: "potential".to_string(),
-                        rule_index: 4,
-                        text: "愛しくありませる".to_string(),
-                    },
-                    TraceFrame {
-                        transform: "-ん".to_string(),
-                        rule_index: 0,
-                        text: "愛しくありません".to_string(),
-                    },
-                ],
-            },
-            TransformedText {
-                text: "愛しくありる".to_string(),
-                conditions: 3,
-                trace: vec![
-                    TraceFrame {
-                        transform: "-ます".to_string(),
-                        rule_index: 0,
-                        text: "愛しくあります".to_string(),
-                    },
-                    TraceFrame {
-                        transform: "negative".to_string(),
-                        rule_index: 17,
-                        text: "愛しくありません".to_string(),
-                    },
-                ],
-            },
-            TransformedText {
-                text: "愛しくある".to_string(),
-                conditions: 4,
-                trace: vec![
-                    TraceFrame {
-                        transform: "-ます".to_string(),
-                        rule_index: 9,
-                        text: "愛しくあります".to_string(),
-                    },
-                    TraceFrame {
-                        transform: "negative".to_string(),
-                        rule_index: 17,
-                        text: "愛しくありません".to_string(),
-                    },
-                ],
-            },
-            TransformedText {
-                text: "愛しい".to_string(),
-                conditions: 256,
-                trace: vec![
-                    TraceFrame {
-                        transform: "-ます".to_string(),
-                        rule_index: 16,
-                        text: "愛しくあります".to_string(),
-                    },
-                    TraceFrame {
-                        transform: "negative".to_string(),
-                        rule_index: 17,
-                        text: "愛しくありません".to_string(),
-                    },
-                ],
-            },
-        ];
-        let tt = lt.transform("愛しくありません").unwrap();
+
+        #[rustfmt::skip]
+        let tests = [TransformedText { text: "愛しくありません".to_string(), conditions: 0, trace: vec![] }, TransformedText { text: "愛しくありませる".to_string(), conditions: 3, trace: vec![TraceFrame { transform: "-ん".to_string(), rule_index: 0, text: "愛しくありません".to_string() }] }, TransformedText { text: "愛しくありまする".to_string(), conditions: 64, trace: vec![TraceFrame { transform: "-ん".to_string(), rule_index: 11, text: "愛しくありません".to_string() }] }, TransformedText { text: "愛しくあります".to_string(), conditions: 512, trace: vec![TraceFrame { transform: "negative".to_string(), rule_index: 17, text: "愛しくありません".to_string() }] }, TransformedText { text: "愛しくありむ".to_string(), conditions: 28, trace: vec![TraceFrame { transform: "causative".to_string(), rule_index: 7, text: "愛しくありませる".to_string() }, TraceFrame { transform: "-ん".to_string(), rule_index: 0, text: "愛しくありません".to_string() }] }, TransformedText { text: "愛しくあります".to_string(), conditions: 4, trace: vec![TraceFrame { transform: "potential".to_string(), rule_index: 4, text: "愛しくありませる".to_string() }, TraceFrame { transform: "-ん".to_string(), rule_index: 0, text: "愛しくありません".to_string() }] }, TransformedText { text: "愛しくありる".to_string(), conditions: 3, trace: vec![TraceFrame { transform: "-ます".to_string(), rule_index: 0, text: "愛しくあります".to_string() }, TraceFrame { transform: "negative".to_string(), rule_index: 17, text: "愛しくありません".to_string() }] }, TransformedText { text: "愛しくある".to_string(), conditions: 4, trace: vec![TraceFrame { transform: "-ます".to_string(), rule_index: 9, text: "愛しくあります".to_string() }, TraceFrame { transform: "negative".to_string(), rule_index: 17, text: "愛しくありません".to_string() }] }, TransformedText { text: "愛しい".to_string(), conditions: 256, trace: vec![TraceFrame { transform: "-ます".to_string(), rule_index: 16, text: "愛しくあります".to_string() }, TraceFrame { transform: "negative".to_string(), rule_index: 17, text: "愛しくありません".to_string() }] }];
+
+        let tt = lt.transform("愛しくありません");
         for (i, test) in tests.iter().enumerate() {
             if let Some(test) = tt.get(i) {
                 assert_eq!(test, test);
             } else {
                 panic!(
-                    "rust transform result contains less transformed strings than the javascript test cases"
+                    "rust transform result ({}) contains less transformed strings than the javascript test cases ({})",
+                    tt.len(),
+                    tests.len(),
                 );
             }
         }
@@ -837,10 +745,12 @@ mod language_transformer_tests {
         };
 
         let mut lt = LanguageTransformer::new();
-        let conditions = LanguageTransformDescriptor::_get_condition_entries(&JAPANESE_TRANSFORMS);
-        let condition_flags_map =
-            LanguageTransformer::get_condition_flags_map(&lt, conditions, lt.next_flag_index);
-        assert_eq!(condition_flags_map.unwrap(), assert_map);
+        let conditions: Vec<ConditionMapEntry> =
+            LanguageTransformDescriptor::_get_condition_entries(&JAPANESE_TRANSFORMS);
+        let condition_flags_map: ConditionFlagsMap =
+            LanguageTransformer::get_condition_flags_map(&lt, conditions, lt.next_flag_index)
+                .unwrap();
+        assert_eq!(condition_flags_map, assert_map);
     }
 }
 
