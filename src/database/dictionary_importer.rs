@@ -340,7 +340,7 @@ pub struct StructuredContent {
     /// Contains the main content of the entry.
     /// _(see: [`ContentMatchType`] )_.
     ///
-    /// Will _always_ be either an `Obj` or a `Vec` _(ie: Never a String)_.
+    /// Will _always_ be either an `Element (obj)` or a `Content (array)` _(ie: Never a String)_.
     content: ContentMatchType,
 }
 
@@ -355,7 +355,6 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
         let file = fs::File::open(zip_path)?;
         let mut archive = zip::ZipArchive::new(file)?;
         let extract_handle = std::thread::spawn(move || archive.extract(temp_dir_path_clone));
-
         extract_handle.join().unwrap().unwrap();
     }
 
@@ -394,7 +393,6 @@ pub fn import_dictionary<P: AsRef<Path>>(
     db: &Database,
 ) -> Result<DictionaryOptions, DBError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
-    // let db = DBBuilder::new().open(&DB_MODELS, db_path)?;
     let rwtx = db.rw_transaction()?;
     db_rwriter(&rwtx, data.term_list)?;
     {
@@ -580,16 +578,12 @@ fn convert_kanji_bank(
     let mut entries = match stream.next() {
         Some(Ok(entries)) => entries,
         Some(Err(e)) => {
-            return Err(ImportError::Custom(format!(
-                "File: {} | Err: {e}",
-                &outpath.to_string_lossy(),
-            )))
+            return Err(ImportError::InvalidJson {
+                file: outpath,
+                e: Some(e.to_string()),
+            })
         }
-        None => {
-            return Err(ImportError::Custom(String::from(
-                "no data in term_bank stream",
-            )))
-        }
+        None => return Err(ImportError::Empty { file: outpath }),
     };
 
     for item in &mut entries {
@@ -611,19 +605,15 @@ fn convert_term_bank_file(
     let reader = BufReader::new(file);
 
     let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
-    let entries: Vec<TermEntryItem> = match stream.next() {
+    let mut entries = match stream.next() {
         Some(Ok(entries)) => entries,
         Some(Err(e)) => {
-            return Err(ImportError::Custom(format!(
-                "File: {} | Err: {e}",
-                &outpath.to_string_lossy(),
-            )))
+            return Err(ImportError::InvalidJson {
+                file: outpath,
+                e: Some(e.to_string()),
+            })
         }
-        None => {
-            return Err(ImportError::Custom(String::from(
-                "no data in term_bank stream",
-            )))
-        }
+        None => return Err(ImportError::Empty { file: outpath }),
     };
 
     // Beginning of each word/phrase/expression (entry)

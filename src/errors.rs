@@ -4,16 +4,6 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum InitError {
-    #[error("db conn err: {0}")]
-    DatabaseConnectionFailed(#[from] db_type::Error),
-    #[error("path does not exist: {0}")]
-    Path(String),
-    #[error("io err: {0}")]
-    IO(#[from] std::io::Error),
-}
-
-#[derive(Error, Debug)]
 pub enum ImportError {
     #[error("db err: {0}")]
     Database(#[from] db_type::Error),
@@ -29,6 +19,16 @@ pub enum ImportError {
     LineErr(u32, Box<ImportError>),
     #[error("json err: {0}")]
     Custom(String),
+    #[error(
+        "failed to deserialize file: {file}
+         reason: {e:#?}"
+    )]
+    InvalidJson { file: PathBuf, e: Option<String> },
+    #[error(
+        "no data in term_bank stream, is the file empty?
+         file: {file}"
+    )]
+    Empty { file: PathBuf },
 }
 
 #[derive(Error, Debug)]

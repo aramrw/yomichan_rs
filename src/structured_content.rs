@@ -300,7 +300,6 @@ pub enum Element {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LineBreak {
     /// The `LineBreak`' tag is:
-    ///
     /// [`HtmlTag::Break`] | `"br"`.
     tag: HtmlTag,
     data: Option<HashMap<String, String>>,

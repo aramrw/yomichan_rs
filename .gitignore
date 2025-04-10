@@ -2,3 +2,4 @@
 
 *.svg
 *.yc
+tests/yomichan_rs/db.ycd

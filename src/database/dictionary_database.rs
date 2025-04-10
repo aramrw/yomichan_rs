@@ -277,7 +277,7 @@ impl DatabaseMeta {
 
 /// Used to store the frequency metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 2, version = 1)]
+#[native_model(id = 2, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
 #[native_db]
 pub struct DatabaseMetaFrequency {
     #[primary_key]
@@ -469,7 +469,7 @@ pub struct DatabaseDictData {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Queries<'a, Q> {
+pub enum Queries<'a, Q: AsRef<str>> {
     Exact(&'a [Q]),
-    StartWith(&'a [Q]),
+    StartsWith(&'a [Q]),
 }

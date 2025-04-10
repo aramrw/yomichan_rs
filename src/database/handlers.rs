@@ -122,7 +122,7 @@ impl Yomichan {
             .chain(reading_terms.iter().filter_map(|e| e.sequence.as_ref()))
             .collect();
 
-        let seqs = self.lookup_seqs(seqs, Some(db))?;
+        let seqs = self.lookup_seqs(seqs)?;
         let seq_terms = construct_term_entries(
             seqs,
             TermSourceMatchSource::Sequence,
@@ -165,18 +165,11 @@ impl Yomichan {
     ///     assert!(t.reading == ありがとう);
     /// }
     /// ```
-    pub fn lookup_seqs<'a, I>(
-        &self,
-        seqs: I,
-        db: Option<&Database>,
-    ) -> Result<VecDBTermEntry, DBError>
+    pub fn lookup_seqs<'a, I>(&self, seqs: I) -> Result<VecDBTermEntry, DBError>
     where
         I: IntoIterator<Item = &'a i128> + Debug + Clone,
     {
-        let db = match db {
-            Some(db) => db,
-            None => &DBBuilder::new().open(&DB_MODELS, &self.db_path)?,
-        };
+        let db = &self.db;
         let rtx = db.r_transaction()?;
 
         let entries: Result<VecDBTermEntry, DBError> = seqs
@@ -202,7 +195,7 @@ impl Yomichan {
     }
 
     pub fn lookup_seq(&self, seq: i128) -> Result<VecDBTermEntry, DBError> {
-        let db = DBBuilder::new().open(&DB_MODELS, &self.db_path)?;
+        let db = &self.db;
         let rtx = db.r_transaction()?;
 
         let entries: VecDBTermEntry =
@@ -316,7 +309,7 @@ fn handle_term_query<Q: AsRef<str> + Debug>(
 
             (exps, readings)
         }
-        Queries::StartWith(queries) => {
+        Queries::StartsWith(queries) => {
             let exps = queries
                 .iter()
                 .filter_map(|q| {
@@ -356,7 +349,7 @@ fn query_sw<'a, R: native_db::ToInput>(
     Ok(rtx
         .scan()
         .secondary(key)?
-        .start_with(query)
+        .start_with(query)?
         .collect::<Result<Vec<R>, db_type::Error>>()?)
 }
 
@@ -371,7 +364,7 @@ where
     let results: Result<Vec<R>, db_type::Error> = rtx
         .scan()
         .secondary(key)?
-        .start_with(query)
+        .start_with(query)?
         .take_while(|e: &Result<R, db_type::Error>| match e {
             Ok(entry) => entry.expression() == query,
             Err(_) => false,
@@ -399,7 +392,7 @@ fn query_all_freq_meta(
     let results: Result<Vec<DatabaseMetaFrequency>, db_type::Error> = rtx
         .scan()
         .primary()?
-        .all()
+        .all()?
         .filter_map(|e: Result<DatabaseMetaFrequency, db_type::Error>| match e {
             Ok(entry) => {
                 if entry.mode == TermMetaModeType::Freq {
@@ -433,15 +426,47 @@ fn query_all_freq_meta(
     Ok(results?)
 }
 
+fn handle_meta_freq_query<Q: AsRef<str> + Debug>(
+    queries: &Queries<Q>,
+    rtx: &RTransaction,
+) -> Result<(VecDBMetaFreq), DBError> {
+    let qs = match queries {
+        Queries::Exact(qs) => qs,
+        Queries::StartsWith(qs) => qs,
+    };
+    let exps = qs
+        .iter()
+        .map(|q| match queries {
+            Queries::Exact(_) => query_exact::<DatabaseMetaFrequency>(
+                rtx,
+                DatabaseMetaFrequencyKey::expression,
+                q.as_ref(),
+            ),
+            Queries::StartsWith(_) => query_sw::<DatabaseMetaFrequency>(
+                rtx,
+                DatabaseMetaFrequencyKey::expression,
+                q.as_ref(),
+            ),
+        })
+        .collect::<Result<Vec<VecDBMetaFreq>, DBError>>()?
+        .into_iter()
+        .flatten()
+        .collect::<VecDBMetaFreq>();
+    Ok(exps)
+}
+
 #[cfg(test)]
 mod db_tests {
     use crate::{
-        database::dictionary_database::Queries,
-        yomichan_test_utils::{self, TEST_PATHS},
+        database::dictionary_database::{DatabaseMetaFrequency, Queries},
+        dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
+        yomichan_test_utils::{self, set_backtrace, BacktraceKind, TEST_PATHS},
         Yomichan,
     };
     use pretty_assertions::assert_eq;
     use tempfile::{tempdir, tempdir_in, tempfile, tempfile_in};
+
+    use super::handle_meta_freq_query;
 
     #[test]
     fn lookup_exact() {
@@ -465,8 +490,28 @@ mod db_tests {
     }
 
     #[test]
+    fn h_meta_freq_query() {
+        set_backtrace(BacktraceKind::One);
+        let (f_path, handle) = yomichan_test_utils::copy_test_db();
+        let queries = Queries::Exact(&["日本語"]);
+        let ycd = Yomichan::new(&*yomichan_test_utils::TEST_PATHS.tests_yomichan_db_path).unwrap();
+        let rtx = ycd.db.r_transaction().unwrap();
+        let res = handle_meta_freq_query(&queries, &rtx).unwrap();
+        assert_eq!(
+            res[0],
+            DatabaseMetaFrequency {
+                id: "4661c700-ccdd-4fe2-8afb-8a2880464513".into(),
+                expression: "日本語".into(),
+                mode: TermMetaModeType::Freq,
+                data: TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(4887)),
+                dictionary: "Anime & J-drama".into(),
+            }
+        );
+    }
+
+    #[test]
     #[ignore]
-    /// Initializes the repo's yomichan database with all test dictionaries.
+    /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {
         let td = &*yomichan_test_utils::TEST_PATHS.tests_dir;
         let tdcs = &*yomichan_test_utils::TEST_PATHS.test_dicts_dir;
@@ -487,55 +532,6 @@ mod db_tests {
         yomichan_test_utils::print_timer(start, "");
     }
 }
-
-// fn handle_meta_freq_query<Q: AsRef<str> + Debug>(
-//     queries: &Queries<Q>,
-//     rtx: &RTransaction,
-// ) -> Result<(VecDBMetaFreq, VecDBMetaFreq), DBError> {
-//     match queries {
-//         Queries::Exact(queries) => {
-//             let exps = queries
-//                 .iter()
-//                 .filter_map(|q| {
-//                     if !is_kana(q.as_ref()) {
-//                         Some(query_exact::<DatabaseMetaFrequency>(
-//                             rtx,
-//                             DatabaseMetaFrequencyKey::expression,
-//                             q.as_ref(),
-//                         ))
-//                     } else {
-//                         None
-//                     }
-//                 })
-//                 .collect::<Result<Vec<VecDBMetaFreq>, DBError>>()?
-//                 .into_iter()
-//                 .flatten()
-//                 .collect::<VecDBMetaFreq>();
-//
-//             Ok((exps, readings))
-//         }
-//         Queries::StartWith(queries) => {
-//             let exps = queries
-//                 .iter()
-//                 .filter_map(|q| {
-//                     if !is_kana(q.as_ref()) {
-//                         Some(query_exact::<DatabaseMetaFrequency>(
-//                             rtx,
-//                             DatabaseMetaFrequencyKey::expression,
-//                             q.as_ref(),
-//                         ))
-//                     } else {
-//                         None
-//                     }
-//                 })
-//                 .collect::<Result<Vec<VecDBMetaFreq>, DBError>>()?
-//                 .into_iter()
-//                 .flatten()
-//                 .collect::<VecDBMetaFreq>();
-//             Ok((exps, readings))
-//         }
-//     }
-// }
 
 // fn handle_meta_query<Q: AsRef<str> + Debug>(
 //     queries: &Queries<Q>,
