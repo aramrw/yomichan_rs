@@ -308,7 +308,7 @@ pub struct DictionaryOptions {
     /// - Set the [`ResultOutputMode`] to `Group` results for the main dictionary entry.
     /// - Choose `Dict 1` as the main dictionary for merged mode.
     /// - Enable `allow_secondary_searches` on `Dict 2`.
-    ///     _(Can be enabled for multiple dictionaries)_.
+    ///   _(Can be enabled for multiple dictionaries)_.
     ///
     /// Yomichan_rs will now first perform an _initial_ lookup in `Dict 1`, fetching the grouped definition.
     /// It will then use the headwords from `Dict 1`to perform a secondary lookup in `Dict 2`,

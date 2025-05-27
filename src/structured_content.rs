@@ -252,7 +252,7 @@ impl<'de> Deserialize<'de> for Element {
                 };
 
                 element.map_err(|err| {
-                    serde::de::Error::custom(format!("failed to deserialize element: {}", err))
+                    serde::de::Error::custom(format!("failed to deserialize element: {err}"))
                 })
             })
             .deserialize(deserializer)

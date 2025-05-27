@@ -63,8 +63,14 @@ mod yomichan_test_utils {
     pub(crate) fn copy_test_db() -> (PathBuf, TempDir) {
         let dir = tempdir_in(&*TEST_PATHS.tests_dir).unwrap();
         let tydbp = &*TEST_PATHS.tests_yomichan_db_path;
-        let f_path = dir.path().join("data.yc");
+        let f_path = dir.path().join("data.ycd");
+        if !tydbp.exists() {
+            panic!("tests/yomichan_db_path doesn't exist! : {tydbp:?}");
+        }
         std::fs::copy(tydbp, &f_path).unwrap();
+        if !f_path.exists() {
+            panic!("path doesn't exist! : {f_path:?}");
+        }
         (f_path, dir)
     }
 
@@ -117,9 +123,15 @@ pub enum InitError {
     #[error("path does not have a parent: {p}")]
     MissingParent { p: PathBuf },
     #[error("db conn err: {0}")]
-    DatabaseConnectionFailed(#[from] db_type::Error),
+    DatabaseConnectionFailed(#[from] Box<db_type::Error>),
     #[error("io err: {0}")]
     Io(#[from] std::io::Error),
+}
+
+impl From<native_db::db_type::Error> for InitError {
+    fn from(e: native_db::db_type::Error) -> Self {
+        InitError::DatabaseConnectionFailed(Box::new(e))
+    }
 }
 
 impl std::fmt::Debug for InitError {

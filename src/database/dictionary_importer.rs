@@ -459,8 +459,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(tl) => tl.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
-                "Failed to convert term banks | {}",
-                e
+                "Failed to convert term banks | {e}"
             )));
         }
     };
@@ -474,8 +473,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(kml) => kml.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
-                "Failed to convert kanji_meta_banks | {}",
-                e
+                "Failed to convert kanji_meta_banks | {e}"
             )))
         }
     };
@@ -489,8 +487,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(tml) => tml.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
-                "Failed to convert term_meta_banks | {}",
-                e
+                "Failed to convert term_meta_banks | {e}"
             )))
         }
     };
@@ -504,8 +501,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(kl) => kl.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
-                "Failed to convert kanji banks | {}",
-                e
+                "Failed to convert kanji banks | {e}"
             )))
         }
     };

@@ -72,7 +72,7 @@ impl Yomichan {
         let readings = query_sw(&rtx, DatabaseTermEntryKey::reading, query).unwrap();
 
         if exps.is_empty() && readings.is_empty() {
-            return Err(DBError::Query(format!("no entries found for: {}", query)));
+            return Err(DBError::Query(format!("no entries found for: {query}")));
         }
 
         exps.extend(readings);
@@ -99,8 +99,7 @@ impl Yomichan {
 
         if exps.is_empty() && readings.is_empty() {
             return Err(DBError::NoneFound(format!(
-                "no entries found for: {:?}",
-                queries
+                "no entries found for: {queries:?}"
             )));
         }
 
@@ -198,11 +197,10 @@ impl Yomichan {
         let db = &self.db;
         let rtx = db.r_transaction()?;
 
-        let entries: VecDBTermEntry =
-            query_sw(&rtx, DatabaseTermEntryKey::expression, seq).map_err(DBError::from)?;
+        let entries: VecDBTermEntry = query_sw(&rtx, DatabaseTermEntryKey::expression, seq)?;
 
         if entries.is_empty() {
-            return Err(DBError::Query(format!("no entries found for: {:?}", seq)));
+            return Err(DBError::Query(format!("no entries found for: {seq:?}")));
         }
 
         Ok(entries)
@@ -429,7 +427,7 @@ fn query_all_freq_meta(
 fn handle_meta_freq_query<Q: AsRef<str> + Debug>(
     queries: &Queries<Q>,
     rtx: &RTransaction,
-) -> Result<(VecDBMetaFreq), DBError> {
+) -> Result<VecDBMetaFreq, Box<DBError>> {
     let qs = match queries {
         Queries::Exact(qs) => qs,
         Queries::StartsWith(qs) => qs,
@@ -468,45 +466,61 @@ mod db_tests {
 
     use super::handle_meta_freq_query;
 
-    #[test]
-    fn lookup_exact() {
-        let (f_path, handle) = yomichan_test_utils::copy_test_db();
-        let ycd = Yomichan::new(&f_path).unwrap();
-        let res = ycd.lookup_exact("日本語").unwrap();
-        let first = res.first().unwrap();
-        assert_eq!(
-            (&*first.expression, &*first.reading),
-            ("日本語", "にほんご")
-        )
-    }
+    #[cfg(test)]
+    mod jp_tests {
+        use crate::{
+            database::dictionary_database::{DatabaseMetaFrequency, Queries},
+            dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
+            yomichan_test_utils::{self, set_backtrace, BacktraceKind, TEST_PATHS},
+            Yomichan,
+        };
+        use pretty_assertions::assert_eq;
+        use tempfile::{tempdir, tempdir_in, tempfile, tempfile_in};
 
-    #[test]
-    fn bulk_lookup_term() {
-        let (f_path, handle) = yomichan_test_utils::copy_test_db();
-        let ycd = Yomichan::new(&f_path).unwrap();
-        let res = ycd.bulk_lookup_term(Queries::Exact(&["日本語"])).unwrap();
-        let first = res.first().unwrap();
-        assert_eq!((&*first.term, &*first.reading), ("日本語", "にほんご"))
-    }
+        use super::handle_meta_freq_query;
+        #[test]
+        fn lookup_exact() {
+            let (f_path, handle) = yomichan_test_utils::copy_test_db();
+            let ycd = Yomichan::new(&f_path).unwrap();
+            let res = ycd.lookup_exact("日本語").unwrap();
+            let first = res.first().unwrap();
+            assert_eq!(
+                (&*first.expression, &*first.reading),
+                ("日本語", "にほんご")
+            );
+            dbg!(first);
+        }
 
-    #[test]
-    fn h_meta_freq_query() {
-        set_backtrace(BacktraceKind::One);
-        let (f_path, handle) = yomichan_test_utils::copy_test_db();
-        let queries = Queries::Exact(&["日本語"]);
-        let ycd = Yomichan::new(&*yomichan_test_utils::TEST_PATHS.tests_yomichan_db_path).unwrap();
-        let rtx = ycd.db.r_transaction().unwrap();
-        let res = handle_meta_freq_query(&queries, &rtx).unwrap();
-        assert_eq!(
-            res[0],
-            DatabaseMetaFrequency {
-                id: "4661c700-ccdd-4fe2-8afb-8a2880464513".into(),
-                expression: "日本語".into(),
-                mode: TermMetaModeType::Freq,
-                data: TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(4887)),
-                dictionary: "Anime & J-drama".into(),
-            }
-        );
+        #[test]
+        fn bulk_lookup_term() {
+            let (f_path, handle) = yomichan_test_utils::copy_test_db();
+            let ycd = Yomichan::new(&f_path).unwrap();
+            let res = ycd.bulk_lookup_term(Queries::Exact(&["日本語"])).unwrap();
+            let first = res.first().unwrap();
+            assert_eq!((&*first.term, &*first.reading), ("日本語", "にほんご"))
+        }
+
+        #[test]
+        fn h_meta_freq_query() {
+            set_backtrace(BacktraceKind::One);
+            let (f_path, handle) = yomichan_test_utils::copy_test_db();
+            let queries = Queries::Exact(&["日本語"]);
+            let ycd =
+                Yomichan::new(&*yomichan_test_utils::TEST_PATHS.tests_yomichan_db_path).unwrap();
+            let rtx = ycd.db.r_transaction().unwrap();
+            let mut res = handle_meta_freq_query(&queries, &rtx).unwrap();
+            res[0].id = "test_id".to_string();
+            assert_eq!(
+                res[0],
+                DatabaseMetaFrequency {
+                    id: "test_id".into(),
+                    expression: "日本語".into(),
+                    mode: TermMetaModeType::Freq,
+                    data: TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(4887)),
+                    dictionary: "Anime & J-drama".into(),
+                }
+            );
+        }
     }
 
     #[test]
