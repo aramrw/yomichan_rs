@@ -81,20 +81,20 @@ mod yomichan_test_utils {
             let dur_nan = duration.as_nanos();
             if dur_sec == 0 {
                 if dur_mill == 0 {
-                    time = format!("{}ns", dur_mill);
+                    time = format!("{dur_mill}ns");
                 } else {
-                    time = format!("{}ms", dur_nan);
+                    time = format!("{dur_nan}ms");
                 }
             } else if dur_sec > 60 {
                 let min = dur_sec / 60;
                 let sec = dur_sec % 60;
-                time = format!("{}m{}s", min, sec);
+                time = format!("{min}m{sec}s");
             } else {
-                time = format!("{}s", dur_sec);
+                time = format!("{dur_sec}s");
             }
         }
-        println!("{:?} files", print);
-        println!("in {}", time);
+        println!("{print:?} files");
+        println!("in {time}");
     }
 }
 

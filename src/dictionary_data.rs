@@ -312,8 +312,7 @@ impl<'de> Deserialize<'de> for TermMetaDataMatchType {
                         .map_err(serde::de::Error::custom)
                 } else {
                     Err(serde::de::Error::custom(format!(
-                        "Unknown term meta data type: {:?}",
-                        value
+                        "Unknown term meta data type: {value:?}"
                     )))
                 }
             })
