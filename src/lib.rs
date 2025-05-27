@@ -4,7 +4,6 @@ mod dictionary;
 mod dictionary_data;
 mod errors;
 mod freq;
-mod language;
 mod settings;
 mod structured_content;
 

@@ -1,8 +1,20 @@
-use crate::{
-    dictionary_data::TermGlossaryContent, language::transformer_d::InflectionRuleChainCandidate,
-};
+use crate::dictionary_data::TermGlossaryContent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum InflectionSource {
+    Algorithm,
+    Dictionary,
+    Both,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct InflectionRuleChainCandidate {
+    pub source: InflectionSource,
+    pub inflection_rules: Vec<String>,
+}
 
 /// Helper enum to match expected schema types more accurately.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
