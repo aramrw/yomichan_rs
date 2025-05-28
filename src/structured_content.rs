@@ -252,7 +252,7 @@ impl<'de> Deserialize<'de> for Element {
                 };
 
                 element.map_err(|err| {
-                    serde::de::Error::custom(format!("failed to deserialize element: {}", err))
+                    serde::de::Error::custom(format!("failed to deserialize element: {err}"))
                 })
             })
             .deserialize(deserializer)
@@ -300,7 +300,6 @@ pub enum Element {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LineBreak {
     /// The `LineBreak`' tag is:
-    ///
     /// [`HtmlTag::Break`] | `"br"`.
     tag: HtmlTag,
     data: Option<HashMap<String, String>>,

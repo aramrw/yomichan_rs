@@ -2,6 +2,20 @@ use crate::dictionary_data::TermGlossaryContent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum InflectionSource {
+    Algorithm,
+    Dictionary,
+    Both,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct InflectionRuleChainCandidate {
+    pub source: InflectionSource,
+    pub inflection_rules: Vec<String>,
+}
+
 /// Helper enum to match expected schema types more accurately.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum NumOrStr {
@@ -288,14 +302,6 @@ pub enum TermPronunciationMatchType {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum InflectionSource {
-    Algorithm,
-    Dictionary,
-    Both,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Pronunciation {
     PitchAccent(PitchAccent),
     PhoneticTranscription(PhoneticTranscription),
@@ -326,18 +332,4 @@ pub struct PhoneticTranscription {
     ipa: String,
     /// List of tags for this IPA transcription.
     tags: Vec<Tag>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct InflectionRuleChainCandidate {
-    pub source: InflectionSource,
-    pub inflection_rules: Vec<String>,
-}
-
-pub type InflectionRuleChain = Vec<InflectionRule>;
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct InflectionRule {
-    pub name: String,
-    pub description: Option<String>,
 }

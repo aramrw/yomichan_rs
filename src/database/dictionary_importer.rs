@@ -340,7 +340,7 @@ pub struct StructuredContent {
     /// Contains the main content of the entry.
     /// _(see: [`ContentMatchType`] )_.
     ///
-    /// Will _always_ be either an `Obj` or a `Vec` _(ie: Never a String)_.
+    /// Will _always_ be either an `Element (obj)` or a `Content (array)` _(ie: Never a String)_.
     content: ContentMatchType,
 }
 
@@ -355,7 +355,6 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
         let file = fs::File::open(zip_path)?;
         let mut archive = zip::ZipArchive::new(file)?;
         let extract_handle = std::thread::spawn(move || archive.extract(temp_dir_path_clone));
-
         extract_handle.join().unwrap().unwrap();
     }
 
@@ -370,10 +369,11 @@ impl Yomichan {
     ) -> Result<(), DBError> {
         let settings = self.options.get_options_mut();
         let db_path = &self.db_path;
+        let db = &self.db;
 
         let mut dictionary_options: Vec<DictionaryOptions> = zip_paths
             .par_iter()
-            .map(|path| import_dictionary(path, settings, db_path))
+            .map(|path| import_dictionary(path, settings, db))
             .collect::<Result<Vec<DictionaryOptions>, DBError>>()?;
 
         let current_profile = settings.get_current_profile_mut();
@@ -389,10 +389,10 @@ impl Yomichan {
 pub fn import_dictionary<P: AsRef<Path>>(
     zip_path: P,
     settings: &Options,
-    db_path: &OsString,
+    //db_path: &OsString,
+    db: &Database,
 ) -> Result<DictionaryOptions, DBError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
-    let db = DBBuilder::new().open(&DB_MODELS, db_path)?;
     let rwtx = db.rw_transaction()?;
     db_rwriter(&rwtx, data.term_list)?;
     {
@@ -459,8 +459,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(tl) => tl.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
-                "Failed to convert term banks | {}",
-                e
+                "Failed to convert term banks | {e}"
             )));
         }
     };
@@ -474,8 +473,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(kml) => kml.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
-                "Failed to convert kanji_meta_banks | {}",
-                e
+                "Failed to convert kanji_meta_banks | {e}"
             )))
         }
     };
@@ -489,8 +487,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(tml) => tml.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
-                "Failed to convert term_meta_banks | {}",
-                e
+                "Failed to convert term_meta_banks | {e}"
             )))
         }
     };
@@ -504,8 +501,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         Ok(kl) => kl.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
-                "Failed to convert kanji banks | {}",
-                e
+                "Failed to convert kanji banks | {e}"
             )))
         }
     };
@@ -578,16 +574,12 @@ fn convert_kanji_bank(
     let mut entries = match stream.next() {
         Some(Ok(entries)) => entries,
         Some(Err(e)) => {
-            return Err(ImportError::Custom(format!(
-                "File: {} | Err: {e}",
-                &outpath.to_string_lossy(),
-            )))
+            return Err(ImportError::InvalidJson {
+                file: outpath,
+                e: Some(e.to_string()),
+            })
         }
-        None => {
-            return Err(ImportError::Custom(String::from(
-                "no data in term_bank stream",
-            )))
-        }
+        None => return Err(ImportError::Empty { file: outpath }),
     };
 
     for item in &mut entries {
@@ -609,19 +601,15 @@ fn convert_term_bank_file(
     let reader = BufReader::new(file);
 
     let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
-    let entries: Vec<TermEntryItem> = match stream.next() {
+    let mut entries = match stream.next() {
         Some(Ok(entries)) => entries,
         Some(Err(e)) => {
-            return Err(ImportError::Custom(format!(
-                "File: {} | Err: {e}",
-                &outpath.to_string_lossy(),
-            )))
+            return Err(ImportError::InvalidJson {
+                file: outpath,
+                e: Some(e.to_string()),
+            })
         }
-        None => {
-            return Err(ImportError::Custom(String::from(
-                "no data in term_bank stream",
-            )))
-        }
+        None => return Err(ImportError::Empty { file: outpath }),
     };
 
     // Beginning of each word/phrase/expression (entry)
@@ -757,33 +745,36 @@ fn read_dir_helper<P: AsRef<Path>>(
     })
 }
 
-fn print_timer<T>(inst: Instant, print: T)
-where
-    T: std::fmt::Debug,
-{
-    let duration = inst.elapsed();
-    #[allow(unused_assignments)]
-    let mut time = String::new();
-    {
-        let dur_sec = duration.as_secs();
-        let dur_mill = duration.as_millis();
-        let dur_nan = duration.as_nanos();
+#[cfg(test)]
+mod importer_tests {
+    use std::collections::HashSet;
 
-        if dur_sec == 0 {
-            if dur_mill == 0 {
-                time = format!("{}ns", dur_mill);
-            } else {
-                time = format!("{}ms", dur_nan);
-            }
-        } else if dur_sec > 60 {
-            let min = dur_sec / 60;
-            let sec = dur_sec % 60;
-            time = format!("{}m{}s", min, sec);
-        } else {
-            time = format!("{}s", dur_sec);
-        }
+    use crate::{
+        database::{
+            dictionary_database::Queries,
+            dictionary_importer::{self, prepare_dictionary},
+        },
+        settings::Options,
+        yomichan_test_utils, Yomichan,
+    };
+
+    #[test]
+    fn dict() {
+        #[cfg(target_os = "linux")]
+        let guard = pprof::ProfilerGuardBuilder::default()
+            .frequency(1000)
+            .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+            .build()
+            .unwrap();
+
+        let options = Options::default();
+        let path = std::path::Path::new("./test_dicts/daijisen");
+        prepare_dictionary(path, &options).unwrap();
+
+        #[cfg(target_os = "linux")]
+        if let Ok(report) = guard.report().build() {
+            let file = std::fs::File::create("flamegraph.svg").unwrap();
+            report.flamegraph(file).unwrap();
+        };
     }
-
-    println!("{:?} files", print);
-    println!("in {}", time);
 }

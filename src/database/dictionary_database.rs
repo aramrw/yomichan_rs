@@ -11,8 +11,6 @@ use crate::errors::{DBError, ImportError};
 use crate::settings::{DictionaryOptions, Options, Profile};
 use crate::Yomichan;
 
-use bincode::Error;
-
 //use lindera::{LinderaError, Token, Tokenizer};
 
 use db_type::{KeyOptions, ToKeyDefinition};
@@ -202,9 +200,7 @@ impl DatabaseMeta {
         outpath: PathBuf,
         dict_name: String,
     ) -> Result<Vec<DatabaseMeta>, ImportError> {
-        let file = fs::File::open(&outpath).map_err(|e| {
-            ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
-        })?;
+        let file = fs::File::open(&outpath)?;
         let reader = BufReader::new(file);
 
         let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermMetaBank>();
@@ -281,7 +277,7 @@ impl DatabaseMeta {
 
 /// Used to store the frequency metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 2, version = 1)]
+#[native_model(id = 2, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
 #[native_db]
 pub struct DatabaseMetaFrequency {
     #[primary_key]
@@ -473,7 +469,7 @@ pub struct DatabaseDictData {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Queries<'a, Q> {
+pub enum Queries<'a, Q: AsRef<str>> {
     Exact(&'a [Q]),
-    StartWith(&'a [Q]),
+    StartsWith(&'a [Q]),
 }
