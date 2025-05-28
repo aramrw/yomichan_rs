@@ -546,32 +546,3 @@ mod db_tests {
         yomichan_test_utils::print_timer(start, "");
     }
 }
-
-// fn handle_meta_query<Q: AsRef<str> + Debug>(
-//     queries: &Queries<Q>,
-//     rtx: &RTransaction,
-// ) -> Result<(VecDBTermMeta, VecDBTermMeta), DBError> {
-//     let (exps, readings): (VecDBTermMeta, VecDBTermMeta) = match queries {
-//         Queries::Exact(queries) => {
-//             let exps = queries.iter().filter_map(|q| {
-//             if !is_kana(q.as_ref()) {
-//                 let frequency = query_exact(rtx, DatabaseMetaFrequencyKey::expression, q.as_ref());
-//                 let pitch = query_exact(rtx, DatabaseMetaPitchKey::expression, q.as_ref());
-//                 let phonetic = query_exact(rtx, DatabaseMetaPhoneticKey::expression, q.as_ref());
-//
-//                 return Some(DatabaseMeta {
-//                         frequency,
-//                         pitch,
-//                         phonetic
-//                     });
-//             }
-//             None
-//         }).collect();
-//
-//         }
-//         Queries::StartWith(queries) => {
-//     (exps, readings),
-// }
-//     };
-//     Ok((exps, readings))
-// }

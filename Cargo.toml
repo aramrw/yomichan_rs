@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 serde = "1.0.203"
 serde_json = "1.0.117"
-thiserror = "1.0.61"
+thiserror = "2.0.12"
 native_db = { git = "https://github.com/vincent-herlemont/native_db", rev = "03ab5a3" }
 native_model = { version = "0.6.1", features = [
 	"rmp_serde_1_3",
@@ -28,6 +28,7 @@ pretty_assertions = "1.4.1"
 color-eyre = "0.6.3"
 derive_more = { version = "1.0.0", features = ["debug"] }
 indexmap = { version = "2.7.0", features = ["serde"] }
+language_transformer = { git = "https://github.com/aramrw/ycrs_language_transformer.git", branch = "main" }
 
 # https://www.reddit.com/r/rust/comments/gaeiwm/how_to_optionally_run_certain_tests/
 [features]
