@@ -6,6 +6,7 @@ mod errors;
 mod freq;
 mod settings;
 mod structured_content;
+mod translator;
 
 use database::dictionary_database::DB_MODELS;
 use settings::Options;
@@ -107,7 +108,6 @@ mod yomichan_test_utils {
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
     db: Database<'static>,
-    db_path: PathBuf,
     options: Options,
 }
 
@@ -161,11 +161,7 @@ impl Yomichan {
         let mut options = Options::default();
         options.profiles.push(Profile::default());
 
-        Ok(Self {
-            db,
-            db_path,
-            options,
-        })
+        Ok(Self { db, options })
     }
 }
 

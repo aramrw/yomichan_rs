@@ -1,6 +1,6 @@
 use crate::dictionary::{TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    GenericFreqData, Tag as DictDataTag, TermGlossary, TermGlossaryContent, TermMetaDataMatchType,
+    DictionaryDataTag, GenericFreqData, TermGlossary, TermGlossaryContent, TermMetaDataMatchType,
     TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPhoneticData,
     TermMetaPitch, TermMetaPitchData,
 };
@@ -122,7 +122,7 @@ pub struct TermEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Tag {
+pub struct DictionaryDatabaseTag {
     name: String,
     category: String,
     order: i32,
@@ -459,7 +459,7 @@ pub type VecDBMetaFreq = Vec<DatabaseMetaFrequency>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseDictData {
-    pub tag_list: Vec<Vec<DictDataTag>>,
+    pub tag_list: Vec<Vec<DictionaryDataTag>>,
     pub kanji_meta_list: Vec<DatabaseMeta>,
     pub kanji_list: Vec<DatabaseKanjiEntry>,
     pub term_meta_list: Vec<DatabaseMeta>,

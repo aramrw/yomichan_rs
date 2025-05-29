@@ -29,6 +29,10 @@ color-eyre = "0.6.3"
 derive_more = { version = "1.0.0", features = ["debug"] }
 indexmap = { version = "2.7.0", features = ["serde"] }
 language_transformer = { git = "https://github.com/aramrw/ycrs_language_transformer.git", branch = "main" }
+icu = "2.0.0"
+
+[workspace]
+members = ["crates/kanji_processor"]
 
 # https://www.reddit.com/r/rust/comments/gaeiwm/how_to_optionally_run_certain_tests/
 [features]

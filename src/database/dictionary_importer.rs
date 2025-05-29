@@ -5,7 +5,7 @@ use crate::database::dictionary_database::{
 };
 use crate::dictionary::KanjiDictionaryEntry;
 use crate::dictionary_data::{
-    GenericFreqData, Index, Tag as DictDataTag, TermGlossary, TermGlossaryContent,
+    DictionaryDataTag, GenericFreqData, Index, TermGlossary, TermGlossaryContent,
     TermGlossaryImage, TermMeta, TermMetaDataMatchType, TermMetaFreqDataMatchType,
     TermMetaFrequency, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
@@ -368,7 +368,6 @@ impl Yomichan {
         zip_paths: &[P],
     ) -> Result<(), DBError> {
         let settings = self.options.get_options_mut();
-        let db_path = &self.db_path;
         let db = &self.db;
 
         let mut dictionary_options: Vec<DictionaryOptions> = zip_paths
@@ -448,7 +447,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
     // let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title.clone();
-    let tag_list: Vec<Vec<DictDataTag>> = convert_tag_bank_files(tag_bank_paths)?;
+    let tag_list: Vec<Vec<DictionaryDataTag>> = convert_tag_bank_files(tag_bank_paths)?;
 
     let term_banks: Result<Vec<Vec<DatabaseTermEntry>>, ImportError> = term_bank_paths
         .into_par_iter()
@@ -548,12 +547,14 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
 // this one should probabaly be refactored to:
 // 1. include the file and err if it throws like the rest of the converts
 // 2. only handle one file and have the iteration be handled in the caller function
-fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<DictDataTag>>, ImportError> {
+fn convert_tag_bank_files(
+    outpaths: Vec<PathBuf>,
+) -> Result<Vec<Vec<DictionaryDataTag>>, ImportError> {
     outpaths
         .into_iter()
         .map(|p| {
             let tag_str = fs::read_to_string(p)?;
-            let tag: Vec<DictDataTag> = serde_json::from_str(&tag_str)?;
+            let tag: Vec<DictionaryDataTag> = serde_json::from_str(&tag_str)?;
             Ok(tag)
         })
         .collect()

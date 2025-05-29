@@ -131,7 +131,7 @@ pub struct IndexTag {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Information about a single tag.
-pub struct Tag {
+pub struct DictionaryDataTag {
     /// Tag name.
     pub name: String,
     /// Category for the tag.
