@@ -6,6 +6,8 @@ mod errors;
 mod freq;
 mod settings;
 mod structured_content;
+mod translation;
+mod translation_internal;
 mod translator;
 
 use database::dictionary_database::DB_MODELS;

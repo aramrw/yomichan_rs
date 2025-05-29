@@ -34,7 +34,7 @@ impl KanjiProcessor {
 
         let regex_string: String = itaiji_list.join("");
         let regex =
-            Regex::new(&format!("[{}]", regex_string)).expect("Failed to compile Kanji regex");
+            Regex::new(&format!("[{regex_string}]")).expect("Failed to compile Kanji regex");
 
         let mut conversion_map = HashMap::new();
         for mapping in mappings {

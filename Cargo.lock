@@ -1318,14 +1318,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "kanji_processor"
+version = "0.1.0"
+source = "git+https://github.com/aramrw/yomichan_rs.git?branch=master#c78780f6182d9ddeaca0763682bf14084a34a2aa"
+dependencies = [
+ "regex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "language_transformer"
 version = "0.0.1"
-source = "git+https://github.com/aramrw/ycrs_language_transformer.git?branch=main#f0febcca414d6ab6371eeaee26936a2377fdbc50"
 dependencies = [
  "derivative",
  "derive_more 2.0.1",
  "fancy-regex",
  "indexmap",
+ "kanji_processor 0.1.0 (git+https://github.com/aramrw/yomichan_rs.git?branch=master)",
  "pretty_assertions",
  "serde",
  "serde_json",

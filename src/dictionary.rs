@@ -30,9 +30,9 @@ pub enum VecNumOrNum {
     Str(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// A tag represents some brief information about part of a dictionary entry.
-pub struct Tag {
+pub struct DictionaryTag {
     /// The name of the tag.
     name: String,
     /// The category of the tag.
@@ -116,7 +116,7 @@ pub struct KanjiDictionaryEntry {
     /// Kunyomi readings for the kanji character.
     kunyomi: Vec<String>,
     /// Tags for the kanji character.
-    tags: Vec<Tag>,
+    tags: Vec<DictionaryTag>,
     /// An object containing stats about the kanji character.
     stats: KanjiStatGroups,
     /// Definitions for the kanji character.
@@ -187,7 +187,7 @@ pub struct TermHeadword {
     /// The sources of the term.
     sources: Vec<TermSource>,
     /// Tags for the headword.
-    tags: Vec<Tag>,
+    tags: Vec<DictionaryTag>,
     /// List of word classes (part of speech) for the headword.
     word_classes: Vec<String>,
 }
@@ -219,7 +219,7 @@ pub struct TermDefinition {
     /// original search text, while non-primary sources originate from related terms.
     is_primary: bool,
     /// Tags for the definition.
-    tags: Vec<Tag>,
+    tags: Vec<DictionaryTag>,
     /// The definition entries.
     entries: Vec<TermGlossaryContent>,
 }
@@ -320,7 +320,7 @@ pub struct PitchAccent {
     /// Positions of morae with a devoiced sound.
     devoic_positions: Vec<u8>,
     /// Tags for the pitch accent.
-    tags: Vec<Tag>,
+    tags: Vec<DictionaryTag>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -331,5 +331,5 @@ pub struct PhoneticTranscription {
     /// IPA transcription for the term.
     ipa: String,
     /// List of tags for this IPA transcription.
-    tags: Vec<Tag>,
+    tags: Vec<DictionaryTag>,
 }
