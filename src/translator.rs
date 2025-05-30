@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::Path, str::FromStr, sync::LazyLock};
+use std::{fmt::Display, iter, path::Path, str::FromStr, sync::LazyLock};
 
 use fancy_regex::Regex;
 use icu::{
@@ -83,7 +83,7 @@ struct TermReadingItem {
 #[derive(Clone, Debug)]
 pub struct FindTermResult {
     dictionary_entries: Vec<TermDictionaryEntry>,
-    original_text_length: u128,
+    original_text_length: i128,
 }
 
 type TextProcessorMap = IndexMap<&'static str, PreAndPostProcessorsWithId>;
@@ -187,8 +187,8 @@ impl Translator {
     fn find_terms_internal(
         &self,
         text: &mut String,
-        opts: FindTermsOptions,
-        tag_aggregator: TranslatorTagAggregator,
+        opts: &FindTermsOptions,
+        tag_aggregator: &mut TranslatorTagAggregator,
         primary_reading: &str,
     ) -> FindTermResult {
         let FindTermsOptions {
@@ -196,8 +196,9 @@ impl Translator {
             enabled_dictionary_map,
             ..
         } = opts;
-        if remove_non_japanese_characters && ["ja", "zh", "yue"].contains(&opts.language.as_str()) {
-            *text = Translator::get_japanese_chinese_only_text(&text);
+        if *remove_non_japanese_characters && ["ja", "zh", "yue"].contains(&opts.language.as_str())
+        {
+            *text = Translator::get_japanese_chinese_only_text(text);
         }
         if text.is_empty() {
             return FindTermResult {
@@ -206,6 +207,12 @@ impl Translator {
             };
         }
         let deinflections = self._get_deinflections(text, opts);
+        Translator::_get_dictionary_entries(
+            &deinflections,
+            enabled_dictionary_map,
+            tag_aggregator,
+            primary_reading,
+        )
     }
 
     fn _get_dictionary_entries(
@@ -239,9 +246,9 @@ impl Translator {
                     let dictionary_entry =
                         Translator::_create_term_dictionary_entry_from_database_entry(
                             database_entry.clone(),
-                            &original_text,
-                            &transformed_text,
-                            &deinflected_text,
+                            original_text,
+                            transformed_text,
+                            deinflected_text,
                             text_processor_rule_chain_candidates.clone(),
                             inflection_rule_chain_candidates.clone(),
                             true,
@@ -261,7 +268,7 @@ impl Translator {
                 };
 
                 let ExistingEntry {
-                    entry: existing_entry,
+                    entry: mut existing_entry,
                     index: existing_index,
                 } = existing_entry_info;
 
@@ -277,16 +284,98 @@ impl Translator {
                 if transformed_text.len() < existing_transformed_len {
                     continue;
                 }
+                let term_dictionary_entry =
+                    Translator::_create_term_dictionary_entry_from_database_entry(
+                        database_entry.clone(),
+                        original_text,
+                        transformed_text,
+                        deinflected_text,
+                        text_processor_rule_chain_candidates.clone(),
+                        inflection_rule_chain_candidates.clone(),
+                        true,
+                        enabled_dictionary_map,
+                        tag_aggregator,
+                        primary_reading,
+                    );
                 if transformed_text.len() > existing_transformed_len {
-                    dictionary_entries.splice(range, replace_with)
+                    dictionary_entries.splice(existing_index..1, iter::once(term_dictionary_entry));
+                } else {
+                    Translator::_merge_inflection_rule_chains(
+                        &mut existing_entry,
+                        inflection_rule_chain_candidates,
+                    );
+                    Translator::_merge_text_processor_rule_chains(
+                        &mut existing_entry,
+                        text_processor_rule_chain_candidates,
+                    );
                 }
             }
         }
 
         FindTermResult {
             dictionary_entries,
-            original_text_length: original_text_length as u128,
+            original_text_length: original_text_length as i128,
         }
+    }
+
+    fn _merge_text_processor_rule_chains(
+        existing_entry: &mut TermDictionaryEntry,
+        text_processor_rule_chain_candidates: &[TextProcessorRuleChainCandidate],
+    ) {
+        for text_processor_rules in text_processor_rule_chain_candidates {
+            if existing_entry
+                .text_processor_rule_chain_candidates
+                .iter()
+                .any(|chain| {
+                    Translator::_are_arrays_equal_ignore_order(chain, text_processor_rules)
+                })
+            {
+            } else {
+                existing_entry
+                    .text_processor_rule_chain_candidates
+                    .push(text_processor_rules.clone());
+            }
+        }
+    }
+
+    /// mutates the existing_entry
+    fn _merge_inflection_rule_chains(
+        existing_entry: &mut TermDictionaryEntry,
+        inflection_rule_chain_candidates: &[InflectionRuleChainCandidate],
+    ) {
+        for candidate in inflection_rule_chain_candidates {
+            let InflectionRuleChainCandidate {
+                source,
+                inflection_rules,
+            } = candidate;
+            // Use iter_mut() to get mutable references so we can modify the found chain
+            if let Some(duplicate) = existing_entry
+                .inflection_rule_chain_candidates
+                .iter_mut()
+                .find(|chain| {
+                    Translator::_are_arrays_equal_ignore_order(
+                        &chain.inflection_rules,
+                        inflection_rules,
+                    )
+                })
+            {
+                if duplicate.source != *source {
+                    duplicate.source = InflectionSource::Both;
+                }
+            } else {
+                let new_rule_chain_candidate = InflectionRuleChainCandidate {
+                    source: source.clone(),
+                    inflection_rules: inflection_rules.clone(),
+                };
+                existing_entry
+                    .inflection_rule_chain_candidates
+                    .push(new_rule_chain_candidate);
+            }
+        }
+    }
+
+    fn _are_arrays_equal_ignore_order(x: &[impl AsRef<str>], y: &[impl AsRef<str>]) -> bool {
+        x.len() == y.len()
     }
 
     fn _find_existing_entry(
@@ -350,13 +439,13 @@ impl Translator {
         let match_primary_reading = !primary_reading.is_empty() && reading == primary_reading;
         let dictionary_order = Translator::_get_dictionary_order(
             &dictionary,
-            &EnabledDictionaryMapType::Term(&enabled_dictionary_map),
+            &EnabledDictionaryMapType::Term(enabled_dictionary_map),
         );
         let dictionary_alias = Translator::_get_dictionary_alias(
             dictionary.clone(),
-            &EnabledDictionaryMapType::Term(&enabled_dictionary_map),
+            &EnabledDictionaryMapType::Term(enabled_dictionary_map),
         );
-        let source_term_exact_match_count = match is_primary && deinflected_text == &term {
+        let source_term_exact_match_count = match is_primary && deinflected_text == term {
             true => 1,
             false => 0,
         };
@@ -548,9 +637,9 @@ impl Translator {
         }
     }
 
-    fn _get_deinflections(&self, text: &str, opts: FindTermsOptions) -> Vec<DatabaseDeinflection> {
+    fn _get_deinflections(&self, text: &str, opts: &FindTermsOptions) -> Vec<DatabaseDeinflection> {
         let mut deinflections = if opts.deinflect {
-            self._get_algorithm_deinflections(text, &opts).unwrap()
+            self._get_algorithm_deinflections(text, opts).unwrap()
         } else {
             vec![Translator::_create_deinflection(
                 text,
@@ -573,17 +662,17 @@ impl Translator {
         } = opts;
 
         self._add_entries_to_deinflections(
-            &language,
+            language,
             &mut deinflections,
-            &enabled_dictionary_map,
-            match_type,
+            enabled_dictionary_map,
+            *match_type,
         );
 
         let dictionary_deinflections = self._get_dictionary_deinflections(
-            &language,
+            language,
             &deinflections,
-            &enabled_dictionary_map,
-            match_type,
+            enabled_dictionary_map,
+            *match_type,
         );
         deinflections.extend(dictionary_deinflections);
 
@@ -688,7 +777,7 @@ impl Translator {
         self._add_entries_to_deinflections(
             language,
             &mut dictionary_deinflections,
-            &enabled_dictionary_map,
+            enabled_dictionary_map,
             match_type,
         );
         dictionary_deinflections
@@ -799,7 +888,7 @@ impl Translator {
                 IndexMap::new();
             for variant in variants_map.iter() {
                 let (variant, current_preprocessor_rule_chain_candidates) = variant;
-                for opt in options.into_iter() {
+                for opt in options.iter() {
                     let processed = Translator::_get_processed_text(
                         text_cache,
                         variant.clone(),
@@ -848,7 +937,7 @@ impl Translator {
     fn _add_entries_to_deinflections(
         &self,
         language: &str,
-        deinflections: &mut Vec<DatabaseDeinflection>,
+        deinflections: &mut [DatabaseDeinflection],
         enabled_dictionary_map: &FindTermDictionaryMap,
         match_type: TermSourceMatchType,
     ) {
@@ -890,22 +979,25 @@ impl Translator {
         for entry in database_entries {
             let entry_dictionary = enabled_dictionary_map
                 .get(&entry.dictionary)
-                .expect(&format!(
-                    "{} was not found in enabled_dictionary_map",
-                    &entry.dictionary
-                ));
+                .unwrap_or_else(|| {
+                    panic!(
+                        "{} was not found in enabled_dictionary_map",
+                        &entry.dictionary
+                    )
+                });
             let parts_of_speech_filter = entry_dictionary.parts_of_speech_filter;
             let definition_conditions = self
                 .mlt
                 .get_condition_flags_from_parts_of_speech(language, &entry.rules);
 
-            for deinflection in
-                &mut **unique_deinflection_arrays
-                    .get_mut(entry.index)
-                    .expect(&format!(
+            for deinflection in &mut **unique_deinflection_arrays
+                .get_mut(entry.index)
+                .unwrap_or_else(|| {
+                    panic!(
                         "unique_deinflection_array.get({}) doesn't exist inside the array",
                         entry.index
-                    ))
+                    )
+                })
             {
                 if !parts_of_speech_filter
                     || LanguageTransformer::conditions_match(
@@ -919,21 +1011,19 @@ impl Translator {
         }
     }
 
+    /// this might be incorrect based on the javascript function
     fn _group_deinflections_by_term(
         deinflections: &[DatabaseDeinflection],
     ) -> IndexMap<String, Vec<DatabaseDeinflection>> {
         let mut result: IndexMap<String, Vec<DatabaseDeinflection>> = IndexMap::new();
         for deinflection in deinflections {
             let key = deinflection.deinflected_text.clone();
-            result
-                .entry(key)
-                .or_insert_with(Vec::new)
-                .push(deinflection.clone());
+            result.entry(key).or_default().push(deinflection.clone());
         }
         result
     }
 
-    /// helper function to return (opts: FindTermOptions).text_replacements
+    /// helper function to return `(opts: FindTermOptions).text_replacements`
     fn _get_text_replacement_variants(opts: FindTermsOptions) -> FindTermsTextReplacements {
         opts.text_replacements
     }
@@ -965,11 +1055,12 @@ impl Translator {
                 replacement,
                 is_global,
             } = replacement;
-            text = apply_text_replacement(&text, &pattern, &replacement, is_global);
+            text = apply_text_replacement(&text, pattern, replacement, is_global);
         }
         text
     }
 
+    // `or_default()` might not have the same behavior as the javascript version
     fn _get_processed_text(
         text_cache: &mut TextCache,
         text_key: String,
@@ -980,12 +1071,10 @@ impl Translator {
         // Level 1: Access or create the cache for the given `text_key`.
         // `entry` API gets a mutable reference to the value if key exists,
         // or inserts a new IndexMap and returns a mutable reference to it.
-        let level1_map = text_cache
-            .entry(text_key.clone())
-            .or_insert_with(IndexMap::new);
+        let level1_map = text_cache.entry(text_key.clone()).or_default();
 
         // Level 2: Access or create the cache for the given `id_key` within level1_map.
-        let level2_map = level1_map.entry(id_key).or_insert_with(IndexMap::new);
+        let level2_map = level1_map.entry(id_key).or_default();
 
         // Level 3: Check if the (setting -> processed_text) mapping exists in level2_map.
         if let Some(cached_processed_text_ref) = level2_map.get(&setting) {

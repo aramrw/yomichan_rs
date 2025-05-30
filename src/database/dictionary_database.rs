@@ -799,25 +799,25 @@ impl DictionaryDatabase {
     /// # Arguments
     ///
     /// * `index_query_identifiers`: A slice of `IndexQueryIdentifier` 
-    /// indicating which primary or secondary key kinds to query.
+    ///   indicating which primary or secondary key kinds to query.
     ///   These identifiers are `Copy`-able.
     ///
     /// * `items_to_query`: A slice of items that will be queried against the database.
     ///
     /// * `create_query_fn`: A closure that generates the specific `NativeDbQueryInfo` 
-    ///  (e.g., exact match, prefix, range) for a given `ItemQueryType` and `IndexQueryIdentifier`
+    ///   (e.g., exact match, prefix, range) for a given `ItemQueryType` and `IndexQueryIdentifier`
     ///
     /// * `resolve_secondary_key_fn`: A closure that takes a 
-    /// `SecondaryKeyQueryKind` (from `IndexQueryIdentifier`)
+    ///   `SecondaryKeyQueryKind` (from `IndexQueryIdentifier`)
     ///   and returns an owned value of the actual `native_db` generated `SecondaryKeyEnumType`. 
     ///   Crucial for working with `native_db` key enums that are not `Clone`.
     ///
     /// * `predicate_fn`: A closure that filters the records fetched from the database. 
-    /// It receives a reference to the database model instance (`M`) 
-    /// and the original `ItemQueryType`.
+    ///   It receives a reference to the database model instance (`M`) 
+    ///   and the original `ItemQueryType`.
     ///
     /// * `create_result_fn`: A closure that transforms a 
-    /// filtered database model instance (`M`) into the desired type 
+    ///   filtered database model instance (`M`) into the desired type 
     ///
     /// * `QueryResultType`. It also receives the original `ItemQueryType` 
     ///   and the indices of the item and query identifier.
@@ -825,20 +825,20 @@ impl DictionaryDatabase {
     /// # Generic Parameters
     ///
     /// * `ItemQueryType`: The type of items in `items_to_query` 
-    /// (e.g., `String` for a search term) -- Must be `Sync + Send`.
+    ///   (e.g., `String` for a search term) -- Must be `Sync + Send`.
     ///
     /// * `M`: The database model struct (e.g., `DatabaseTermEntry`). 
-    /// Must implement `NativeDbModelTrait` (likely `native_model::Model`),
+    ///   Must implement `NativeDbModelTrait` (likely `native_model::Model`),
     ///   
     /// * `ToInput` (for deserialization from `native_db`), 
-    /// `Clone`, `Send`, `Sync`, and be `'static`.
+    ///   `Clone`, `Send`, `Sync`, and be `'static`.
     ///
     /// * `ModelKeyType`: The type of the keys used for querying within `NativeDbQueryInfo` 
-    /// (e.g., `String`).
+    ///   (e.g., `String`).
     ///   Must implement `ToKey`, `Clone`, `Send`, `Sync`, and be `'static`.
     ///
     /// * `SecondaryKeyEnumType`: The actual `native_db` generated key enum for secondary keys 
-    /// (e.g., `DatabaseTermEntryKey`).
+    ///   (e.g., `DatabaseTermEntryKey`).
     ///   This type is NOT required to be `Clone`. 
     ///   Must implement `ToKeyDefinition<KeyOptions>`, `Send`, `Sync`, and be `'static`.
     ///
