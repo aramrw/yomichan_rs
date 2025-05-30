@@ -20,7 +20,6 @@ serde-untagged = "0.1.6"
 uuid = { version = "1.10.0", features = ["v4", "fast-rng"] }
 snafu = "0.8.4"
 bimap = { version = "0.6.3", features = ["std"] }
-regex = "1.10.5"
 unicode-segmentation = "1.11.0"
 unicode-normalization = "0.1.23"
 wana_kana = "3.0.0"
@@ -30,6 +29,7 @@ derive_more = { version = "1.0.0", features = ["debug"] }
 indexmap = { version = "2.7.0", features = ["serde"] }
 language_transformer = { path = "f:/programming/Rust/language_transformer" }
 icu = "2.0.0"
+fancy-regex = "0.14.0"
 
 [workspace]
 members = ["crates/kanji_processor"]
