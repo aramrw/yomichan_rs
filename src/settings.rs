@@ -271,7 +271,7 @@ pub struct TranslationOptions {
     pub search_resolution: SearchResolution,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 /// # Example
 ///
 /// `Letter`: A dog → _"A dog"_ | _"A do"_ | _"A d"_ | _"A"_.

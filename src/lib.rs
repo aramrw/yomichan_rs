@@ -9,6 +9,7 @@ mod structured_content;
 mod translation;
 mod translation_internal;
 mod translator;
+mod regex_util;
 
 use database::dictionary_database::DB_MODELS;
 use settings::Options;

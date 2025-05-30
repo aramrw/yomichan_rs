@@ -143,7 +143,7 @@ pub enum TermSourceMatchSource {
 }
 
 /// Enum representing how the search term relates to the final term.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchType {
     Exact,

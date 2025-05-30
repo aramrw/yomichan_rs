@@ -7,9 +7,13 @@
 
 use std::collections::{HashMap, HashSet};
 
-use regex::Regex;
+use fancy_regex::Regex;
+use language_transformer::language_d::FindTermsTextReplacements;
 
-use crate::{dictionary::TermSourceMatchType, settings::SearchResolution};
+use crate::{
+    database::dictionary_database::DictionarySet, dictionary::TermSourceMatchType,
+    settings::SearchResolution,
+};
 
 // Kanji
 
@@ -80,31 +84,13 @@ impl FindTermsSortOrder {
         match s {
             "ascending" => Ok(FindTermsSortOrder::Ascending),
             "descending" => Ok(FindTermsSortOrder::Descending),
-            _ => Err(format!("Invalid FindTermsSortOrder: {}", s)),
+            _ => Err(format!("Invalid FindTermsSortOrder: {s}")),
         }
     }
 }
 
-/// Information about how text should be replaced when looking up terms.
-#[derive(Debug, Clone)]
-pub struct FindTermsTextReplacement {
-    /// The pattern to replace.
-    /// In Rust, you'd typically use the `regex::Regex` type from the `regex` crate.
-    /// For simplicity in this direct translation, we'll use String,
-    /// but you'd likely parse this into a Regex object at runtime.
-    pub pattern: Regex, // Or regex::Regex if using the regex crate
-    /// The replacement string. This can contain special sequences, such as `$&`.
-    pub replacement: String,
-}
-
-/// Multiple text replacements.
-/// This was (FindTermsTextReplacement[] | null)[]
-/// Which means an array of (array of replacements OR null).
-/// In Rust, this translates to Vec<Option<Vec<FindTermsTextReplacement>>>
-pub type FindTermsTextReplacements = Vec<Option<Vec<FindTermsTextReplacement>>>;
-
 /// Details about a dictionary.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FindTermDictionary {
     /// The index of the dictionary
     pub index: i32, // Or usize
@@ -117,6 +103,12 @@ pub struct FindTermDictionary {
     /// Whether to use the deinflections from this dictionary.
     pub use_deinflections: bool,
 }
+
+// impl DictionarySet  for FindTermDictionary {
+//     fn has(&self, value: &str) -> bool {
+//
+//     }
+// }
 
 pub type TermEnabledDictionaryMap = HashMap<String, FindTermDictionary>;
 pub type KanjiEnabledDictionaryMap = HashMap<String, FindKanjiDictionary>;
