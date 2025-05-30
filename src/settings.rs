@@ -1,5 +1,5 @@
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct GlobalOptions {
@@ -416,7 +416,7 @@ pub struct AnkiNoteOptions {
     pub fields: AnkiNoteFields,
 }
 
-pub type AnkiNoteFields = HashMap<String, String>;
+pub type AnkiNoteFields = IndexMap<String, String>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct SentenceParsingOptions {

@@ -14,6 +14,7 @@ use crate::Yomichan;
 //use lindera::{LinderaError, Token, Tokenizer};
 
 use db_type::{KeyOptions, ToKeyDefinition};
+use indexmap::{IndexMap, IndexSet};
 use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
 use native_model::{native_model, Model};
 
@@ -26,7 +27,6 @@ use transaction::RTransaction;
 use uuid::Uuid;
 
 use std::cell::LazyCell;
-use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
@@ -34,6 +34,27 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock};
 use std::{fs, marker};
+
+impl DictionarySet for IndexSet<String> {
+    fn has(&self, value: &str) -> bool {
+        self.contains(value)
+    }
+}
+impl DictionarySet for &IndexSet<String> {
+    fn has(&self, value: &str) -> bool {
+        self.contains(value)
+    }
+}
+impl<V: Send + Sync> DictionarySet for IndexMap<String, V> {
+    fn has(&self, value: &str) -> bool {
+        self.contains_key(value)
+    }
+}
+impl<V: Send + Sync> DictionarySet for &IndexMap<String, V> {
+    fn has(&self, value: &str) -> bool {
+        self.contains_key(value)
+    }
+}
 
 pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     let mut models = Models::new();
@@ -79,21 +100,125 @@ impl HasExpression for DatabaseTermEntry {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[native_model(id = 1, version = 1)]
+#[native_db]
+pub struct DatabaseTermEntry {
+    #[primary_key]
+    pub id: String,
+    #[secondary_key]
+    pub expression: String,
+    #[secondary_key]
+    pub reading: String,
+    #[secondary_key]
+    pub expression_reverse: String,
+    #[secondary_key]
+    pub reading_reverse: String,
+    pub definition_tags: Option<String>,
+    /// Legacy alias for the `definitionTags` field.
+    pub tags: Option<String>,
+    pub rules: String,
+    pub score: usize,
+    pub glossary: Vec<TermGlossary>,
+    #[secondary_key]
+    pub sequence: Option<i128>,
+    pub term_tags: Option<String>,
+    pub dictionary: String,
+    pub file_path: OsString,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermEntry {
     pub id: String,
-    pub index: u32,
-    pub term: String,
-    pub reading: String,
-    pub sequence: Option<i128>,
+    pub index: usize,
     pub match_type: TermSourceMatchType,
     pub match_source: TermSourceMatchSource,
-    pub definition_tags: Option<String>,
-    pub term_tags: Option<Vec<String>>,
+    pub term: String,
+    pub reading: String,
+    pub definition_tags: Vec<String>,
+    pub term_tags: Vec<String>,
     pub rules: Vec<String>,
     pub definitions: Vec<TermGlossary>,
-    pub score: i8,
+    pub score: usize,
     pub dictionary: String,
+    pub sequence: i128,
+}
+
+impl DatabaseTermEntry {
+    // pub fn predicate(
+    //     &self,
+    //     dictionaries: impl DictionarySet,
+    //     visited_ids: &mut IndexSet<String>,
+    // ) -> bool {
+    //     if !dictionaries.has(&self.dictionary) {
+    //         return false;
+    //     }
+    //     if visited_ids.contains(&self.id) {
+    //         return false;
+    //     }
+    //     visited_ids.insert(self.id.clone());
+    //     true
+    // }
+    pub fn into_term_generic(
+        self,
+        match_type: &mut TermSourceMatchType,
+        data: FindMulitBulkData,
+    ) -> TermEntry {
+        let match_source_is_term = data.index_index == 0;
+        let match_source = match match_source_is_term {
+            true => TermSourceMatchSource::Term,
+            false => TermSourceMatchSource::Reading,
+        };
+        let found = match match_source {
+            TermSourceMatchSource::Term => self.expression == data.item,
+            TermSourceMatchSource::Reading => self.reading == data.item,
+            _ => unreachable!(
+                "DictionaryDatabase::into_term_generic does not expect the match_to be a sequence."
+            ),
+        };
+        if found {
+            *match_type = TermSourceMatchType::Exact;
+        }
+        self.into_term_entry_specific(match_source, *match_type, data.item_index)
+    }
+    pub fn into_term_entry_specific(
+        self,
+        match_source: TermSourceMatchSource,
+        match_type: TermSourceMatchType,
+        index: usize,
+    ) -> TermEntry {
+        let DatabaseTermEntry {
+            id,
+            expression,
+            reading,
+            expression_reverse,
+            reading_reverse,
+            definition_tags,
+            tags,
+            rules,
+            score,
+            glossary,
+            sequence,
+            term_tags,
+            dictionary,
+            file_path,
+        } = self;
+        TermEntry {
+            id,
+            index,
+            match_type,
+            match_source,
+            term: expression,
+            reading,
+            definition_tags: split_optional_string_field(definition_tags),
+            term_tags: split_optional_string_field(term_tags),
+            rules: split_optional_string_field(Some(rules)),
+            definitions: glossary,
+            score,
+            dictionary,
+            sequence: sequence.unwrap_or(-1),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -353,7 +478,7 @@ pub struct DatabaseKanjiEntry {
     /// The kanji dictionary name.
     ///
     /// Does not exist within the JSON, gets added _after_ deserialization.
-    pub stats: Option<HashMap<String, String>>,
+    pub stats: Option<IndexMap<String, String>>,
     #[serde(skip_deserializing)]
     pub dictionary: Option<String>,
 }
@@ -366,13 +491,13 @@ pub struct KanjiEntry {
     pub kunyomi: Vec<String>,
     pub tags: Vec<String>,
     pub definitions: Vec<String>,
-    pub stats: HashMap<String, String>,
+    pub stats: IndexMap<String, String>,
     pub dictionary: String,
 }
 
 /*************** Database Dictionary ***************/
 
-pub type DictionaryCountGroup = HashMap<String, u16>;
+pub type DictionaryCountGroup = IndexMap<String, u16>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DictionaryCounts {
@@ -413,10 +538,23 @@ pub struct MediaRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct FindMulitBulkData<TItem> {
-    item: TItem,
-    item_index: u64,
-    index_index: u64,
+pub enum FindMultiBulkDataItemType {
+    String(String),
+}
+impl PartialEq<FindMultiBulkDataItemType> for String {
+    fn eq(&self, other: &FindMultiBulkDataItemType) -> bool {
+        match other {
+            FindMultiBulkDataItemType::String(other) => self == other,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FindMulitBulkData {
+    item: FindMultiBulkDataItemType,
+    item_index: usize,
+    index_index: usize,
 }
 
 trait DBReadWrite {
@@ -447,33 +585,6 @@ pub struct DatabaseDictData {
 pub enum Queries<'a, Q: AsRef<str>> {
     Exact(&'a [Q]),
     StartsWith(&'a [Q]),
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-#[native_model(id = 1, version = 1)]
-#[native_db]
-pub struct DatabaseTermEntry {
-    #[primary_key]
-    pub id: String,
-    #[secondary_key]
-    pub expression: String,
-    #[secondary_key]
-    pub reading: String,
-    #[secondary_key]
-    pub expression_reverse: String,
-    #[secondary_key]
-    pub reading_reverse: String,
-    pub definition_tags: Option<String>,
-    /// Legacy alias for the `definitionTags` field.
-    pub tags: Option<String>,
-    pub rules: String,
-    pub score: i8,
-    pub glossary: TermGlossary,
-    #[secondary_key]
-    pub sequence: Option<i128>,
-    pub term_tags: Option<String>,
-    pub dictionary: String,
-    pub file_path: OsString,
 }
 
 pub trait DictionarySet: Sync + Send {
@@ -518,13 +629,13 @@ pub enum NativeDbQueryInfo<K: ToKey + Clone> {
     Range { start: Bound<K>, end: Bound<K> },
 }
 #[derive(Clone)]
-struct DictionaryDatabase {
+pub struct DictionaryDatabase {
     db: Arc<Database<'static>>,
     db_name: &'static str,
 }
 
 impl DictionaryDatabase {
-    fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(path: impl AsRef<Path>) -> Self {
         Self {
             db: Arc::new(DBBuilder::new().open(&DB_MODELS, path).unwrap()),
             db_name: "dict",
@@ -538,11 +649,11 @@ impl DictionaryDatabase {
     /// Handles deduplication of results based on term ID.
     pub fn find_terms_bulk(
         &self,
-        term_list: &[String],
-        dictionaries: &impl DictionarySet, // Your DictionarySet trait
-        match_type: TermSourceMatchType,   // Your TermSourceMatchType enum
+        term_list: &[impl AsRef<str>],
+        dictionaries: &impl DictionarySet,
+        match_type: TermSourceMatchType,
     ) -> Result<Vec<TermEntry>, DBError> {
-        // TermEntry is your Rust struct
+        let term_list: Vec<&str> = term_list.iter().map(|s| s.as_ref()).collect();
 
         // 1. Handle term list pre-processing for suffix searches
         let (processed_term_list, actual_match_type_for_query) = match match_type {
@@ -551,24 +662,24 @@ impl DictionaryDatabase {
                     .iter()
                     .map(|s| s.chars().rev().collect::<String>())
                     .collect::<Vec<String>>(),
-                TermSourceMatchType::Prefix, // Suffix on normal string becomes prefix on reversed string
+                TermSourceMatchType::Prefix,
             ),
-            _ => (term_list.to_vec(), match_type),
+            _ => (
+                term_list.iter().map(|s| s.to_string()).collect(),
+                match_type,
+            ),
         };
 
-        // 2. Determine index_query_identifiers based on original match_type
-        let index_query_identifiers: Vec<IndexQueryIdentifier> =
-            if match_type == TermSourceMatchType::Suffix {
-                vec![
-                    IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ExpressionReverse),
-                    IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ReadingReverse),
-                ]
-            } else {
-                vec![
-                    IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Expression),
-                    IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Reading),
-                ]
-            };
+        let index_names: [IndexQueryIdentifier; 2] = match match_type {
+            TermSourceMatchType::Suffix => [
+                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ExpressionReverse),
+                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ReadingReverse),
+            ],
+            _ => [
+                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Expression),
+                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Reading),
+            ],
+        };
 
         // 3. Define `resolve_secondary_key_fn`
         // This now needs to include reverse keys if they exist.
@@ -576,7 +687,8 @@ impl DictionaryDatabase {
             match kind {
                 SecondaryKeyQueryKind::Expression => DatabaseTermEntryKey::expression,
                 SecondaryKeyQueryKind::Reading => DatabaseTermEntryKey::reading,
-                SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence, // Keep if used by IndexQueryIdentifier
+                // Keep if used by IndexQueryIdentifier
+                SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence,
                 // Add these if DatabaseTermEntryKey has them:
                 SecondaryKeyQueryKind::ExpressionReverse => {
                     DatabaseTermEntryKey::expression_reverse
@@ -594,10 +706,12 @@ impl DictionaryDatabase {
                 TermSourceMatchType::Prefix => NativeDbQueryInfo::Prefix(item_from_list.clone()),
                 // Suffix was converted to Prefix on reversed string
                 TermSourceMatchType::Suffix => {
-                    // This case should ideally not be hit if actual_match_type_for_query is used correctly.
-                    // Defaulting to Prefix as a safeguard, assuming item_from_list is already reversed.
+                    // This case should ideally not be hit if
+                    // actual_match_type_for_query is used correctly.
+                    // Defaulting to Prefix as a safeguard,
+                    // assuming item_from_list is already reversed.
                     NativeDbQueryInfo::Prefix(item_from_list.clone())
-                } // Handle other match types if they exist in your TermSourceMatchType enum
+                }
             }
         };
 
@@ -606,53 +720,55 @@ impl DictionaryDatabase {
         let find_multi_bulk_predicate =
             |row: &DatabaseTermEntry, _item_to_query: &String| dictionaries.has(&row.dictionary);
 
-        // 6. Define `create_result_fn` (for find_multi_bulk)
-        // This will construct the `TermEntry`.
-        let create_result_fn = |db_entry: DatabaseTermEntry,
-                                 _processed_item: &String, // Item from processed_term_list
-                                 item_idx: usize,          // Index in processed_term_list (maps to original term_list)
-                                 index_kind_idx: usize|    // Index in index_query_identifiers
-         -> TermEntry {
-            let current_index_identifier = index_query_identifiers[index_kind_idx];
-            let match_source = match current_index_identifier {
-                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Expression) |
-                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ExpressionReverse) => {
-                    TermSourceMatchSource::Term
-                }
-                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Reading) |
-                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ReadingReverse) => {
-                    TermSourceMatchSource::Reading
-                }
-                _ => TermSourceMatchSource::Term, // Default or error
+        let create_result_fn = |
+            db_entry: DatabaseTermEntry,      
+            // The string from `processed_term_list` that was used for the query.
+            item_from_list: &String,          
+            // The index of `item_from_list` in `processed_term_list`.
+            item_idx: usize,                  
+            // The index into `index_names` that was used for this 
+            // specific query part (0 for expression-related, 1 for reading-related).
+            index_kind_idx: usize             
+        | -> TermEntry {
+            // `match_type` is captured from the find_terms_bulk function's parameters.
+            // This will be the initial match type, 
+            // which `into_term_generic` can then refine to `Exact` if applicable.
+            let mut current_match_type_for_result = match_type; 
+
+            // Construct the `FindMulitBulkData` required by `into_term_generic`.
+            // This structure bundles information about the 
+            // query item and how it was matched.
+            let find_data = FindMulitBulkData {
+                // The item used in the query.
+                item: FindMultiBulkDataItemType::String(item_from_list.clone()), 
+                // The original index of the item in the input list.
+                item_index: item_idx,             
+                // Identifies if the match was against term (0) or reading (1).
+                index_index: index_kind_idx,      
             };
 
-            TermEntry {
-                id: db_entry.id,
-                index: item_idx as u32, // Use item_idx from the (potentially reversed) term list
-                term: db_entry.expression,
-                reading: db_entry.reading,
-                sequence: db_entry.sequence,
-                match_type, // The original match_type passed to find_terms_bulk_rust
-                match_source,
-                definition_tags: db_entry.definition_tags,
-                term_tags: DictionaryDatabase::split_optional_string_field(db_entry.term_tags),
-                rules: DictionaryDatabase::split_string_field(db_entry.rules),
-                definitions: vec![db_entry.glossary], // Assumes one glossary per db_entry maps to one definition entry
-                score: db_entry.score,
-                dictionary: db_entry.dictionary,
-            }
+            // `into_term_generic` handles the logic of determining the precise
+            // `match_source` and updates 
+            // `current_match_type_for_result` to `TermSourceMatchType::Exact`
+            // if the criteria are met.
+            db_entry.into_term_generic(&mut current_match_type_for_result, find_data)
         };
 
-        // 7. Call the generic find_multi_bulk function
         let mut potential_term_entries = self.find_multi_bulk::<
-            String,                // ItemQueryType (type of elements in processed_term_list)
-            DatabaseTermEntry,     // M (Model)
-            String,                // ModelKeyType (type for query values like exact term, prefix)
-            DatabaseTermEntryKey,  // SecondaryKeyEnumType (actual native_db key)
-            TermEntry,             // QueryResultType
-            _, _, _, _             // Infer closures
+            // ItemQueryType (type of elements in processed_term_list)
+            String,                
+            // M (Model)
+            DatabaseTermEntry,     
+            // ModelKeyType (type for query values like exact term, prefix)
+            String,                
+            // SecondaryKeyEnumType (actual native_db key)
+            DatabaseTermEntryKey,  
+            // QueryResultType
+            TermEntry,             
+            // Infer closures
+            _, _, _, _             
         >(
-            &index_query_identifiers,
+            &index_names,
             &processed_term_list,
             create_query_fn,
             resolve_secondary_key_fn,
@@ -661,44 +777,71 @@ impl DictionaryDatabase {
         )?;
 
         // 8. Deduplication based on ID (mimicking the JavaScript `visited` set)
-        let mut visited_ids: HashSet<String> = HashSet::new();
+        let mut visited_ids: IndexSet<String> = IndexSet::new();
         potential_term_entries.retain(|term_entry| visited_ids.insert(term_entry.id.clone()));
 
         Ok(potential_term_entries)
     }
 
-    /// Performs a bulk query against the database for multiple items across multiple specified indexes.
+    /// Performs a bulk query against the database for multiple items 
+    /// across multiple specified indexes.
     ///
-    /// This function is highly generic and relies on several closures to define specific behaviors
-    /// such as query creation, secondary key resolution, result filtering, and final result transformation.
-    /// It's designed to handle cases where the native database key enums (like `SecondaryKeyEnumType`)
-    /// might not be `Clone`, by using a `Copy`-able `IndexQueryIdentifier` and a resolver function.
+    /// This function is highly generic and relies on 
+    /// several closures to define specific behaviors
+    /// such as query creation, secondary key resolution, 
+    /// result filtering, and final result transformation.
+    ///
+    /// It's designed to handle cases where the 
+    /// native_db key enums (like `SecondaryKeyEnumType`)
+    /// might not be `Clone`, by using a `Copy`-able `IndexQueryIdentifier` 
+    /// and a resolver function.
     ///
     /// # Arguments
     ///
-    /// * `index_query_identifiers`: A slice of `IndexQueryIdentifier` indicating which primary or secondary key kinds to query.
+    /// * `index_query_identifiers`: A slice of `IndexQueryIdentifier` 
+    /// indicating which primary or secondary key kinds to query.
     ///   These identifiers are `Copy`-able.
+    ///
     /// * `items_to_query`: A slice of items that will be queried against the database.
-    /// * `create_query_fn`: A closure that generates the specific `NativeDbQueryInfo` (e.g., exact match, prefix, range)
-    ///   for a given `ItemQueryType` and `IndexQueryIdentifier`.
-    /// * `resolve_secondary_key_fn`: A closure that takes a `SecondaryKeyQueryKind` (from `IndexQueryIdentifier`)
-    ///   and returns an owned value of the actual `native_db` generated `SecondaryKeyEnumType`. This is crucial
-    ///   for working with `native_db` key enums that are not `Clone`.
-    /// * `predicate_fn`: A closure that filters the records fetched from the database. It receives a reference to the
-    ///   database model instance (`M`) and the original `ItemQueryType`.
-    /// * `create_result_fn`: A closure that transforms a successfully filtered database model instance (`M`) into the desired
-    ///   `QueryResultType`. It also receives the original `ItemQueryType` and the indices of the item and query identifier.
+    ///
+    /// * `create_query_fn`: A closure that generates the specific `NativeDbQueryInfo` 
+    ///  (e.g., exact match, prefix, range) for a given `ItemQueryType` and `IndexQueryIdentifier`
+    ///
+    /// * `resolve_secondary_key_fn`: A closure that takes a 
+    /// `SecondaryKeyQueryKind` (from `IndexQueryIdentifier`)
+    ///   and returns an owned value of the actual `native_db` generated `SecondaryKeyEnumType`. 
+    ///   Crucial for working with `native_db` key enums that are not `Clone`.
+    ///
+    /// * `predicate_fn`: A closure that filters the records fetched from the database. 
+    /// It receives a reference to the database model instance (`M`) 
+    /// and the original `ItemQueryType`.
+    ///
+    /// * `create_result_fn`: A closure that transforms a 
+    /// filtered database model instance (`M`) into the desired type 
+    ///
+    /// * `QueryResultType`. It also receives the original `ItemQueryType` 
+    ///   and the indices of the item and query identifier.
     ///
     /// # Generic Parameters
     ///
-    /// * `ItemQueryType`: The type of items in `items_to_query` (e.g., `String` for a search term).
-    ///   Must be `Sync + Send`.
-    /// * `M`: The database model struct (e.g., `DatabaseTermEntry`). Must implement `NativeDbModelTrait` (likely `native_model::Model`),
-    ///   `ToInput` (for deserialization from `native_db`), `Clone`, `Send`, `Sync`, and be `'static`.
-    /// * `ModelKeyType`: The type of the keys used for querying within `NativeDbQueryInfo` (e.g., `String`).
+    /// * `ItemQueryType`: The type of items in `items_to_query` 
+    /// (e.g., `String` for a search term) -- Must be `Sync + Send`.
+    ///
+    /// * `M`: The database model struct (e.g., `DatabaseTermEntry`). 
+    /// Must implement `NativeDbModelTrait` (likely `native_model::Model`),
+    ///   
+    /// * `ToInput` (for deserialization from `native_db`), 
+    /// `Clone`, `Send`, `Sync`, and be `'static`.
+    ///
+    /// * `ModelKeyType`: The type of the keys used for querying within `NativeDbQueryInfo` 
+    /// (e.g., `String`).
     ///   Must implement `ToKey`, `Clone`, `Send`, `Sync`, and be `'static`.
-    /// * `SecondaryKeyEnumType`: The actual `native_db` generated key enum for secondary keys (e.g., `DatabaseTermEntryKey`).
-    ///   This type is NOT required to be `Clone`. Must implement `ToKeyDefinition<KeyOptions>`, `Send`, `Sync`, and be `'static`.
+    ///
+    /// * `SecondaryKeyEnumType`: The actual `native_db` generated key enum for secondary keys 
+    /// (e.g., `DatabaseTermEntryKey`).
+    ///   This type is NOT required to be `Clone`. 
+    ///   Must implement `ToKeyDefinition<KeyOptions>`, `Send`, `Sync`, and be `'static`.
+    ///
     /// * `QueryResultType`: The type of items that will be present in the final returned vector.
     ///   Must be `Send + 'static`.
     ///
@@ -711,7 +854,8 @@ impl DictionaryDatabase {
     ///
     /// # Returns
     ///
-    /// A `Result` containing either a `Vec<QueryResultType>` with all successfully fetched, filtered, and transformed
+    /// A `Result` containing either a `Vec<QueryResultType>` 
+    /// with all successfully fetched, filtered, and transformed
     /// results, or a `DBError` if any database operation fails.
     pub fn find_multi_bulk<
         ItemQueryType: Sync + Send,
@@ -737,8 +881,9 @@ impl DictionaryDatabase {
 
         for (item_idx, item_to_query) in items_to_query.iter().enumerate() {
             for (index_kind_idx, query_identifier_ref) in index_query_identifiers.iter().enumerate()
-            {
-                let query_identifier = *query_identifier_ref; // Dereference to get a copy (IndexQueryIdentifier is Copy)
+            {   
+                // Dereference to get a copy (IndexQueryIdentifier is Copy)
+                let query_identifier = *query_identifier_ref; 
 
                 let query_info = create_query_fn(item_to_query, query_identifier);
                 let mut current_batch_models: Vec<M> = Vec::new();
@@ -803,27 +948,31 @@ impl DictionaryDatabase {
         }
         Ok(all_final_results)
     }
+}
 
-    pub fn split_optional_string_field(field: Option<String>) -> Option<Vec<String>> {
-        field.map(|s| {
+pub fn split_optional_string_field(field: Option<String>) -> Vec<String> {
+    field
+        .map(|s| {
             s.split(' ')
                 .map(String::from)
                 .filter(|part| !part.is_empty())
                 .collect()
         })
-    }
+        .unwrap_or_default()
+}
 
-    pub fn split_string_field(field: String) -> Vec<String> {
-        field
-            .split(' ')
-            .map(String::from)
-            .filter(|part| !part.is_empty())
-            .collect()
-    }
+pub fn split_string_field(field: String) -> Vec<String> {
+    field
+        .split(' ')
+        .map(String::from)
+        .filter(|part| !part.is_empty())
+        .collect()
 }
 
 #[cfg(test)]
 mod dictdbtests {
+    use indexmap::IndexSet;
+
     use super::{
         DatabaseTermEntry,
         DatabaseTermEntryKey, // The actual native_db generated key enum
@@ -916,14 +1065,14 @@ mod dictdbtests {
 
         let term_list = vec!["大丈夫".to_string()];
 
-        let mut dictionaries_set = std::collections::HashSet::new();
+        let mut dictionaries_set = IndexSet::new();
         // Assuming your test DB has terms from a dictionary named "JMDict" or similar.
         // Adjust this if your test dictionary has a different name.
         // If the dictionary name doesn't matter for this specific test and all terms should be included,
         // the `has` method of your DictionarySet impl could always return true for testing.
         dictionaries_set.insert("大辞林\u{3000}第四版".to_string()); // Example dictionary name
 
-        struct TestDictionarySet(std::collections::HashSet<String>);
+        struct TestDictionarySet(IndexSet<String>);
         impl DictionarySet for TestDictionarySet {
             fn has(&self, value: &str) -> bool {
                 self.0.contains(value)

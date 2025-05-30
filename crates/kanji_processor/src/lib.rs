@@ -1,6 +1,7 @@
+use indexmap::IndexMap;
 use regex::Regex;
 use serde::Deserialize;
-use std::{collections::HashMap, sync::LazyLock};
+use std::sync::LazyLock;
 
 // Define a struct to match your KanjiMapping type
 #[derive(Deserialize, Debug, Clone)]
@@ -13,7 +14,7 @@ struct KanjiMapping {
 #[derive(Debug, Clone)]
 pub struct KanjiProcessor {
     regex: Regex,
-    conversion_map: HashMap<char, char>,
+    conversion_map: IndexMap<char, char>,
 }
 
 impl KanjiProcessor {
@@ -36,7 +37,7 @@ impl KanjiProcessor {
         let regex =
             Regex::new(&format!("[{regex_string}]")).expect("Failed to compile Kanji regex");
 
-        let mut conversion_map = HashMap::new();
+        let mut conversion_map = IndexMap::new();
         for mapping in mappings {
             // Assume oyaji is a single char for the map value
             let oyaji_char = mapping

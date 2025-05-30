@@ -1,6 +1,6 @@
 use crate::dictionary_data::TermGlossaryContent;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -99,7 +99,7 @@ pub struct KanjiFrequency {
 }
 
 /// An object with groups of stats about a kanji character.
-pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
+pub type KanjiStatGroups = IndexMap<String, Vec<KanjiStat>>;
 
 /// A dictionary entry for a kanji character.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -134,7 +134,7 @@ pub struct DictionaryOrder {
 /*************** Term ***************/
 
 /// Enum representing what database field was used to match the source term.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchSource {
     Term,
@@ -245,18 +245,18 @@ pub struct TermPronunciation {
 /// Source information represents how the original text was transformed to get to the final term.
 pub struct TermSource {
     /// The original text that was searched.
-    original_text: String,
+    pub original_text: String,
     /// The original text after being transformed, but before applying deinflections.
-    transformed_text: String,
+    pub transformed_text: String,
     /// The final text after applying deinflections.
-    deinflected_text: String,
+    pub deinflected_text: String,
     /// How the deinflected text matches the value from the database.
-    match_type: TermSourceMatchType,
+    pub match_type: TermSourceMatchType,
     /// Which field was used to match the database entry.
-    match_source: TermSourceMatchSource,
+    pub match_source: TermSourceMatchSource,
     /// Whether or not this source is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
-    is_primary: bool,
+    pub is_primary: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -5,10 +5,10 @@ use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
 use crate::structured_content::ImageElement;
 
 use bimap::BiHashMap;
+use indexmap::IndexMap;
 use serde_untagged::UntaggedEnumVisitor;
 
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::HashMap;
 use std::string::String;
 
 use std::sync::LazyLock;
@@ -105,7 +105,7 @@ pub struct Index {
     /// See: [iso639 code list](https://www.loc.gov/standards/iso639-2/php/code_list.php).
     pub target_language: Option<String>,
     pub frequency_mode: Option<FrequencyMode>,
-    pub tag_meta: Option<HashMap<String, IndexTag>>,
+    pub tag_meta: Option<IndexMap<String, IndexTag>>,
 }
 
 // #[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
@@ -114,7 +114,7 @@ pub struct Index {
 ///
 /// This object is deprecated, and individual tag files should be used instead.
 pub struct IndexTagMeta {
-    pub tags: HashMap<String, IndexTag>,
+    pub tags: IndexMap<String, IndexTag>,
 }
 
 //#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
@@ -150,6 +150,8 @@ pub struct DictionaryDataTag {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TermGlossary {
     Content(Box<TermGlossaryContent>),
+    /// This is a tuple struct in js.
+    /// If you see an `Array.isArray()` check on a [TermGlossary], its looking for this.
     Deinflection(TermGlossaryDeinflection),
 }
 
@@ -253,8 +255,8 @@ pub struct TermV4 {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// TermGlossaryDeinflection represents the deinflection information of a term.
 pub struct TermGlossaryDeinflection {
-    uninflected: String,
-    inflection_rule_chain: Vec<String>,
+    pub uninflected: String,
+    pub inflection_rule_chain: Vec<String>,
 }
 
 /************* Term Meta *************/

@@ -1,7 +1,7 @@
 // Import necessary collections
 use std::any::Any;
-use std::collections::{HashMap, HashSet};
 
+use indexmap::{IndexMap, IndexSet};
 use language_transformer::language_d::TextProcessorSetting;
 
 use crate::database::dictionary_database::TermEntry;
@@ -10,7 +10,7 @@ use crate::dictionary::{self, InflectionRuleChainCandidate, InflectionSource};
 pub type TextProcessorRuleChainCandidate = Vec<String>;
 
 pub type VariantAndTextProcessorRuleChainCandidatesMap =
-    HashMap<String, Vec<TextProcessorRuleChainCandidate>>;
+    IndexMap<String, Vec<TextProcessorRuleChainCandidate>>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TermDictionaryEntry {
@@ -31,8 +31,8 @@ pub struct DatabaseDeinflection {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct DictionaryEntryGroup {
-    pub ids: HashSet<u64>,
+    pub ids: IndexSet<u64>,
     pub dictionary_entries: Vec<TermDictionaryEntry>,
 }
 
-pub type TextCache = HashMap<String, HashMap<String, HashMap<TextProcessorSetting, String>>>;
+pub type TextCache = IndexMap<String, IndexMap<String, IndexMap<TextProcessorSetting, String>>>;

@@ -4,6 +4,7 @@ use crate::dictionary_data::{
     TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPhoneticData,
     TermMetaPitch, TermMetaPitchData,
 };
+use indexmap::IndexSet;
 use pretty_assertions::assert_eq;
 
 use crate::database::dictionary_importer::{prepare_dictionary, Summary, TermMetaBank};
@@ -26,7 +27,6 @@ use transaction::RTransaction;
 //use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 use uuid::Uuid;
 
-use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
@@ -115,10 +115,10 @@ impl Yomichan {
             TermSourceMatchType::Exact,
         )?;
 
-        let seqs: HashSet<&i128> = exp_terms
+        let seqs: IndexSet<i128> = exp_terms
             .iter()
-            .filter_map(|e| e.sequence.as_ref())
-            .chain(reading_terms.iter().filter_map(|e| e.sequence.as_ref()))
+            .filter_map(|e| Some(e.sequence))
+            .chain(reading_terms.iter().filter_map(|e| Some(e.sequence)))
             .collect();
 
         let seqs = self.lookup_seqs(seqs)?;
@@ -134,7 +134,7 @@ impl Yomichan {
             .chain(seq_terms)
             .collect();
 
-        let mut ids: HashSet<String> = HashSet::new();
+        let mut ids: IndexSet<String> = IndexSet::new();
 
         let terms = terms
             .into_iter()
@@ -164,9 +164,9 @@ impl Yomichan {
     ///     assert!(t.reading == ありがとう);
     /// }
     /// ```
-    pub fn lookup_seqs<'a, I>(&self, seqs: I) -> Result<VecDBTermEntry, DBError>
+    pub fn lookup_seqs<I>(&self, seqs: I) -> Result<VecDBTermEntry, DBError>
     where
-        I: IntoIterator<Item = &'a i128> + Debug + Clone,
+        I: IntoIterator<Item = i128> + Debug + Clone,
     {
         let db = &self.db;
         let rtx = db.r_transaction()?;
@@ -174,7 +174,7 @@ impl Yomichan {
         let entries: Result<VecDBTermEntry, DBError> = seqs
             .clone()
             .into_iter()
-            .map(|seq| query_sw(&rtx, DatabaseTermEntryKey::sequence, *seq))
+            .map(|seq| query_sw(&rtx, DatabaseTermEntryKey::sequence, seq))
             .flat_map(|result| match result {
                 Ok(vec) => vec.into_iter().map(Ok).collect(),
                 Err(err) => vec![Err(err)],
@@ -234,8 +234,8 @@ fn construct_term_entries(
         .iter()
         .enumerate()
         .map(|(i, (start, end))| {
-            let mut term_tags: HashSet<String> = HashSet::new();
-            let mut rules: HashSet<String> = HashSet::new();
+            let mut term_tags: IndexSet<String> = IndexSet::new();
+            let mut rules: IndexSet<String> = IndexSet::new();
             let mut definitions: Vec<TermGlossary> = Vec::new();
 
             entries
@@ -247,24 +247,11 @@ fn construct_term_entries(
                         term_tags.insert(t_tags);
                     }
                     rules.insert(entry.rules.clone());
-                    definitions.push(entry.glossary.clone());
+                    definitions.extend(entry.glossary.clone());
                 });
 
-            TermEntry {
-                id: Uuid::new_v4().to_string(),
-                index: u32::try_from(i).unwrap_or_default(),
-                term: entries[i].expression.clone(),
-                reading: entries[i].reading.clone(),
-                match_type,
-                match_source: match_source.clone(),
-                definition_tags: entries[i].definition_tags.clone(),
-                term_tags: Some(term_tags.into_iter().collect()),
-                rules: rules.into_iter().collect(),
-                definitions,
-                score: entries[i].score,
-                dictionary: entries[i].dictionary.clone(),
-                sequence: entries[i].sequence,
-            }
+            let current = entries[i].clone();
+            current.into_term_entry_specific(match_source, match_type, i)
         })
         .collect();
     Ok(result)

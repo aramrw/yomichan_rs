@@ -1,6 +1,6 @@
+use indexmap::IndexMap;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_untagged::UntaggedEnumVisitor;
-use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -302,7 +302,7 @@ pub struct LineBreak {
     /// The `LineBreak`' tag is:
     /// [`HtmlTag::Break`] | `"br"`.
     tag: HtmlTag,
-    data: Option<HashMap<String, String>>,
+    data: Option<IndexMap<String, String>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -319,7 +319,7 @@ pub struct UnstyledElement {
     /// [`HtmlTag::TableRow`].
     pub tag: HtmlTag,
     pub content: Option<ContentMatchType>,
-    pub data: Option<HashMap<String, String>>,
+    pub data: Option<IndexMap<String, String>>,
     /// Defines the language of an element in the format defined by RFC 5646.
     lang: Option<String>,
 }
@@ -332,7 +332,7 @@ pub struct TableElement {
     /// [`HtmlTag::TableHeader`].
     pub tag: HtmlTag,
     pub content: Option<ContentMatchType>,
-    pub data: Option<HashMap<String, String>>,
+    pub data: Option<IndexMap<String, String>>,
     pub col_span: Option<u16>,
     pub row_span: Option<u16>,
     pub style: Option<StructuredContentStyle>,
@@ -353,7 +353,7 @@ pub struct StyledElement {
     /// [`HtmlTag::Summary`].
     pub tag: HtmlTag,
     pub content: Option<ContentMatchType>,
-    pub data: Option<HashMap<String, String>>,
+    pub data: Option<IndexMap<String, String>>,
     pub style: Option<StructuredContentStyle>,
     /// Hover text for the element.
     pub title: Option<String>,
@@ -390,7 +390,7 @@ pub struct ImageElement {
     pub border_radius: Option<String>,
     /// The units for the width and height.
     pub size_units: Option<SizeUnits>,
-    pub data: Option<HashMap<String, String>>,
+    pub data: Option<IndexMap<String, String>>,
     /// Path to the image file in the archive.
     pub path: String,
     /// Preferred width of the image.

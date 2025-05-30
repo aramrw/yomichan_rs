@@ -5,9 +5,8 @@
 // }
 // pub type SearchResolution = String; // Placeholder
 
-use std::collections::{HashMap, HashSet};
-
 use fancy_regex::Regex;
+use indexmap::{IndexMap, IndexSet};
 use language_transformer::language_d::FindTermsTextReplacements;
 
 use crate::{
@@ -28,10 +27,10 @@ pub struct FindKanjiOptions {
 }
 
 /// Details about a dictionary.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FindKanjiDictionary {
     /// The index of the dictionary
-    pub index: i32, // Or usize, depending on context
+    pub index: usize,
     /// The alias of the dictionary
     pub alias: String,
 }
@@ -61,7 +60,7 @@ pub struct FindTermsOptions {
     /// The key is the dictionary name.
     pub enabled_dictionary_map: TermEnabledDictionaryMap,
     /// A set of dictionary names which should have definitions removed.
-    pub exclude_dictionary_definitions: Option<HashSet<String>>,
+    pub exclude_dictionary_definitions: Option<IndexSet<String>>,
     /// Whether every substring should be searched for, or only whole words.
     pub search_resolution: SearchResolution,
     /// ISO-639 code of the language.
@@ -89,11 +88,13 @@ impl FindTermsSortOrder {
     }
 }
 
+pub type FindTermDictionaryMap = IndexMap<String, FindTermDictionary>;
+
 /// Details about a dictionary.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FindTermDictionary {
     /// The index of the dictionary
-    pub index: i32, // Or usize
+    pub index: usize, // Or usize
     /// The alias of the dictionary
     pub alias: String,
     /// Whether or not secondary term searches are allowed for this dictionary.
@@ -110,5 +111,5 @@ pub struct FindTermDictionary {
 //     }
 // }
 
-pub type TermEnabledDictionaryMap = HashMap<String, FindTermDictionary>;
-pub type KanjiEnabledDictionaryMap = HashMap<String, FindKanjiDictionary>;
+pub type TermEnabledDictionaryMap = IndexMap<String, FindTermDictionary>;
+pub type KanjiEnabledDictionaryMap = IndexMap<String, FindKanjiDictionary>;

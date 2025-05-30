@@ -17,6 +17,7 @@ use crate::structured_content::{ContentMatchType, Element, LinkElement};
 use crate::errors::{DBError, ImportError};
 use crate::Yomichan;
 
+use indexmap::IndexMap;
 use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
 use transaction::RwTransaction;
 
@@ -30,7 +31,7 @@ use rayon::prelude::*;
 
 use tempfile::tempdir;
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
@@ -276,7 +277,7 @@ pub struct StructuredContentImageImportRequirement {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImportRequirementContext {
     //file_map: ArchiveFileMap,
-    media: HashMap<String, MediaDataArrayBufferContent>,
+    media: IndexMap<String, MediaDataArrayBufferContent>,
 }
 
 /// An `untagged` match type to generically match
@@ -321,7 +322,7 @@ pub struct TermEntryItem {
     pub reading: String,
     pub def_tags: Option<String>,
     pub rules: String,
-    pub score: i8,
+    pub score: usize,
     pub structured_content: Vec<StructuredContent>,
     pub sequence: i128,
     pub term_tags: String,
@@ -643,7 +644,7 @@ fn convert_term_bank_file(
             let defs = get_string_content(structured_content.content);
             let gloss_content = TermGlossaryContent::new(defs.concat(), None, None, None);
             let gloss = TermGlossary::Content(Box::new(gloss_content));
-            db_term.glossary = gloss;
+            db_term.glossary = vec![gloss];
 
             db_term
         })
