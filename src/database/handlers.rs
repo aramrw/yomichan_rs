@@ -255,7 +255,7 @@ fn construct_term_entries(
                 index: u32::try_from(i).unwrap_or_default(),
                 term: entries[i].expression.clone(),
                 reading: entries[i].reading.clone(),
-                match_type: match_type.clone(),
+                match_type,
                 match_source: match_source.clone(),
                 definition_tags: entries[i].definition_tags.clone(),
                 term_tags: Some(term_tags.into_iter().collect()),
