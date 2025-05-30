@@ -25,8 +25,8 @@ use native_model::{native_model, Model};
 use crate::{
     database::dictionary_database::{DictionaryDatabase, DictionaryDatabaseTag, TermEntry},
     dictionary::{
-        DictionaryTag, InflectionRuleChainCandidate, InflectionSource, TermDictionaryEntry,
-        TermSource, TermSourceMatchSource, TermSourceMatchType,
+        DictionaryTag, InflectionRuleChainCandidate, InflectionSource, TermDefinition,
+        TermDictionaryEntry, TermHeadword, TermSource, TermSourceMatchSource, TermSourceMatchType,
     },
     dictionary_data::{TermGlossary, TermGlossaryContent, TermGlossaryDeinflection},
     regex_util::apply_text_replacement,
@@ -68,6 +68,12 @@ pub enum EnabledDictionaryMapType<'a> {
     Kanji(&'a KanjiEnabledDictionaryMap),
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct ExistingEntry {
+    entry: TermDictionaryEntry,
+    index: usize,
+}
+
 #[derive(Clone, Debug)]
 struct TermReadingItem {
     term: String,
@@ -77,7 +83,7 @@ struct TermReadingItem {
 #[derive(Clone, Debug)]
 pub struct FindTermResult {
     dictionary_entries: Vec<TermDictionaryEntry>,
-    original_text_length: u64,
+    original_text_length: u128,
 }
 
 type TextProcessorMap = IndexMap<&'static str, PreAndPostProcessorsWithId>;
@@ -200,18 +206,17 @@ impl Translator {
             };
         }
         let deinflections = self._get_deinflections(text, opts);
-        getdiction
     }
 
     fn _get_dictionary_entries(
         deinflections: &[DatabaseDeinflection],
         enabled_dictionary_map: &FindTermDictionaryMap,
-        tag_aggregator: TranslatorTagAggregator,
+        tag_aggregator: &mut TranslatorTagAggregator,
         primary_reading: &str,
     ) -> FindTermResult {
-        let original_text_length = 0;
-        let dictionary_entries: Vec<TermDictionaryEntry> = vec![];
-        let ids = IndexSet::new();
+        let mut original_text_length = 0;
+        let mut dictionary_entries: Vec<TermDictionaryEntry> = vec![];
+        let mut ids: IndexSet<String> = IndexSet::new();
         for deinflection in deinflections {
             let DatabaseDeinflection {
                 database_entries,
@@ -226,20 +231,81 @@ impl Translator {
             if database_entries.is_empty() {
                 continue;
             }
+            original_text_length = original_text.len().max(original_text_length);
 
-            original_text_length = original_text.max(original_text_length);
             for database_entry in database_entries {
-                if !ids.contains(id) {
-                    // let dictionary_entry = Translator::
-                    // continue;
+                let id = database_entry.id.clone();
+                if !ids.contains(id.as_str()) {
+                    let dictionary_entry =
+                        Translator::_create_term_dictionary_entry_from_database_entry(
+                            database_entry.clone(),
+                            &original_text,
+                            &transformed_text,
+                            &deinflected_text,
+                            text_processor_rule_chain_candidates.clone(),
+                            inflection_rule_chain_candidates.clone(),
+                            true,
+                            enabled_dictionary_map,
+                            tag_aggregator,
+                            primary_reading,
+                        );
+                    dictionary_entries.push(dictionary_entry);
+                    ids.insert(id);
+                    continue;
+                }
+
+                let existing_entry_info =
+                    Translator::_find_existing_entry(&dictionary_entries, &id);
+                let Some(existing_entry_info) = existing_entry_info else {
+                    continue;
+                };
+
+                let ExistingEntry {
+                    entry: existing_entry,
+                    index: existing_index,
+                } = existing_entry_info;
+
+                let existing_transformed_len = existing_entry
+                    .headwords
+                    .first()
+                    .expect("existing entries first headword is None (this is infallible in JS)")
+                    .sources
+                    .first()
+                    .expect("existing entries first source is None (this is insaffilble in JS)")
+                    .transformed_text
+                    .len();
+                if transformed_text.len() < existing_transformed_len {
+                    continue;
+                }
+                if transformed_text.len() > existing_transformed_len {
+                    dictionary_entries.splice(range, replace_with)
                 }
             }
         }
 
         FindTermResult {
             dictionary_entries,
-            original_text_length,
+            original_text_length: original_text_length as u128,
         }
+    }
+
+    fn _find_existing_entry(
+        dictionary_entries: &[TermDictionaryEntry],
+        id: &str,
+    ) -> Option<ExistingEntry> {
+        dictionary_entries
+            .iter()
+            .enumerate()
+            .find_map(|(index, entry)| {
+                entry
+                    .definitions
+                    .iter()
+                    .find(|def| def.id == id)
+                    .map(|_| ExistingEntry {
+                        index,
+                        entry: entry.clone(),
+                    })
+            })
     }
 
     /// [TermGlossary]
@@ -248,16 +314,16 @@ impl Translator {
         original_text: &str,
         transformed_text: &str,
         deinflected_text: &str,
-        text_processor_rule_chain_candidates: &[TextProcessorRuleChainCandidate],
-        inflection_rule_chain_candidates: &[InflectionRuleChainCandidate],
+        text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
+        inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
         is_primary: bool,
         enabled_dictionary_map: &FindTermDictionaryMap,
-        tag_aggregator: TranslatorTagAggregator,
+        tag_aggregator: &mut TranslatorTagAggregator,
         primary_reading: &str,
     ) -> TermDictionaryEntry {
         let TermEntry {
             id,
-            index,
+            index: dictionary_index,
             term,
             reading: raw_reading,
             sequence: raw_sequence,
@@ -278,7 +344,7 @@ impl Translator {
             })
             .collect();
         let reading = match raw_reading.is_empty() {
-            true => term,
+            true => term.clone(),
             false => raw_reading,
         };
         let match_primary_reading = !primary_reading.is_empty() && reading == primary_reading;
@@ -290,7 +356,7 @@ impl Translator {
             dictionary.clone(),
             &EnabledDictionaryMapType::Term(&enabled_dictionary_map),
         );
-        let source_term_exact_match_count = match is_primary && deinflected_text == term {
+        let source_term_exact_match_count = match is_primary && deinflected_text == &term {
             true => 1,
             false => 0,
         };
@@ -303,7 +369,131 @@ impl Translator {
             is_primary,
         );
         let max_original_text_length = original_text.len();
-        let has_sequence = raw_sequence
+        let has_sequence = raw_sequence >= 0;
+        let sequence = match has_sequence {
+            true => raw_sequence,
+            false => -1,
+        };
+
+        let headword_tag_groups: Vec<DictionaryTag> = vec![];
+        let definition_tag_groups: Vec<DictionaryTag> = vec![];
+
+        tag_aggregator.add_tags(&headword_tag_groups, &dictionary, &term_tags);
+        tag_aggregator.add_tags(&definition_tag_groups, &dictionary, &definition_tags);
+
+        let headwords = vec![Translator::_create_term_headword(
+            0,
+            term,
+            reading,
+            vec![source],
+            headword_tag_groups,
+            rules,
+        )];
+        let definitions = vec![Translator::_create_term_definition(
+            0,
+            vec![0],
+            dictionary,
+            dictionary_index,
+            dictionary_alias.clone(),
+            id,
+            score,
+            vec![sequence],
+            is_primary,
+            definition_tag_groups,
+            content_definitions,
+        )];
+
+        Translator::_create_term_dictionary_entry(
+            is_primary,
+            text_processor_rule_chain_candidates,
+            inflection_rule_chain_candidates,
+            score,
+            dictionary_index,
+            dictionary_alias,
+            source_term_exact_match_count,
+            match_primary_reading,
+            max_original_text_length,
+            headwords,
+            definitions,
+        )
+    }
+
+    fn _create_term_definition(
+        index: usize,
+        headword_indices: Vec<usize>,
+        dictionary: String,
+        dictionary_index: usize,
+        dictionary_alias: String,
+        id: String,
+        score: usize,
+        sequences: Vec<i128>,
+        is_primary: bool,
+        tags: Vec<DictionaryTag>,
+        entries: Vec<TermGlossaryContent>,
+    ) -> TermDefinition {
+        TermDefinition {
+            id,
+            index,
+            headword_indices,
+            dictionary,
+            dictionary_index,
+            score,
+            frequency_order: 0,
+            sequences,
+            is_primary,
+            tags,
+            entries,
+        }
+    }
+
+    fn _create_term_headword(
+        index: usize,
+        term: String,
+        reading: String,
+        sources: Vec<TermSource>,
+        tags: Vec<DictionaryTag>,
+        word_classes: Vec<String>,
+    ) -> TermHeadword {
+        TermHeadword {
+            index,
+            term,
+            reading,
+            sources,
+            tags,
+            word_classes,
+        }
+    }
+
+    fn _create_term_dictionary_entry(
+        is_primary: bool,
+        text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
+        inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+        score: usize,
+        dictionary_index: usize,
+        dictionary_alias: String,
+        source_term_exact_match_count: usize,
+        match_primary_reading: bool,
+        max_original_text_length: usize,
+        headwords: Vec<TermHeadword>,
+        definitions: Vec<TermDefinition>,
+    ) -> TermDictionaryEntry {
+        TermDictionaryEntry {
+            entry_type: TermSourceMatchSource::Term,
+            is_primary,
+            text_processor_rule_chain_candidates,
+            inflection_rule_chain_candidates,
+            score,
+            frequency_order: 0,
+            dictionary_index,
+            source_term_exact_match_count,
+            max_original_text_length,
+            headwords,
+            definitions,
+            dictionary_alias,
+            match_primary_reading,
+            pronunciations: vec![],
+            frequencies: vec![],
+        }
     }
 
     fn _create_source(
