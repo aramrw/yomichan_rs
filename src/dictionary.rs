@@ -1,4 +1,6 @@
-use crate::dictionary_data::TermGlossaryContent;
+use crate::{
+    dictionary_data::TermGlossaryContent, translation_internal::TextProcessorRuleChainCandidate,
+};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -179,49 +181,49 @@ pub struct TermFrequency {
 /// A term headword is a combination of a term, reading, and auxiliary information.
 pub struct TermHeadword {
     /// The original order of the headword, which is usually used for sorting.
-    index: u16,
+    pub index: usize,
     /// The text for the term.
-    term: String,
+    pub term: String,
     /// The reading of the term.
-    reading: String,
+    pub reading: String,
     /// The sources of the term.
-    sources: Vec<TermSource>,
+    pub sources: Vec<TermSource>,
     /// Tags for the headword.
-    tags: Vec<DictionaryTag>,
+    pub tags: Vec<DictionaryTag>,
     /// List of word classes (part of speech) for the headword.
-    word_classes: Vec<String>,
+    pub word_classes: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A dictionary entry for a term or group of terms.
 pub struct TermDefinition {
-    /// The original order of the definition, which is usually used for sorting.
-    index: u16,
-    /// A list of headwords that this definition corresponds to.
-    headword_indices: Vec<u16>,
-    /// The name of the dictionary that the definition information originated from.
-    dictionary: String,
-    /// The index of the dictionary in the original list of dictionaries used for the lookup.
-    dictionary_index: u16,
-    /// The priority of the dictionary.
-    dictionary_priority: u16,
     /// Database ID for the definition.
-    id: u128,
+    pub id: String,
+    /// The original order of the definition, which is usually used for sorting.
+    pub index: usize,
+    /// A list of headwords that this definition corresponds to.
+    pub headword_indices: Vec<usize>,
+    /// The name of the dictionary that the definition information originated from.
+    pub dictionary: String,
+    /// The index of the dictionary in the original list of dictionaries used for the lookup.
+    pub dictionary_index: usize,
     /// A score for the definition.
-    score: u16,
+    pub score: usize,
     /// The sorting value based on the determined term frequency.
-    frequency_order: u16,
-    /// A list of database sequence numbers for the term. A value of `-1` corresponds to no sequence.
-    /// The list can have multiple values if multiple definitions with different sequences have been merged.
+    pub frequency_order: usize,
+    /// A list of database sequence numbers for the term.
+    /// A value of `-1` corresponds to no sequence.
+    /// The list can have multiple values if multiple definitions with
+    /// different sequences have been merged.
     /// The list should always have at least one item.
-    sequences: Vec<i64>,
+    pub sequences: Vec<i128>,
     /// Whether or not any of the sources is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
-    is_primary: bool,
+    pub is_primary: bool,
     /// Tags for the definition.
-    tags: Vec<DictionaryTag>,
+    pub tags: Vec<DictionaryTag>,
     /// The definition entries.
-    entries: Vec<TermGlossaryContent>,
+    pub entries: Vec<TermGlossaryContent>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -262,33 +264,37 @@ pub struct TermSource {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A dictionary entry for a term or group of terms.
 pub struct TermDictionaryEntry {
-    /// The type of the entry.
-    entry_type: TermSourceMatchSource,
+    /// This should always be [TermSourceMatchSource::Term]
+    pub entry_type: TermSourceMatchSource,
     /// Whether or not any of the sources is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
-    is_primary: bool,
+    pub is_primary: bool,
+    /// Ways that a looked-up word might be an transformed into this term.
+    pub text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
     /// Ways that a looked-up word might be an inflected form of this term.
-    inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+    pub inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
     /// A score for the dictionary entry.
-    score: i32,
+    pub score: usize,
     /// The sorting value based on the determined term frequency.
-    frequency_order: u32,
+    pub frequency_order: usize,
+    /// The alias of the dictionary.
+    pub dictionary_alias: String,
     /// The index of the dictionary in the original list of dictionaries used for the lookup.
-    dictionary_index: u32,
-    /// The priority of the dictionary.
-    dictionary_priority: u32,
+    pub dictionary_index: usize,
     /// The number of primary sources that had an exact text match for the term.
-    source_term_exact_match_count: u32,
+    pub source_term_exact_match_count: usize,
+    /// Whether the term reading matched the primary reading.
+    pub match_primary_reading: bool,
     /// The maximum length of the original text for all primary sources.
-    max_original_text_length: u32,
+    pub max_original_text_length: usize,
     /// Headwords for the entry.
-    headwords: Vec<TermHeadword>,
+    pub headwords: Vec<TermHeadword>,
     /// Definitions for the entry.
-    definitions: Vec<TermDefinition>,
+    pub definitions: Vec<TermDefinition>,
     /// Pronunciations for the entry.
-    pronunciations: Vec<TermPronunciation>,
+    pub pronunciations: Vec<TermPronunciation>,
     /// Frequencies for the entry.
-    frequencies: Vec<TermFrequency>,
+    pub frequencies: Vec<TermFrequency>,
 }
 
 /*************** Pitch Accent & Pronunciation ***************/
