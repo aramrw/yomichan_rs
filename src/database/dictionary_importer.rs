@@ -14,7 +14,7 @@ use crate::settings::{
 };
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
-use crate::errors::{DBError, ImportError};
+use crate::errors::{DBError, ImportError, ImportZipError};
 use crate::Yomichan;
 
 use indexmap::IndexMap;
@@ -347,7 +347,7 @@ pub struct StructuredContent {
 
 fn extract_dict_zip<P: AsRef<std::path::Path>>(
     zip_path: P,
-) -> Result<std::path::PathBuf, ImportError> {
+) -> Result<std::path::PathBuf, ImportZipError> {
     let temp_dir = tempdir()?;
     let temp_dir_path = temp_dir.path().to_owned();
     let temp_dir_path_clone = temp_dir_path.clone();
@@ -367,14 +367,15 @@ impl Yomichan {
     pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
         &mut self,
         zip_paths: &[P],
-    ) -> Result<(), DBError> {
+    ) -> Result<(), ImportError> {
         let settings = self.options.get_options_mut();
         let db = &self.db;
+        ImportZipError::check_zip_paths(zip_paths)?;
 
         let mut dictionary_options: Vec<DictionaryOptions> = zip_paths
             .par_iter()
             .map(|path| import_dictionary(path, settings, db))
-            .collect::<Result<Vec<DictionaryOptions>, DBError>>()?;
+            .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
 
         let current_profile = settings.get_current_profile_mut();
         current_profile
@@ -391,7 +392,7 @@ pub fn import_dictionary<P: AsRef<Path>>(
     settings: &Options,
     //db_path: &OsString,
     db: &Database,
-) -> Result<DictionaryOptions, DBError> {
+) -> Result<DictionaryOptions, ImportError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
     let rwtx = db.rw_transaction()?;
     db_rwriter(&rwtx, data.term_list)?;
@@ -414,7 +415,10 @@ pub fn import_dictionary<P: AsRef<Path>>(
     Ok(data.dictionary_options)
 }
 
-fn db_rwriter<L: ToInput>(rwtx: &RwTransaction, list: Vec<L>) -> Result<(), DBError> {
+fn db_rwriter<L: ToInput>(
+    rwtx: &RwTransaction,
+    list: Vec<L>,
+) -> Result<(), Box<native_db::db_type::Error>> {
     for item in list {
         rwtx.insert(item)?;
     }
@@ -539,8 +543,10 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
 }
 
 fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
-    let index_str = fs::read_to_string(outpath)
-        .map_err(|e| ImportError::Custom(format!("Failed to convert index | Err: {e}")))?;
+    let index_str = fs::read_to_string(&outpath).map_err(|e| ImportError::Index {
+        outpath,
+        reason: e.to_string(),
+    })?;
     let index: Index = serde_json::from_str(&index_str)?;
     Ok(index)
 }

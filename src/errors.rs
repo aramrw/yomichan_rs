@@ -1,16 +1,43 @@
 use native_db::db_type;
 use snafu::Snafu;
-use std::path::PathBuf;
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+pub enum ImportZipError {
+    #[error("the zip path: `{0}` does not exist")]
+    DoesNotExist(PathBuf),
+    #[error("`zip` crate error: {0}")]
+    ZipCrate(#[from] zip::result::ZipError),
+    #[error("filesystemIO error: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+impl ImportZipError {
+    pub fn check_zip_paths(paths: &[impl AsRef<Path>]) -> Result<(), Self> {
+        for zp in paths {
+            let zp = zp.as_ref();
+            if !zp.exists() {
+                return Err(Self::DoesNotExist(zp.to_path_buf()));
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Error, Debug)]
 pub enum ImportError {
+    #[error("failed to convert index file: `{outpath}`\nreason: {reason}")]
+    Index { outpath: PathBuf, reason: String },
+    #[error("{0}")]
+    Zip(#[from] ImportZipError),
     #[error("db err: {0}")]
     Database(#[from] Box<db_type::Error>),
     #[error("io err: {0}")]
     IO(#[from] std::io::Error),
-    #[error("zip err: {0}")]
-    Zip(#[from] zip::result::ZipError),
     #[error("json err: {0}")]
     Json(#[from] serde_json::error::Error),
     #[error("thread err: {0}")]
@@ -31,6 +58,12 @@ pub enum ImportError {
     Empty { file: PathBuf },
 }
 
+impl From<native_db::db_type::Error> for ImportError {
+    fn from(err: native_db::db_type::Error) -> Self {
+        ImportError::Database(Box::new(err))
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum DBError {
     #[error("db err: {0}")]
@@ -47,7 +80,7 @@ pub enum DBError {
 
 impl From<native_db::db_type::Error> for DBError {
     fn from(err: native_db::db_type::Error) -> Self {
-        DBError::Database(Box::new(err)) // <-- Creates this variant
+        DBError::Database(Box::new(err))
     }
 }
 
@@ -71,12 +104,6 @@ macro_rules! try_with_line {
 
 impl From<(u32, std::io::Error)> for ImportError {
     fn from(err: (u32, std::io::Error)) -> ImportError {
-        ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
-    }
-}
-
-impl From<(u32, zip::result::ZipError)> for ImportError {
-    fn from(err: (u32, zip::result::ZipError)) -> ImportError {
         ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
     }
 }

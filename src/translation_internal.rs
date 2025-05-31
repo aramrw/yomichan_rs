@@ -5,18 +5,14 @@ use indexmap::{IndexMap, IndexSet};
 use language_transformer::language_d::TextProcessorSetting;
 
 use crate::database::dictionary_database::TermEntry;
-use crate::dictionary::{self, InflectionRuleChainCandidate, InflectionSource};
+use crate::dictionary::{
+    self, InflectionRuleChainCandidate, InflectionSource, TermDictionaryEntry,
+};
 
 pub type TextProcessorRuleChainCandidate = Vec<String>;
 
 pub type VariantAndTextProcessorRuleChainCandidatesMap =
     IndexMap<String, Vec<TextProcessorRuleChainCandidate>>;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct TermDictionaryEntry {
-    pub inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
-    pub text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct DatabaseDeinflection {
@@ -31,7 +27,7 @@ pub struct DatabaseDeinflection {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct DictionaryEntryGroup {
-    pub ids: IndexSet<u64>,
+    pub ids: IndexSet<String>,
     pub dictionary_entries: Vec<TermDictionaryEntry>,
 }
 

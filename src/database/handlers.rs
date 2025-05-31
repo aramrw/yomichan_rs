@@ -517,8 +517,21 @@ mod db_tests {
         let td = &*yomichan_test_utils::TEST_PATHS.tests_dir;
         let tdcs = &*yomichan_test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
-        let paths = [tdcs.join("daijisen"), tdcs.join("ajdfreq")];
-        ycd.import_dictionaries(&paths).unwrap();
+        let paths = [tdcs.join("daijirin"), tdcs.join("ajdfreq")];
+        match ycd.import_dictionaries(&paths) {
+            Ok(_) => {}
+            Err(e) => {
+                let db_path = td.join("db.ycd");
+                if db_path.exists() && db_path.is_file() {
+                    if let Some(ext) = db_path.extension() {
+                        if ext == "ycd" {
+                            std::fs::remove_file(db_path).unwrap();
+                        }
+                    }
+                }
+                panic!("failed init_db test: {e}");
+            }
+        }
     }
 
     #[test]

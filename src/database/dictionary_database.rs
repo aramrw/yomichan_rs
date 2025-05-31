@@ -516,13 +516,26 @@ pub struct DeleteDictionaryProgressData {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum QueryMatchType {
     Str(String),
-    Num(i64),
+    Num(i128),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DictionaryAndQueryRequest {
-    query: QueryMatchType,
+    query_type: QueryMatchType,
     dictionary: String,
+}
+impl DictionaryAndQueryRequest {
+   pub fn new(query_type: QueryMatchType, dictionary: &str) -> Self {
+      Self {
+            query_type,
+            dictionary: dictionary.to_string(),
+        } 
+   }
+   pub fn from_slice(queries: &[QueryMatchType], dictionary: &str) -> Vec<Self> {
+        queries.iter().map(|q| {
+            Self::new(q.clone(), dictionary)
+        }).collect()
+   } 
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -630,14 +643,14 @@ pub enum NativeDbQueryInfo<K: ToKey + Clone> {
 }
 #[derive(Clone)]
 pub struct DictionaryDatabase {
-    db: Arc<Database<'static>>,
+    db: &'static Database<'static>,
     db_name: &'static str,
 }
 
 impl DictionaryDatabase {
     pub fn new(path: impl AsRef<Path>) -> Self {
         Self {
-            db: Arc::new(DBBuilder::new().open(&DB_MODELS, path).unwrap()),
+            db: Box::leak(Box::new(DBBuilder::new().open(&DB_MODELS, path).unwrap())),
             db_name: "dict",
         }
     }
@@ -781,6 +794,78 @@ impl DictionaryDatabase {
         potential_term_entries.retain(|term_entry| visited_ids.insert(term_entry.id.clone()));
 
         Ok(potential_term_entries)
+    }
+
+    fn find_terms_by_sequence_bulk(&self, item_request: Vec<DictionaryAndQueryRequest>) -> Vec<TermEntry> {
+        let index_query_identifiers = 
+        [IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Sequence)];
+        let items_to_query_vec = item_request.clone(); 
+
+        let create_query_fn = 
+        |req: &DictionaryAndQueryRequest, _idx_identifier: IndexQueryIdentifier| {
+            match req.query_type {
+                QueryMatchType::Num(seq_val) => NativeDbQueryInfo::Exact(Some(seq_val)),
+                _ => {
+                    panic!("QueryMatchType for sequence search must be Num");
+                }
+            }
+        };
+
+        let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| {
+            match kind {
+                SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence,
+                // This function is specific to sequence, so other kinds are unexpected.
+                _ => unreachable!(
+                "Only SecondaryKeyQueryKind::Sequence is expected in find_terms_by_sequence_bulk"
+            ),
+            }
+        };
+        
+        // The predicate provided by the user, adapted for the correct ItemQueryType.
+        let predicate_fn = 
+        |row: &DatabaseTermEntry, current_item_request: &DictionaryAndQueryRequest| {
+            row.dictionary == current_item_request.dictionary
+        };
+
+        let create_result_fn = 
+        |db_entry: DatabaseTermEntry, 
+        _req: &DictionaryAndQueryRequest, 
+        item_idx: usize, 
+        _index_kind_idx: usize
+        | {
+            db_entry.into_term_entry_specific(
+                TermSourceMatchSource::Sequence, TermSourceMatchType::Exact, item_idx
+            )
+        };
+
+        match self.find_multi_bulk::<
+            // ItemQueryType (type of elements in items_to_query_vec)
+            DictionaryAndQueryRequest, 
+            // M (Model)
+            DatabaseTermEntry,         
+            // ModelKeyType (value for the 'sequence' key, e.g., i128)
+            Option<i128>,
+            // SecondaryKeyEnumType (DatabaseTermEntryKey::sequence)
+            DatabaseTermEntryKey,
+            // QueryResultType
+            TermEntry,
+            // Infer closure types
+            _, _, _, _
+        >(
+            &index_query_identifiers,
+            &items_to_query_vec,
+            create_query_fn,
+            resolve_secondary_key_fn,
+            predicate_fn,
+            create_result_fn,
+        ) {
+            Ok(results) => results,
+            Err(e) => {
+                // Handle or log the error appropriately
+                eprintln!("Error finding terms by sequence: {:?}", e);
+                Vec::new()
+            }
+        }
     }
 
     /// Performs a bulk query against the database for multiple items 
@@ -970,107 +1055,44 @@ pub fn split_string_field(field: String) -> Vec<String> {
 }
 
 #[cfg(test)]
-mod dictdbtests {
+mod ycd {
     use indexmap::IndexSet;
+    use pretty_assertions::{assert_eq};
 
     use super::{
-        DatabaseTermEntry,
-        DatabaseTermEntryKey, // The actual native_db generated key enum
-        DictionaryDatabase,
-        IndexQueryIdentifier, // Your new copyable enum
-        NativeDbQueryInfo,
-        SecondaryKeyQueryKind, // Your new copyable enum
+        DatabaseTermEntry, DatabaseTermEntryKey, DictionaryAndQueryRequest, DictionaryDatabase, IndexQueryIdentifier, NativeDbQueryInfo, QueryMatchType, SecondaryKeyQueryKind 
     };
     use crate::{
         database::dictionary_database::DictionarySet, dictionary::TermSourceMatchType,
-        yomichan_test_utils,
-    }; // Your test utilities
-    use std::path::PathBuf; // Assuming f_path might be PathBuf
-
+        yomichan_test_utils::{self, TEST_PATHS},
+    }; 
+    use std::path::PathBuf; 
+    
     #[test]
-    fn find_multi_bulk_daijoubu_expression_test() {
-        let (f_path, _handle) = yomichan_test_utils::copy_test_db();
-        let ycd = DictionaryDatabase::new(f_path);
-
-        let search_term = "大丈夫".to_string();
-        let items_to_query: Vec<String> = vec![search_term.clone()];
-
-        let index_query_identifiers: Vec<IndexQueryIdentifier> =
-            vec![IndexQueryIdentifier::SecondaryKey(
-                SecondaryKeyQueryKind::Expression,
-            )];
-
-        let create_query_fn = |_item: &String, _idx_query_identifier: IndexQueryIdentifier| {
-            NativeDbQueryInfo::Exact("大丈夫".to_string())
-        };
-
-        let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| -> DatabaseTermEntryKey {
-            match kind {
-                SecondaryKeyQueryKind::Expression => DatabaseTermEntryKey::expression,
-                SecondaryKeyQueryKind::Reading => DatabaseTermEntryKey::reading,
-                SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence,
-                SecondaryKeyQueryKind::ExpressionReverse => {
-                    DatabaseTermEntryKey::expression_reverse
-                }
-                SecondaryKeyQueryKind::ReadingReverse => DatabaseTermEntryKey::reading_reverse,
-            }
-        };
-
-        let predicate_fn = |db_entry: &DatabaseTermEntry, original_item: &String| {
-            db_entry.expression == *original_item
-        };
-
-        let create_result_fn =
-            |db_entry: DatabaseTermEntry,
-             _original_item: &String,
-             _item_idx: usize,
-             _index_idx: usize| { db_entry.expression };
-
-        let result = ycd.find_multi_bulk::<
-            String,                // ItemQueryType
-            DatabaseTermEntry,     // M (Model)
-            String,                // ModelKeyType (for query values)
-            DatabaseTermEntryKey,  // SecondaryKeyEnumType (the actual native_db key)
-            String,                // QueryResultType
-            _, _, _, _             // Infer closure types
-        >(
-            &index_query_identifiers,
-            &items_to_query,
-            create_query_fn,
-            resolve_secondary_key_fn,
-            predicate_fn,
-            create_result_fn,
-        );
-
-        match result {
-            Ok(found_expressions) => {
-                assert!(
-                    !found_expressions.is_empty(),
-                    "Expected to find entries for '{search_term}'"
-                );
-                for expr in found_expressions {
-                    dbg!(&expr);
-                    assert_eq!(expr, search_term);
-                }
-            }
-            Err(e) => {
-                panic!("Test failed: find_multi_bulk returned an error: {e:?}");
-            }
-        }
+    fn find_terms_sequence_bulk() {
+        //let (f_path, _handle) = yomichan_test_utils::copy_test_db();
+        let ycd = &yomichan_test_utils::SHARED_DB_INSTANCE;
+        let queries = 
+        &[
+            // 大丈夫
+            QueryMatchType::Num(9635800000), 
+            // 奉迎
+            QueryMatchType::Num(14713900000), 
+        ];
+        let queries = DictionaryAndQueryRequest::from_slice(queries, "大辞林\u{3000}第四版");
+        let entries = ycd.find_terms_by_sequence_bulk(queries);
+        entries.into_iter().for_each(|entry| {
+            dbg!(&entry);
+        });
     }
+
     #[test]
     fn find_terms_bulk_daijoubu_exact_match_test() {
         let (f_path, _handle) = yomichan_test_utils::copy_test_db();
-        let ycd = DictionaryDatabase::new(f_path);
-
+        let ycd = &yomichan_test_utils::SHARED_DB_INSTANCE;
         let term_list = vec!["大丈夫".to_string()];
-
         let mut dictionaries_set = IndexSet::new();
-        // Assuming your test DB has terms from a dictionary named "JMDict" or similar.
-        // Adjust this if your test dictionary has a different name.
-        // If the dictionary name doesn't matter for this specific test and all terms should be included,
-        // the `has` method of your DictionarySet impl could always return true for testing.
-        dictionaries_set.insert("大辞林\u{3000}第四版".to_string()); // Example dictionary name
+        dictionaries_set.insert("大辞林\u{3000}第四版".to_string()); 
 
         struct TestDictionarySet(IndexSet<String>);
         impl DictionarySet for TestDictionarySet {
@@ -1079,9 +1101,7 @@ mod dictdbtests {
             }
         }
         let dictionaries = TestDictionarySet(dictionaries_set);
-
         let match_type = TermSourceMatchType::Exact;
-
         let result = ycd.find_terms_bulk(&term_list, &dictionaries, match_type);
 
         match result {
@@ -1092,9 +1112,9 @@ mod dictdbtests {
                 );
                 let mut found_match = false;
                 for entry in term_entries {
-                    dbg!(&entry);
+                    //dbg!(&entry);
                     if entry.term == "大丈夫" {
-                        assert_eq!(entry.reading, "だいじょうぶ"); // Or another common reading
+                        assert_eq!(entry.reading, "だいじょうぶ"); 
                         assert_eq!(entry.match_type, TermSourceMatchType::Exact);
                         found_match = true;
                         break;

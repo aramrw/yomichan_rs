@@ -4,12 +4,12 @@ mod dictionary;
 mod dictionary_data;
 mod errors;
 mod freq;
+mod regex_util;
 mod settings;
 mod structured_content;
 mod translation;
 mod translation_internal;
 mod translator;
-mod regex_util;
 
 use database::dictionary_database::DB_MODELS;
 use settings::Options;
@@ -28,8 +28,13 @@ use std::{
 };
 
 mod yomichan_test_utils {
-    use std::{path::PathBuf, sync::LazyLock};
+    use std::{
+        path::PathBuf,
+        sync::{Arc, LazyLock},
+    };
     use tempfile::{tempdir_in, TempDir};
+
+    use crate::database::dictionary_database::DictionaryDatabase;
 
     pub(crate) struct TestPaths {
         pub tests_dir: PathBuf,
@@ -41,6 +46,19 @@ mod yomichan_test_utils {
         tests_dir: PathBuf::from("./tests"),
         tests_yomichan_db_path: PathBuf::from("./tests").join("yomichan_rs").join("db.ycd"),
         test_dicts_dir: PathBuf::from("tests").join("test_dicts"),
+    });
+
+    pub(crate) static SHARED_DB_INSTANCE: LazyLock<DictionaryDatabase> = LazyLock::new(|| {
+        let db_path = &*TEST_PATHS.tests_yomichan_db_path;
+
+        if !db_path.exists() {
+            panic!("SHARED_DB_INSTANCE: The database path for tests does not exist: {db_path:?}");
+        }
+
+        // Create the DictionaryDatabase instance once.
+        // This instance (and its underlying native_db::Database connection)
+        // will be shared by all tests that use it.
+        DictionaryDatabase::new(db_path)
     });
 
     pub(crate) enum BacktraceKind {
@@ -63,7 +81,8 @@ mod yomichan_test_utils {
     }
 
     /// Copies the test database to a temporary directory.
-    /// Necessary because native_db cannot have two test threads open the same database at the same time.
+    /// Necessary because native_db cannot have two test threads
+    /// with different Database connections open the same file at the same time.
     pub(crate) fn copy_test_db() -> (PathBuf, TempDir) {
         let dir = tempdir_in(&*TEST_PATHS.tests_dir).unwrap();
         let tydbp = &*TEST_PATHS.tests_yomichan_db_path;
