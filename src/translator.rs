@@ -1,8 +1,9 @@
-use std::{fmt::Display, iter, path::Path, str::FromStr, sync::LazyLock};
+use std::{fmt::Display, hash::Hash, iter, path::Path, str::FromStr, sync::LazyLock};
 
 use fancy_regex::Regex;
 use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
+    datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
     locale::locale,
 };
 use indexmap::{IndexMap, IndexSet};
@@ -21,12 +22,14 @@ use language_transformer::{
 };
 use native_db::*;
 use native_model::{native_model, Model};
+use serde::Serialize;
 
 use crate::{
     database::dictionary_database::{DictionaryDatabase, DictionaryDatabaseTag, TermEntry},
     dictionary::{
-        DictionaryTag, InflectionRuleChainCandidate, InflectionSource, TermDefinition,
-        TermDictionaryEntry, TermHeadword, TermSource, TermSourceMatchSource, TermSourceMatchType,
+        DictionaryTag, EntryInflectionRuleChainCandidatesKey, InflectionRuleChainCandidate,
+        InflectionSource, TermDefinition, TermDictionaryEntry, TermHeadword, TermSource,
+        TermSourceMatchSource, TermSourceMatchType,
     },
     dictionary_data::{TermGlossary, TermGlossaryContent, TermGlossaryDeinflection},
     regex_util::apply_text_replacement,
@@ -52,7 +55,7 @@ struct SequenceQuery {
     dictionary: String,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum FindTermsMode {
     Simple,
     Group,
@@ -69,21 +72,28 @@ pub enum EnabledDictionaryMapType<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-struct ExistingEntry {
-    entry: TermDictionaryEntry,
-    index: usize,
+pub struct ExistingEntry {
+    pub index: usize,
+    pub entry: TermDictionaryEntry,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TermDictionaryEntryWithIndexes {
+    pub index: usize,
+    pub dictionary_entry: TermDictionaryEntry,
+    pub headword_indexes: Vec<usize>,
 }
 
 #[derive(Clone, Debug)]
 struct TermReadingItem {
-    term: String,
-    reading: Option<String>,
+    pub term: String,
+    pub reading: Option<String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct FindTermResult {
-    dictionary_entries: Vec<TermDictionaryEntry>,
-    original_text_length: i128,
+    pub dictionary_entries: Vec<TermDictionaryEntry>,
+    pub original_text_length: i128,
 }
 
 type TextProcessorMap = IndexMap<&'static str, PreAndPostProcessorsWithId>;
@@ -171,7 +181,13 @@ impl Translator {
     /// # Errors
     ///
     /// Returns an error if the term lookup process fails for any reason.
-    fn find_terms(mode: FindTermsMode, text: &str, opts: FindTermsOptions) {
+    fn find_terms(
+        &self,
+        mode: FindTermsMode,
+        text: &str,
+        opts: &FindTermsOptions,
+    ) -> FindTermResult {
+        let mut text = text.to_string();
         let FindTermsOptions {
             enabled_dictionary_map,
             exclude_dictionary_definitions,
@@ -181,7 +197,20 @@ impl Translator {
             primary_reading,
             ..
         } = opts;
-        let tag_aggregator = TranslatorTagAggregator::default();
+        let mut tag_aggregator = TranslatorTagAggregator::default();
+        let FindTermResult {
+            dictionary_entries,
+            original_text_length,
+        } = self.find_terms_internal(&mut text, opts, &mut tag_aggregator, primary_reading);
+
+        // match mode {
+        //     FindTermsMode::Group => dictionary_entries = Translator::group,
+        // }
+
+        FindTermResult {
+            dictionary_entries,
+            original_text_length,
+        }
     }
 
     fn find_terms_internal(
@@ -213,6 +242,416 @@ impl Translator {
             tag_aggregator,
             primary_reading,
         )
+    }
+
+    fn _group_dictionary_entries_by_headword(
+        &self,
+        language: &str,
+        dictionary_entries: &[TermDictionaryEntry],
+        tag_aggregator: &mut TranslatorTagAggregator,
+        primary_reading: &str,
+    ) -> Vec<TermDictionaryEntry> {
+        let mut groups: IndexMap<String, Vec<TermDictionaryEntry>> = IndexMap::new();
+        let reading_normalizer = self.reading_normalizers.get(language);
+        for dictionary_entry in dictionary_entries {
+            let TermDictionaryEntry {
+                inflection_rule_chain_candidates,
+                headwords,
+                ..
+            } = dictionary_entry;
+            let TermHeadword { term, reading, .. } = headwords.first().unwrap_or_else(|| {
+                panic!(
+                    "in fn `_group_dictionary_entries_by_word`: 
+                            headwords[0] is None (this is infallible in JS)"
+                )
+            });
+            let normalized_reading =
+                Translator::_get_or_default_normalized_reading(reading_normalizer, reading);
+            let key = Translator::_create_map_key(&(
+                term,
+                normalized_reading,
+                inflection_rule_chain_candidates,
+            ));
+            groups
+                .entry(key)
+                .or_default()
+                .push(dictionary_entry.clone());
+        }
+
+        let new_dictionary_entries = groups
+            .values()
+            .map(|group_dictionary_entries| {
+                self._create_grouped_dictionary_entry(
+                    language,
+                    group_dictionary_entries,
+                    false,
+                    tag_aggregator,
+                    primary_reading,
+                )
+            })
+            .collect();
+
+        new_dictionary_entries
+    }
+
+    fn _get_or_default_normalized_reading(
+        reading_normalizer: Option<&fn(&str) -> String>,
+        reading: &str,
+    ) -> String {
+        if let Some(reading_normalizer) = reading_normalizer {
+            reading_normalizer(reading)
+        } else {
+            reading.to_string()
+        }
+    }
+
+    fn _create_grouped_dictionary_entry(
+        &self,
+        language: &str,
+        dictionary_entries: &[TermDictionaryEntry],
+        mut check_duplicate_definitions: bool,
+        tag_aggregator: &mut TranslatorTagAggregator,
+        primary_reading: &str,
+    ) -> TermDictionaryEntry {
+        // Headwords are generated before sorting,
+        // so that the order of dictionaryEntries can be maintained
+        let mut definition_entries = vec![];
+        let mut headwords: IndexMap<String, TermHeadword> = IndexMap::new();
+        dictionary_entries.iter().for_each(|dictionary_entry| {
+            let headword_index_map = self._add_term_headwords(
+                language,
+                &mut headwords,
+                &dictionary_entry.headwords,
+                tag_aggregator,
+            );
+            let term_dictionary_entry_with_map = TermDictionaryEntryWithIndexes {
+                index: definition_entries.len(),
+                dictionary_entry: dictionary_entry.clone(),
+                headword_indexes: headword_index_map,
+            };
+            definition_entries.push(term_dictionary_entry_with_map);
+        });
+
+        if definition_entries.len() <= 1 {
+            check_duplicate_definitions = false;
+        }
+
+        // merge dictionary entry data
+        let mut score = i128::MIN;
+        let mut dictionary_index = usize::MAX;
+        let mut dictionary_alias = "".to_string();
+        let mut max_original_text_length = 0;
+        let mut is_primary = false;
+        let mut definitions: Vec<TermDefinition> = vec![];
+        let mut definitions_map: Option<IndexMap<String, TermDefinition>> =
+            match check_duplicate_definitions {
+                true => Some(IndexMap::new()),
+                false => None,
+            };
+
+        let mut inflections: Option<Vec<InflectionRuleChainCandidate>> = None;
+        let mut text_processes: Option<Vec<TextProcessorRuleChainCandidate>> = None;
+
+        for definition_entry in &definition_entries {
+            let TermDictionaryEntryWithIndexes {
+                dictionary_entry,
+                headword_indexes,
+                ..
+            } = definition_entry;
+            score = score.max(dictionary_entry.score);
+            dictionary_index = dictionary_index.min(dictionary_entry.dictionary_index);
+
+            if dictionary_entry.is_primary {
+                is_primary = true;
+                max_original_text_length =
+                    max_original_text_length.max(dictionary_entry.max_original_text_length);
+
+                let dictionary_entry_inflections =
+                    &dictionary_entry.inflection_rule_chain_candidates;
+                let dictionary_entry_text_processes =
+                    &dictionary_entry.text_processor_rule_chain_candidates;
+
+                if inflections
+                    .as_deref()
+                    .is_none_or(|i| dictionary_entry_inflections.len() < i.len())
+                {
+                    inflections = Some(dictionary_entry_inflections.clone());
+                }
+                if text_processes
+                    .as_deref()
+                    .is_none_or(|tp| dictionary_entry_text_processes.len() < tp.len())
+                {
+                    text_processes = Some(dictionary_entry_text_processes.clone());
+                }
+            }
+            if let Some(definitions_map) = definitions_map.as_mut() {
+                Translator::_add_term_definitions(
+                    &mut definitions,
+                    definitions_map,
+                    &dictionary_entry.definitions,
+                    headword_indexes,
+                    tag_aggregator,
+                );
+            } else {
+                Translator::_add_term_definitions_fast(
+                    &mut definitions,
+                    &dictionary_entry.definitions,
+                    headword_indexes,
+                );
+            }
+        }
+
+        let headwords_array: Vec<TermHeadword> = headwords.values().cloned().collect();
+        let mut source_term_exact_match_count = 0;
+        let mut match_primary_reading = false;
+
+        for headword in &headwords_array {
+            let TermHeadword {
+                sources, reading, ..
+            } = headword;
+            if !primary_reading.is_empty() && reading == primary_reading {
+                match_primary_reading = true;
+            }
+            for source in sources {
+                if source.is_primary && source.match_source == TermSourceMatchSource::Term {
+                    source_term_exact_match_count += 1;
+                    break;
+                }
+            }
+        }
+
+        Translator::_create_term_dictionary_entry(
+            is_primary,
+            text_processes.unwrap_or_default(),
+            inflections.unwrap_or_default(),
+            score,
+            dictionary_index,
+            dictionary_alias,
+            source_term_exact_match_count,
+            match_primary_reading,
+            max_original_text_length,
+            headwords_array,
+            definitions,
+        )
+    }
+
+    fn _add_term_definitions_fast(
+        definitions: &mut Vec<TermDefinition>,
+        new_definitions: &[TermDefinition],
+        headword_index_map: &[usize],
+    ) {
+        for new_def in new_definitions {
+            // Map the headword indices using the provided headword_index_map.
+            let headword_indices_new: Vec<usize> = new_def
+                .headword_indices
+                .iter()
+                .map(|&idx| headword_index_map[idx])
+                .collect();
+
+            // The index of the new definition is the current length of definitions.
+            let index = definitions.len();
+
+            definitions.push(Translator::_create_term_definition(
+                index,
+                headword_indices_new,
+                new_def.dictionary.clone(),
+                new_def.dictionary_index,
+                new_def.dictionary_alias.clone(),
+                new_def.id.clone(),
+                new_def.score,
+                new_def.sequences.clone(),
+                new_def.is_primary,
+                new_def.tags.clone(),
+                new_def.entries.clone(),
+            ));
+        }
+    }
+
+    fn _add_term_definitions(
+        definitions: &mut Vec<TermDefinition>,
+        definitions_map: &mut IndexMap<String, TermDefinition>,
+        new_definitions: &[TermDefinition],
+        headword_index_map: &[usize],
+        tag_aggregator: &mut TranslatorTagAggregator,
+    ) {
+        new_definitions.iter().for_each(|new_definition| {
+            let TermDefinition {
+                index,
+                headword_indices,
+                dictionary,
+                dictionary_index,
+                dictionary_alias,
+                sequences,
+                id,
+                score,
+                is_primary,
+                tags,
+                entries,
+                frequency_order,
+            } = new_definition;
+            let key = Translator::_create_map_key(&(dictionary, entries));
+            let mut definition = definitions_map.get(&key).cloned();
+            if let Some(ref mut definition) = definition {
+                if *is_primary {
+                    definition.is_primary = true;
+                }
+                Translator::_add_unique_simple(&mut definition.sequences, sequences);
+            } else {
+                let TermDefinition {
+                    id,
+                    index,
+                    headword_indices,
+                    dictionary,
+                    dictionary_index,
+                    dictionary_alias,
+                    score,
+                    frequency_order,
+                    sequences,
+                    is_primary,
+                    tags,
+                    entries,
+                } = new_definition.clone();
+                let new_def = Translator::_create_term_definition(
+                    definitions.len(),
+                    vec![],
+                    dictionary,
+                    dictionary_index,
+                    dictionary_alias,
+                    id,
+                    score,
+                    sequences,
+                    is_primary,
+                    vec![],
+                    entries,
+                );
+                definitions.push(new_def.clone());
+                definitions_map.insert(key, new_def.clone());
+                definition = Some(new_def);
+            }
+            /// definition is Some after this point, so unwrap() is safe
+
+            /// merge tags doesn't mutate the passed in values so we can save it here cloned
+            let definition_ref = definition.as_mut().unwrap();
+            let definition_headword_indices: &mut Vec<usize> = &mut definition_ref.headword_indices;
+
+            for headword_index in headword_indices {
+                Translator::_add_unique_term_headword_index(
+                    definition_headword_indices,
+                    headword_index_map[*headword_index],
+                );
+            }
+            tag_aggregator.merge_tags(&definition_ref.tags, tags);
+        });
+    }
+
+    /// this is a binary search
+    fn _add_unique_term_headword_index(headword_indices: &mut Vec<usize>, headword_index: usize) {
+        match headword_indices.binary_search(&headword_index) {
+            Ok(_) => {} // The element already exists, do nothing.
+            Err(pos) => headword_indices.insert(pos, headword_index),
+        }
+    }
+
+    fn _add_term_headwords(
+        &self,
+        language: &str,
+        headwords_map: &mut IndexMap<String, TermHeadword>,
+        headwords: &[TermHeadword],
+        tag_aggregator: &mut TranslatorTagAggregator,
+    ) -> Vec<usize> {
+        headwords
+            .iter()
+            .map(|current_input_hw| {
+                let TermHeadword {
+                    term,
+                    reading,
+                    sources,
+                    tags,
+                    word_classes,
+                    ..
+                } = current_input_hw;
+                let reading_normalizer_opt = self.reading_normalizers.get(language);
+                let normalized_reading =
+                    Translator::_get_or_default_normalized_reading(reading_normalizer_opt, reading);
+                let key = Translator::_create_map_key(&(term, normalized_reading));
+                let new_hw_potential_index = headwords_map.len();
+                let map_hw_ref_mut = headwords_map.entry(key).or_insert_with(|| {
+                    Translator::_create_term_headword(
+                        new_hw_potential_index,
+                        term.to_string(),
+                        reading.to_string(),
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(), // Initial empty vectors
+                    )
+                });
+
+                Translator::_add_unique_sources(&mut map_hw_ref_mut.sources, sources);
+                Translator::_add_unique_simple(&mut map_hw_ref_mut.word_classes, word_classes);
+                tag_aggregator.merge_tags(&map_hw_ref_mut.tags, tags);
+
+                map_hw_ref_mut.index
+            })
+            .collect()
+    }
+
+    /// this deviates from JS.
+    /// js loops through the `list` array everytime within `new_items` for_each(),
+    /// here we create a set so it becomes O(1).
+    ///
+    /// depending on if duplicates existing (on purpose) this might be incorrect.
+    fn _add_unique_simple<T>(list: &mut Vec<T>, new_items: &[T])
+    where
+        T: Eq + Hash + Clone,
+    {
+        let mut existing_items_set: IndexSet<T> = list.iter().cloned().collect();
+        new_items.iter().for_each(|item| {
+            if existing_items_set.insert(item.clone()) {
+                list.push(item.clone());
+            }
+        });
+    }
+
+    fn _add_unique_sources(sources: &mut Vec<TermSource>, new_sources: &[TermSource]) {
+        if new_sources.is_empty() {
+            return;
+        };
+        if sources.is_empty() {
+            sources.extend(new_sources.to_vec());
+            return;
+        }
+        new_sources.iter().for_each(|new_source| {
+            let TermSource {
+                original_text,
+                transformed_text,
+                deinflected_text,
+                match_type,
+                match_source,
+                is_primary,
+            } = new_source;
+            let has = sources.iter_mut().any(|src| {
+                if src.original_text == *original_text
+                    && src.transformed_text == *transformed_text
+                    && src.deinflected_text == *deinflected_text
+                    && src.match_type == *match_type
+                    && src.match_source == *match_source
+                {
+                    if (*is_primary) {
+                        src.is_primary = true;
+                    }
+                    return true;
+                }
+                false
+            });
+            if !has {
+                sources.push(new_source.clone());
+            }
+        });
+    }
+
+    fn _create_map_key(v: &(impl Serialize + std::fmt::Debug)) -> String {
+        serde_json::to_string(v)
+            .unwrap_or_else(|e| panic!("could not serialize {v:?} to map key: {e}"))
     }
 
     fn _get_dictionary_entries(
@@ -514,7 +953,7 @@ impl Translator {
         dictionary_index: usize,
         dictionary_alias: String,
         id: String,
-        score: usize,
+        score: i128,
         sequences: Vec<i128>,
         is_primary: bool,
         tags: Vec<DictionaryTag>,
@@ -525,6 +964,7 @@ impl Translator {
             index,
             headword_indices,
             dictionary,
+            dictionary_alias,
             dictionary_index,
             score,
             frequency_order: 0,
@@ -557,7 +997,7 @@ impl Translator {
         is_primary: bool,
         text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
         inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
-        score: usize,
+        score: i128,
         dictionary_index: usize,
         dictionary_alias: String,
         source_term_exact_match_count: usize,

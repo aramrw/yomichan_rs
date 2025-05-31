@@ -50,7 +50,7 @@ pub static KANA_MAP: LazyLock<BiHashMap<&'static str, &'static str>> = LazyLock:
 //     pub sequence: Option<String>,
 // }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TermGlossaryType {
     Text,
     Image,
@@ -193,13 +193,13 @@ impl TermGlossaryContent {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TermGlossaryText {
     pub term_glossary_type: TermGlossaryType,
     pub text: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Represents the structured content of a term.
 ///
 /// An entry's entire HTML [`StructuredContent`] is [`Deserialize`]d into a String and pushed into `content`.

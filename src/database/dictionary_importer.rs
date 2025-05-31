@@ -316,13 +316,13 @@ pub type KanjiBank = Vec<DatabaseKanjiEntry>;
 
 /// The 'header', and `structured-content`
 /// of a `term_bank_${i}.json` entry item.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TermEntryItem {
     pub expression: String,
     pub reading: String,
     pub def_tags: Option<String>,
     pub rules: String,
-    pub score: usize,
+    pub score: i128,
     pub structured_content: Vec<StructuredContent>,
     pub sequence: i128,
     pub term_tags: String,

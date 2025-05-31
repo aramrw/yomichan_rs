@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
 use indexmap::IndexMap;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_untagged::UntaggedEnumVisitor;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageRendering {
     Auto,
@@ -10,14 +12,14 @@ pub enum ImageRendering {
     CrispEdges,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageAppearance {
     Auto,
     Monochrome,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HtmlTag {
     #[serde(rename = "ruby")]
@@ -53,7 +55,7 @@ pub enum HtmlTag {
     Break,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum VerticalAlign {
     Baseline,
@@ -66,7 +68,7 @@ pub enum VerticalAlign {
     Bottom,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TextDecorationLine {
     Underline,
@@ -74,7 +76,7 @@ pub enum TextDecorationLine {
     LineThrough,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TextDecorationLineOrNone {
     None,
     TextDecorationLine(TextDecorationLine),
@@ -124,7 +126,7 @@ pub enum TextAlign {
     MatchParent,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SizeUnits {
     Px,
     Em,
@@ -422,3 +424,4 @@ pub struct ImageElement {
     /// Whether or not the image can be collapsed.
     collapsible: Option<bool>,
 }
+

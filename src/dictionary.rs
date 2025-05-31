@@ -4,7 +4,7 @@ use crate::{
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum InflectionSource {
     Algorithm,
@@ -12,10 +12,19 @@ pub enum InflectionSource {
     Both,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Dictionary InflectionRuleChainCandidate
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct InflectionRuleChainCandidate {
     pub source: InflectionSource,
     pub inflection_rules: Vec<String>,
+}
+
+/// Dictionary InflectionRuleChainCandidateKey
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct EntryInflectionRuleChainCandidatesKey {
+    pub term: String,
+    pub reading: String,
+    pub inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
 }
 
 /// Helper enum to match expected schema types more accurately.
@@ -136,7 +145,7 @@ pub struct DictionaryOrder {
 /*************** Term ***************/
 
 /// Enum representing what database field was used to match the source term.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchSource {
     Term,
@@ -145,7 +154,7 @@ pub enum TermSourceMatchSource {
 }
 
 /// Enum representing how the search term relates to the final term.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchType {
     Exact,
@@ -155,7 +164,7 @@ pub enum TermSourceMatchType {
 
 /// Frequency information corresponds to how frequently a term appears in a corpus,
 /// which can be a number of occurrences or an overall rank.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TermFrequency {
     /// The original order of the frequency, which is usually used for sorting.
     index: u32,
@@ -177,7 +186,7 @@ pub struct TermFrequency {
     display_value_parsed: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// A term headword is a combination of a term, reading, and auxiliary information.
 pub struct TermHeadword {
     /// The original order of the headword, which is usually used for sorting.
@@ -207,10 +216,11 @@ pub struct TermDefinition {
     pub dictionary: String,
     /// The index of the dictionary in the original list of dictionaries used for the lookup.
     pub dictionary_index: usize,
+    pub dictionary_alias: String,
     /// A score for the definition.
-    pub score: usize,
+    pub score: i128,
     /// The sorting value based on the determined term frequency.
-    pub frequency_order: usize,
+    pub frequency_order: i128,
     /// A list of database sequence numbers for the term.
     /// A value of `-1` corresponds to no sequence.
     /// The list can have multiple values if multiple definitions with
@@ -226,7 +236,7 @@ pub struct TermDefinition {
     pub entries: Vec<TermGlossaryContent>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// A term pronunciation represents different ways to pronounce one of the headwords.
 pub struct TermPronunciation {
     /// The original order of the pronunciation, which is usually used for sorting.
@@ -243,7 +253,7 @@ pub struct TermPronunciation {
     pronunciations: Vec<Pronunciation>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Source information represents how the original text was transformed to get to the final term.
 pub struct TermSource {
     /// The original text that was searched.
@@ -274,9 +284,9 @@ pub struct TermDictionaryEntry {
     /// Ways that a looked-up word might be an inflected form of this term.
     pub inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
     /// A score for the dictionary entry.
-    pub score: usize,
+    pub score: i128,
     /// The sorting value based on the determined term frequency.
-    pub frequency_order: usize,
+    pub frequency_order: i128,
     /// The alias of the dictionary.
     pub dictionary_alias: String,
     /// The index of the dictionary in the original list of dictionaries used for the lookup.
@@ -299,7 +309,7 @@ pub struct TermDictionaryEntry {
 
 /*************** Pitch Accent & Pronunciation ***************/
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TermPronunciationMatchType {
     #[serde(rename = "lowercase")]
     PitchAccent,
@@ -307,14 +317,14 @@ pub enum TermPronunciationMatchType {
     PhoneticTranscription,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Pronunciation {
     PitchAccent(PitchAccent),
     PhoneticTranscription(PhoneticTranscription),
 }
 
 /// Pitch accent information for a term, represented as the position of the downstep.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PitchAccent {
     /// Type of the pronunciation, for disambiguation between union type members.
     /// Should be `"pitch-accent"` in the json.
@@ -329,7 +339,7 @@ pub struct PitchAccent {
     tags: Vec<DictionaryTag>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PhoneticTranscription {
     /// Type of the pronunciation, for disambiguation between union type members.
     /// Should be `"phonetic-transcription"` in the json.

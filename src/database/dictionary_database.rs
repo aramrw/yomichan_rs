@@ -118,7 +118,7 @@ pub struct DatabaseTermEntry {
     /// Legacy alias for the `definitionTags` field.
     pub tags: Option<String>,
     pub rules: String,
-    pub score: usize,
+    pub score: i128,
     pub glossary: Vec<TermGlossary>,
     #[secondary_key]
     pub sequence: Option<i128>,
@@ -139,7 +139,7 @@ pub struct TermEntry {
     pub term_tags: Vec<String>,
     pub rules: Vec<String>,
     pub definitions: Vec<TermGlossary>,
-    pub score: usize,
+    pub score: i128,
     pub dictionary: String,
     pub sequence: i128,
 }
