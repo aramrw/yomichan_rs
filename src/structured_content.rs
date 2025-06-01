@@ -424,4 +424,3 @@ pub struct ImageElement {
     /// Whether or not the image can be collapsed.
     collapsible: Option<bool>,
 }
-

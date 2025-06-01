@@ -625,7 +625,7 @@ fn convert_term_bank_file(
     let terms: Vec<DatabaseTermEntry> = entries
         .into_iter()
         .map(|mut entry| {
-            let id = uuid::Uuid::new_v4().to_string();
+            let id = uuid::Uuid::now_v7().to_string();
             let expression = entry.expression;
             let reading = entry.reading;
             let expression_reverse = rev_str(&expression);

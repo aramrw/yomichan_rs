@@ -25,7 +25,10 @@
 // use serde::Serialize;
 //
 // use crate::{
-//     database::dictionary_database::{DictionaryDatabase, DictionaryDatabaseTag, TermEntry},
+//     database::dictionary_database::{
+//         DictionaryAndQueryRequest, DictionaryDatabase, DictionaryDatabaseTag, DictionarySet,
+//         QueryMatchType, TermEntry,
+//     },
 //     dictionary::{
 //         DictionaryTag, EntryInflectionRuleChainCandidatesKey, InflectionRuleChainCandidate,
 //         InflectionSource, TermDefinition, TermDictionaryEntry, TermHeadword, TermSource,
@@ -212,7 +215,7 @@
 //                     primary_reading,
 //                 )
 //             }
-//             FindTermsMode::Merge => dictionary_entries = self._getrel,
+//             FindTermsMode::Merge => dictionary_entries = self._get,
 //             _ => {}
 //         }
 //
@@ -267,7 +270,9 @@
 //             ..
 //         } = options;
 //
-//         let mut sequence_list: Vec<SequenceQuery> = Vec::new();
+//         /// in js this is `type SequenceQuery` but I simplified this to use enums
+//         /// instead of objects, to be generic.
+//         let mut sequence_list: Vec<DictionaryAndQueryRequest> = Vec::new();
 //         let mut grouped_dictionary_entries: Vec<DictionaryEntryGroup> = Vec::new();
 //         // Maps sequence (i128) to the index in `grouped_dictionary_entries` vector
 //         let mut grouped_dictionary_entries_map: IndexMap<i128, usize> = IndexMap::new();
@@ -296,8 +301,8 @@
 //                                 grouped_dictionary_entries.push(new_group);
 //                                 let new_index = grouped_dictionary_entries.len() - 1;
 //
-//                                 sequence_list.push(SequenceQuery {
-//                                     query: sequence,
+//                                 sequence_list.push(DictionaryAndQueryRequest {
+//                                     query_type: QueryMatchType::Sequence(sequence),
 //                                     dictionary: definition_dictionary.clone(),
 //                                 });
 //                                 grouped_dictionary_entries_map.insert(sequence, new_index);
@@ -330,24 +335,23 @@
 //             let secondary_search_dictionary_map =
 //                 Translator::_get_secondary_search_dictionary_map(enabled_dictionary_map);
 //
-//             Translator::_add_related_dictionary_entries(
+//             self._add_related_dictionary_entries(
 //                 &mut grouped_dictionary_entries,
 //                 &mut ungrouped_dictionary_entries_map,
-//                 &sequence_list,
+//                 sequence_list,
 //                 enabled_dictionary_map,
 //                 tag_aggregator,
 //                 primary_reading,
-//             )
-//             .await;
+//             );
 //
 //             for group in &mut grouped_dictionary_entries {
-//                 self._sort_term_dictionary_entries_by_id(&mut group.dictionary_entries);
+//                 Translator::_sort_term_dictionary_entries_by_id(&mut group.dictionary_entries);
 //             }
 //
 //             if !ungrouped_dictionary_entries_map.is_empty()
 //                 || !secondary_search_dictionary_map.is_empty()
 //             {
-//                 self._add_secondary_related_dictionary_entries(
+//                 Translator::_add_secondary_related_dictionary_entries(
 //                     language,
 //                     &mut grouped_dictionary_entries,
 //                     &mut ungrouped_dictionary_entries_map,
@@ -383,16 +387,217 @@
 //         new_dictionary_entries
 //     }
 //
+//     fn _add_secondary_related_dictionary_entries(
+//         &self,
+//         language: &str,
+//         grouped_dictionary_entries: &mut [DictionaryEntryGroup],
+//         ungrouped_dictionary_entries_map: &mut IndexMap<String, TermDictionaryEntry>,
+//         enabled_dictionary_map: &TermEnabledDictionaryMap,
+//         secondary_search_dictionary_map: &TermEnabledDictionaryMap,
+//         tag_aggregator: &mut TranslatorTagAggregator,
+//         primary_reading: &str,
+//     ) {
+//         // Prepare grouping info
+//         let mut term_list: Vec<TermExactRequest> = Vec::new();
+//         // target_list will hold Rc<RefCell<TargetGroupRef>>
+//         // These Rcs are also the values in target_map.
+//         let mut target_list: Vec<Rc<RefCell<TargetGroupRef>>> = Vec::new();
+//         let mut target_map: IndexMap<String, Rc<RefCell<TargetGroupRef>>> = IndexMap::new();
+//
+//         let reading_normalizer = self.reading_normalizers.get(language);
+//
+//         for (group_idx, group) in grouped_dictionary_entries.iter().enumerate() {
+//             for dictionary_entry in &group.dictionary_entries {
+//                 // Ensure headwords exist, panic if not, similar to other parts of your code
+//                 let headword = dictionary_entry.headwords.first().unwrap_or_else(|| {
+//                     panic!(
+//                         "DictionaryEntry is missing headwords in _add_secondary_related_dictionary_entries for group processing"
+//                     )
+//                 });
+//                 let term = &headword.term; // &String
+//                 let reading = &headword.reading; // &String
+//
+//                 let normalized_reading =
+//                     Translator::_get_or_default_normalized_reading(reading_normalizer, reading);
+//                 // _create_map_key expects &(impl Serialize + Debug)
+//                 // Passing (&String, String) or (&str, &str)
+//                 let key =
+//                     Translator::_create_map_key(&(term.as_str(), normalized_reading.as_str()));
+//
+//                 let target_rc = if let Some(existing_target_rc) = target_map.get(&key) {
+//                     existing_target_rc.clone()
+//                 } else {
+//                     let new_target_rc = Rc::new(RefCell::new(TargetGroupRef::default()));
+//                     target_map.insert(key.clone(), new_target_rc.clone());
+//                     target_list.push(new_target_rc.clone());
+//                     term_list.push(TermExactRequest {
+//                         term: term.clone(),
+//                         reading: reading.clone(),
+//                     });
+//                     new_target_rc
+//                 };
+//                 target_rc.borrow_mut().group_indices.push(group_idx);
+//             }
+//         }
+//
+//         // Group unsequenced dictionary entries with sequenced entries that have a matching [term, reading].
+//         // We collect IDs to remove to avoid issues with modifying the map while iterating.
+//         let mut ids_to_remove_from_ungrouped: IndexSet<String> = IndexSet::new();
+//
+//         for (id, dictionary_entry) in ungrouped_dictionary_entries_map.iter() {
+//             let headword = dictionary_entry.headwords.first().unwrap_or_else(|| {
+//                 panic!(
+//                     "Ungrouped DictionaryEntry ID '{}' is missing headwords in _add_secondary_related_dictionary_entries",
+//                     id
+//                 )
+//             });
+//             let term = &headword.term;
+//             let reading = &headword.reading;
+//             let normalized_reading =
+//                 Translator::_get_or_default_normalized_reading(reading_normalizer, reading);
+//             let key = Translator::_create_map_key(&(term.as_str(), normalized_reading.as_str()));
+//
+//             if let Some(target_rc) = target_map.get(&key) {
+//                 let mut entry_processed_and_moved = false;
+//                 for &group_idx_to_update in target_rc.borrow().group_indices.iter() {
+//                     // We need mutable access to the specific group here.
+//                     let group_to_update = &mut grouped_dictionary_entries[group_idx_to_update];
+//                     if group_to_update.ids.contains(id) {
+//                         continue;
+//                     }
+//                     group_to_update
+//                         .dictionary_entries
+//                         .push(dictionary_entry.clone());
+//                     group_to_update.ids.insert(id.clone());
+//                     entry_processed_and_moved = true;
+//                 }
+//                 if entry_processed_and_moved {
+//                     ids_to_remove_from_ungrouped.insert(id.clone());
+//                 }
+//             }
+//         }
+//
+//         for id in ids_to_remove_from_ungrouped {
+//             ungrouped_dictionary_entries_map.remove(&id);
+//         }
+//
+//         // Search database for additional secondary terms
+//         if term_list.is_empty() || secondary_search_dictionary_map.is_empty() {
+//             return;
+//         }
+//
+//         // Assuming self.db.find_terms_exact_bulk exists and matches this signature:
+//         // async fn find_terms_exact_bulk(&self, terms: &[TermExactRequest], dictionaries: &TermEnabledDictionaryMap) -> Result<Vec<TermEntry>, YourDbErrorType>
+//         // And that TermEntry has an `index` field corresponding to the index in the input `terms` slice.
+//         let mut database_entries = self
+//             .db
+//             .find_terms_exact_bulk(&term_list, secondary_search_dictionary_map)
+//             .unwrap_or_default();
+//
+//         // this._sortDatabaseEntriesByIndex(databaseEntries);
+//         // Assuming TermEntry has an `index` field which is the original index from term_list
+//         database_entries.sort_by_key(|e| e.index);
+//
+//         for database_entry in database_entries {
+//             // `database_entry.index` refers to the original index in `term_list`
+//             let original_req_index = database_entry.index;
+//             if original_req_index >= term_list.len() {
+//                 // Should not happen if DB returns correct indices
+//                 eprintln!("Database returned out-of-bounds index for TermEntry");
+//                 continue;
+//             }
+//
+//             let source_text = &term_list[original_req_index].term;
+//             // `targetList` is indexed the same as `term_list`
+//             let target_rc = &target_list[original_req_index];
+//
+//             for &group_idx_to_update in target_rc.borrow().group_indices.iter() {
+//                 let group_to_update = &mut grouped_dictionary_entries[group_idx_to_update];
+//                 if group_to_update.ids.contains(&database_entry.id) {
+//                     continue;
+//                 }
+//
+//                 let new_dictionary_entry =
+//                     Translator::_create_term_dictionary_entry_from_database_entry(
+//                         database_entry.clone(), // Clones TermEntry
+//                         source_text,
+//                         source_text, // JS uses sourceText for original, transformed, deinflected
+//                         source_text,
+//                         Vec::new(), // empty text_processor_rule_chain_candidates
+//                         Vec::new(), // empty inflection_rule_chain_candidates
+//                         false,      // is_primary
+//                         enabled_dictionary_map,
+//                         tag_aggregator,
+//                         primary_reading,
+//                     );
+//                 group_to_update
+//                     .dictionary_entries
+//                     .push(new_dictionary_entry);
+//                 group_to_update.ids.insert(database_entry.id.clone());
+//
+//                 // If this ID was in ungrouped, remove it.
+//                 // JS: ungroupedDictionaryEntriesMap.delete(id);
+//                 ungrouped_dictionary_entries_map.shift_remove_full(&database_entry.id);
+//             }
+//         }
+//     }
+//
+//     fn _sort_term_dictionary_entries_by_id(dictionary_entries: &mut [TermDictionaryEntry]) {
+//         if dictionary_entries.len() <= 1 {
+//             return;
+//         }
+//         dictionary_entries.sort_by(|a, b| a.definitions[0].id.cmp(&b.definitions[0].id));
+//     }
+//
+//     /// # Arguments
+//     ///
+//     /// * sequence_list: `query_type` in [DictionaryAndQueryRequest] should be: [QueryMatchType::Sequence]
 //     fn _add_related_dictionary_entries(
 //         &self,
-//         grouped_dictionary_entries: DictionaryEntryGroup,
-//         ungrouped_dictionary_entries_map: IndexMap<usize, TermDictionaryEntry>,
-//         sequence_list: &[SequenceQuery],
+//         grouped_dictionary_entries: &mut [DictionaryEntryGroup],
+//         ungrouped_dictionary_entries_map: &mut IndexMap<String, TermDictionaryEntry>,
+//         sequence_list: Vec<DictionaryAndQueryRequest>,
 //         enabled_dictionary_map: &TermEnabledDictionaryMap,
 //         tag_aggregator: &mut TranslatorTagAggregator,
 //         primary_reading: &str,
 //     ) {
-//         let database_entries self.db.find_terms_by_sequence_bulk();
+//         // should match result instead of empty vec but
+//         // this is how yomitan_js does
+//         let mut database_entries = self
+//             .db
+//             .find_terms_by_sequence_bulk(sequence_list)
+//             .unwrap_or_default();
+//
+//         for db_entry in database_entries {
+//             let TermEntry {
+//                 id, term, index, ..
+//             } = &db_entry;
+//             // direct access because yomitan does
+//             let DictionaryEntryGroup {
+//                 ids,
+//                 dictionary_entries,
+//             } = &mut grouped_dictionary_entries[*index];
+//             if ids.has(id) {
+//                 continue;
+//             }
+//             let dictionary_entry = Translator::_create_term_dictionary_entry_from_database_entry(
+//                 db_entry.clone(),
+//                 term,
+//                 term,
+//                 term,
+//                 vec![],
+//                 vec![],
+//                 false,
+//                 enabled_dictionary_map,
+//                 tag_aggregator,
+//                 primary_reading,
+//             );
+//             dictionary_entries.push(dictionary_entry);
+//             ids.insert(id.clone());
+//             // this could be optimized depending on if order matters
+//             // for now preserve order jic
+//             ungrouped_dictionary_entries_map.shift_remove_full(id);
+//         }
 //     }
 //
 //     fn _get_secondary_search_dictionary_map(
@@ -426,7 +631,7 @@
 //             } = dictionary_entry;
 //             let TermHeadword { term, reading, .. } = headwords.first().unwrap_or_else(|| {
 //                 panic!(
-//                     "in fn `_group_dictionary_entries_by_word`: 
+//                     "in fn `_group_dictionary_entries_by_word`:
 //                             headwords[0] is None (this is infallible in JS)"
 //                 )
 //             });
@@ -1564,7 +1769,7 @@
 //                 &enabled_dictionary_map,
 //                 match_type,
 //             )
-//             .unwrap(); // Consider error handling instead of unwrap
+//             .unwrap_or_default();
 //
 //         self._match_entries_to_deinflections(
 //             language,
