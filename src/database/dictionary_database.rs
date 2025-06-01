@@ -55,7 +55,6 @@ macro_rules! to_variant {
     };
 }
 
-
 impl DictionarySet for IndexSet<String> {
     fn has(&self, value: &str) -> bool {
         self.contains(value)
@@ -213,7 +212,7 @@ impl DatabaseTermEntry {
             expression,
             reading,
             expression_reverse: _expression_reverse, // Mark unused if not used in this function
-            reading_reverse: _reading_reverse,   // Mark unused
+            reading_reverse: _reading_reverse,       // Mark unused
             definition_tags,
             tags: _tags, // Mark unused (or use if it's the fallback for definition_tags)
             rules,
@@ -292,13 +291,14 @@ impl DatabaseMeta {
             None => {
                 return Err(ImportError::Custom(String::from(
                     "no data in kanji_meta_bank stream", // Corrected message
-                )))
+                )));
             }
         };
 
         let kanji_metas: Vec<DatabaseMeta> = entries
             .into_iter()
-            .map(|entry| { // entry here is TermMetaFrequency
+            .map(|entry| {
+                // entry here is TermMetaFrequency
                 let dbkmf = DatabaseMetaFrequency {
                     id: Uuid::new_v4().to_string(),
                     expression: entry.expression, // entry is TermMetaFrequency, so this is fine
@@ -342,7 +342,8 @@ impl DatabaseMeta {
 
         let term_metas: Vec<DatabaseMeta> = entries
             .into_iter() // entries is TermMetaBank which is Vec<TermMetaData>
-            .map(|entry| { // entry here is TermMetaData
+            .map(|entry| {
+                // entry here is TermMetaData
                 let mut meta = DatabaseMeta {
                     frequency: None,
                     pitch: None,
@@ -545,7 +546,9 @@ pub enum QueryRequestMatchType {
     TermExactQueryRequest(TermExactQueryRequest),
     GenericQueryRequest(GenericQueryRequest),
 }
-macro_rules! collect_variant_data {
+/// converts any `IntoIter<Enum::Variant(T)>` to a `IntoIter<Item = T>` 
+#[macro_export]
+macro_rules! iter_variant_to_iter_type {
     ($items:expr, $enum_type:ident :: $variant:ident) => {
         $items
             .iter()
@@ -559,12 +562,48 @@ macro_rules! collect_variant_data {
             .collect()
     };
 }
-macro_rules! variant_to_generic_vec {
+#[macro_export]
+macro_rules! iter_type_to_iter_variant { 
+    ($items_iterable:expr, $enum_type:ident :: $variant:ident) => {
+        $items_iterable 
+            .into_iter() 
+            .map(|item_to_wrap| $enum_type::$variant(item_to_wrap))             
+    };
+}
+// Collects mutable references to data within a specific enum variant from an iterable.
+/// Input `$items` is expected to have an `.iter_mut()` method (e.g., a `Vec<MyEnum>`).
+/// The output is a `Vec<&mut InnerDataType>`.
+#[macro_export]
+macro_rules! collect_variant_data_ref {
+    ($items:expr, $enum_type:ident :: $variant:ident) => {
+        $items
+            .iter_mut() // Iterates over &mut EnumType
+            .filter_map(|item_ref| { // item_ref_mut is &mut EnumType
+                match item_ref {
+                    // `ref mut data` borrows the data mutably from within the enum variant
+                    $enum_type::$variant(ref data) => Some(data), // data is &mut InnerDataType
+                    _ => None, // Ignore other variants
+                }
+            })
+            .collect::<Vec<_>>() // Collects into Vec<&mut InnerDataType>
+    };
+}
+/// Converts an iterable of items into a Vec of enums, where each enum variant
+/// holds a mutable reference to an original item.
+/// Input `$items_iterable` is expected to have an `.iter_mut()` method (e.g., a `Vec<MyData>`).
+/// The enum variant specified must be capable of holding a mutable reference
+/// (e.g., defined as `enum MyWrapper<'a> { MyVariant(&'a mut MyData) }`).
+/// The output is a `Vec<EnumType<'a>::Variant(&'a mut MyData)>`.
+#[macro_export]
+macro_rules! variant_to_generic_vec_mut {
     ($items_iterable:expr, $enum_type:ident :: $variant:ident) => {
         $items_iterable
-            .into_iter()
-            .map(|item_to_wrap| $enum_type::$variant(item_to_wrap))
-            .collect()
+            .iter_mut() // Iterates over &mut MyData
+            .map(|item_ref_mut| { // item_ref_mut is &mut MyData
+                // The enum variant constructor takes the mutable reference
+                $enum_type::$variant(item_ref_mut)
+            })
+            .collect::<Vec<_>>() // Collects into Vec<EnumType::Variant(&mut MyData)>
     };
 }
 
@@ -583,8 +622,8 @@ pub enum DictionaryDatabaseError {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct TermExactQueryRequest {
-    term: String,
-    reading: String,
+    pub term: String,
+    pub reading: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Eq, PartialOrd, Ord, Hash)]
@@ -633,11 +672,10 @@ impl PartialEq<FindMultiBulkDataItemType> for String {
     }
 }
 
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FindMulitBulkData {
     item: FindMultiBulkDataItemType, // This is the original query item (e.g. a string from term_list)
-    item_index: usize,             // Index of this item in the input items_to_query list
+    item_index: usize,               // Index of this item in the input items_to_query list
     index_index: usize, // Index of the IndexQueryIdentifier used (e.g. 0 for expression, 1 for reading)
 }
 
@@ -680,7 +718,7 @@ use native_db::{
     db_type::KeyRange, // KeyRange unused
     db_type::{KeyDefinition, ToKey},
     native_model::Model as NativeDbModelTrait, // Already aliased above as NativeModelTrait
-    Key, // Key unused
+    Key,                                       // Key unused
 };
 // std::marker::PhantomData is unused
 // use std::marker::PhantomData;
@@ -717,7 +755,6 @@ pub enum NativeDbQueryInfo<K: ToKey + Clone> {
 // Definition of the CreateQueryFn type alias using dyn Fn
 type CreateQueryFn<Item, KeyVal> =
     dyn Fn(&Item, IndexQueryIdentifier) -> NativeDbQueryInfo<KeyVal> + Sync + Send;
-
 
 #[derive(Clone)]
 pub struct DictionaryDatabase {
@@ -782,7 +819,8 @@ impl DictionaryDatabase {
                 IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ExpressionReverse),
                 IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ReadingReverse),
             ],
-            _ => [ // Exact, Prefix
+            _ => [
+                // Exact, Prefix
                 IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Expression),
                 IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Reading),
             ],
@@ -800,22 +838,25 @@ impl DictionaryDatabase {
             }
         };
 
-        let create_query_fn_closure =
-            Box::new(
-                move |item_from_list: &String, _idx_identifier: IndexQueryIdentifier| {
-                    match actual_match_type_for_query { // Use the adjusted match type
-                        TermSourceMatchType::Exact => to_variant!(item_from_list.clone(), NativeDbQueryInfo::Exact),
-                        TermSourceMatchType::Prefix => to_variant!(item_from_list.clone(), NativeDbQueryInfo::Prefix),
-                        TermSourceMatchType::Suffix => {
-                             // This case should not be hit if 
-                        // actual_match_type_for_query is Prefix for suffix searches
-                             // but as a safeguard, treat it as prefix on the (already reversed) string.
-                            to_variant!(item_from_list.clone(), NativeDbQueryInfo::Prefix)
-                        }
+        let create_query_fn_closure = Box::new(
+            move |item_from_list: &String, _idx_identifier: IndexQueryIdentifier| {
+                match actual_match_type_for_query {
+                    // Use the adjusted match type
+                    TermSourceMatchType::Exact => {
+                        to_variant!(item_from_list.clone(), NativeDbQueryInfo::Exact)
                     }
-                },
-            );
-
+                    TermSourceMatchType::Prefix => {
+                        to_variant!(item_from_list.clone(), NativeDbQueryInfo::Prefix)
+                    }
+                    TermSourceMatchType::Suffix => {
+                        // This case should not be hit if
+                        // actual_match_type_for_query is Prefix for suffix searches
+                        // but as a safeguard, treat it as prefix on the (already reversed) string.
+                        to_variant!(item_from_list.clone(), NativeDbQueryInfo::Prefix)
+                    }
+                }
+            },
+        );
 
         let find_multi_bulk_predicate =
             |row: &DatabaseTermEntry, _item_to_query: &String| dictionaries.has(&row.dictionary);
@@ -861,20 +902,18 @@ impl DictionaryDatabase {
 
     pub fn find_terms_exact_bulk(
         &self,
-        term_list: &[QueryRequestMatchType],
+        term_list: &[TermExactQueryRequest],
         dictionaries: &impl DictionarySet,
     ) -> Result<Vec<TermEntry>, Box<DictionaryDatabaseError>> {
-        let items_to_query_vec: Vec<TermExactQueryRequest> =
-            collect_variant_data!(term_list, QueryRequestMatchType::TermExactQueryRequest);
-
         let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
             SecondaryKeyQueryKind::Expression,
         )];
 
-        let create_query_fn_closure =
-            Box::new(|req: &TermExactQueryRequest, _idx_identifier: IndexQueryIdentifier| {
+        let create_query_fn_closure = Box::new(
+            |req: &TermExactQueryRequest, _idx_identifier: IndexQueryIdentifier| {
                 to_variant!(req.term.clone(), NativeDbQueryInfo::Exact)
-            });
+            },
+        );
 
         let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| match kind {
             SecondaryKeyQueryKind::Expression => DatabaseTermEntryKey::expression,
@@ -908,7 +947,7 @@ impl DictionaryDatabase {
             _, _, _                // Infer other closure types
         >(
             &index_query_identifiers,
-            &items_to_query_vec,
+            &term_list,
             create_query_fn_closure, // Pass boxed closure
             resolve_secondary_key_fn,
             predicate_fn,
@@ -918,7 +957,7 @@ impl DictionaryDatabase {
             Err(reason) => {
                 Err(Box::new(DictionaryDatabaseError::QueryRequest(
                     QueryRequestError {
-                        queries: term_list.to_vec(), // Original term_list for error reporting
+                        queries: iter_variant_to_iter_type!(term_list, QueryRequestMatchType::TermExactQueryRequest), 
                         reason,
                     },
                 )))
@@ -933,13 +972,17 @@ impl DictionaryDatabase {
         let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
             SecondaryKeyQueryKind::Sequence,
         )];
-        let items_to_query_vec: Vec<GenericQueryRequest> =
-            collect_variant_data!(item_request_input, QueryRequestMatchType::GenericQueryRequest);
+        let items_to_query_vec: Vec<GenericQueryRequest> = collect_variant_data!(
+            item_request_input,
+            QueryRequestMatchType::GenericQueryRequest
+        );
 
         let create_query_fn_closure = Box::new(
             |req: &GenericQueryRequest, _idx_identifier: IndexQueryIdentifier| match req.query_type
             {
-                QueryType::Sequence(seq_val) => to_variant!(Some(seq_val), NativeDbQueryInfo::Exact),
+                QueryType::Sequence(seq_val) => {
+                    to_variant!(Some(seq_val), NativeDbQueryInfo::Exact)
+                }
                 _ => {
                     // This panic is fine for now, but proper error handling might be better
                     panic!("QueryType for sequence search must be Num (i.e. Sequence)");
@@ -947,14 +990,11 @@ impl DictionaryDatabase {
             },
         );
 
-
-        let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| {
-            match kind {
-                SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence,
-                _ => unreachable!(
-                    "Only SecondaryKeyQueryKind::Sequence is expected in find_terms_by_sequence_bulk"
-                ),
-            }
+        let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| match kind {
+            SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence,
+            _ => unreachable!(
+                "Only SecondaryKeyQueryKind::Sequence is expected in find_terms_by_sequence_bulk"
+            ),
         };
 
         let predicate_fn = |row: &DatabaseTermEntry, current_item_request: &GenericQueryRequest| {
@@ -1120,9 +1160,16 @@ mod ycd {
     // use crate::to_variant; // Only if to_variant! is exported from crate root and not in this module.
 
     use super::{
-        DatabaseTermEntry, DatabaseTermEntryKey, DictionaryDatabase, GenericQueryRequest,
-        IndexQueryIdentifier, NativeDbQueryInfo, QueryRequestMatchType, QueryType,
-        SecondaryKeyQueryKind, TermExactQueryRequest, // Added TermExactQueryRequest
+        DatabaseTermEntry,
+        DatabaseTermEntryKey,
+        DictionaryDatabase,
+        GenericQueryRequest,
+        IndexQueryIdentifier,
+        NativeDbQueryInfo,
+        QueryRequestMatchType,
+        QueryType,
+        SecondaryKeyQueryKind,
+        TermExactQueryRequest, // Added TermExactQueryRequest
     };
     use crate::{
         database::dictionary_database::DictionarySet,
@@ -1149,7 +1196,10 @@ mod ycd {
         match entries {
             Ok(entries) => {
                 // Consider asserting specific results rather than just dbg!
-                assert!(!entries.is_empty(), "Expected entries for sequence bulk search");
+                assert!(
+                    !entries.is_empty(),
+                    "Expected entries for sequence bulk search"
+                );
                 entries.into_iter().for_each(|entry| {
                     dbg!(&entry); // dbg! is fine for local testing
                 });
@@ -1202,4 +1252,3 @@ mod ycd {
         }
     }
 }
-

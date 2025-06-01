@@ -1,6 +1,7 @@
 use crate::{
     dictionary_data::TermGlossaryContent, translation_internal::TextProcessorRuleChainCandidate,
 };
+use getset::MutGetters;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -45,22 +46,22 @@ pub enum VecNumOrNum {
 /// A tag represents some brief information about part of a dictionary entry.
 pub struct DictionaryTag {
     /// The name of the tag.
-    name: String,
+    pub name: String,
     /// The category of the tag.
-    category: String,
+    pub category: String,
     /// A number indicating the sorting order of the tag.
-    order: u16,
+    pub order: usize,
     /// A score value for the tag.
-    score: u16,
+    pub score: usize,
     /// An array of descriptions for the tag. If there are multiple entries,
     /// the values will typically have originated from different dictionaries.
     /// However, there is no correlation between the length of this array and
     /// the length of the `dictionaries` field, as duplicates are removed.
-    content: Vec<String>,
+    pub content: Vec<String>,
     /// An array of dictionary names that contained a tag with this name and category.
-    dictionaries: Vec<String>,
+    pub dictionaries: Vec<String>,
     /// Whether or not this tag is redundant with previous tags.
-    redundant: bool,
+    pub redundant: bool,
 }
 
 /*************** Kanji ***************/
@@ -167,23 +168,23 @@ pub enum TermSourceMatchType {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TermFrequency {
     /// The original order of the frequency, which is usually used for sorting.
-    index: u32,
+    pub index: usize,
     /// Which headword this frequency corresponds to.
-    headword_index: u32,
+    pub headword_index: usize,
     /// The name of the dictionary that the frequency information originated from.
-    dictionary: String,
+    pub dictionary: String,
     /// The index of the dictionary in the original list of dictionaries used for the lookup.
-    dictionary_index: u16,
-    /// The priority of the dictionary.
-    dictionary_priority: u16,
+    pub dictionary_index: usize,
+    /// The alias for the dictionary
+    pub dictionary_alias: String,
     /// Whether or not the frequency had an explicit reading specified.
-    has_reading: bool,
+    pub has_reading: bool,
     /// The frequency for the term, as a number of occurrences or an overall rank.
-    frequency: u32,
+    pub frequency: u128,
     /// A display value to show to the user.
-    display_value: Option<String>,
+    pub display_value: Option<String>,
     /// Whether or not the displayValue string was parsed to determine the frequency value.
-    display_value_parsed: bool,
+    pub display_value_parsed: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -230,7 +231,6 @@ pub struct TermDefinition {
     /// Whether or not any of the sources is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
     pub is_primary: bool,
-    /// Tags for the definition.
     pub tags: Vec<DictionaryTag>,
     /// The definition entries.
     pub entries: Vec<TermGlossaryContent>,
@@ -240,17 +240,17 @@ pub struct TermDefinition {
 /// A term pronunciation represents different ways to pronounce one of the headwords.
 pub struct TermPronunciation {
     /// The original order of the pronunciation, which is usually used for sorting.
-    index: u16,
+    pub index: usize,
     /// Which headword this pronunciation corresponds to.
-    headword_index: u64,
+    pub headword_index: usize,
     /// The name of the dictionary that the pronunciation information originated from.
-    dictionary: String,
+    pub dictionary: String,
     /// The index of the dictionary in the original list of dictionaries used for the lookup.
-    dictionary_index: u16,
-    /// The priority of the dictionary.
-    dictionary_priority: u16,
+    pub dictionary_index: usize,
+    /// The alias of the dictionary
+    pub dictionary_alias: String,
     /// The pronunciations for the term.
-    pronunciations: Vec<Pronunciation>,
+    pub pronunciations: Vec<Pronunciation>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -30,6 +30,7 @@ indexmap = { version = "2.7.0", features = ["serde"] }
 language_transformer = { path = "f:/programming/Rust/language_transformer" }
 icu = "2.0.0"
 fancy-regex = "0.14.0"
+getset = "0.1.5"
 
 [workspace]
 members = ["crates/kanji_processor"]
