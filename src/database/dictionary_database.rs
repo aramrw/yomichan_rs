@@ -1,8 +1,8 @@
 use crate::dictionary::{TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    DictionaryDataTag, GenericFreqData, TermGlossary, TermGlossaryContent, TermMetaDataMatchType,
-    TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPhoneticData,
-    TermMetaPitch, TermMetaPitchData,
+    DictionaryDataTag, GenericFreqData, TermGlossary, TermGlossaryContent, TermMeta,
+    TermMetaDataMatchType, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType,
+    TermMetaPhoneticData, TermMetaPitch, TermMetaPitchData,
 };
 
 use crate::database::dictionary_importer::{Summary, TermMetaBank};
@@ -118,6 +118,22 @@ impl HasExpression for DatabaseTermEntry {
     fn expression(&self) -> &str {
         &self.expression
     }
+}
+
+/// Represents a single term metadata entry found by find_term_meta_bulk.
+/// This structure matches the output of the JavaScript _createTermMeta function.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DatabaseTermMeta {
+    /// Index of the original query term in the input term_list_input.
+    pub index: usize,
+    /// The term expression. (Corresponds to JS row.expression, named 'term' in JS output)
+    pub term: String,
+    /// The type of metadata (e.g., Freq, Pitch, Ipa). (Corresponds to JS row.mode)
+    pub mode: TermMetaModeType,
+    /// The actual metadata content. (Corresponds to JS row.data)
+    pub data: TermMetaDataMatchType,
+    /// The name of the dictionary this metadata belongs to.
+    pub dictionary: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -241,7 +257,7 @@ impl DatabaseTermEntry {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct DictionaryDatabaseTag {
     name: String,
     category: String,
@@ -546,7 +562,7 @@ pub enum QueryRequestMatchType {
     TermExactQueryRequest(TermExactQueryRequest),
     GenericQueryRequest(GenericQueryRequest),
 }
-/// converts any `IntoIter<Enum::Variant(T)>` to a `IntoIter<Item = T>` 
+/// converts any `IntoIter<Enum::Variant(T)>` to a `IntoIter<Item = T>`
 #[macro_export]
 macro_rules! iter_variant_to_iter_type {
     ($items:expr, $enum_type:ident :: $variant:ident) => {
@@ -563,11 +579,11 @@ macro_rules! iter_variant_to_iter_type {
     };
 }
 #[macro_export]
-macro_rules! iter_type_to_iter_variant { 
+macro_rules! iter_type_to_iter_variant {
     ($items_iterable:expr, $enum_type:ident :: $variant:ident) => {
-        $items_iterable 
-            .into_iter() 
-            .map(|item_to_wrap| $enum_type::$variant(item_to_wrap))             
+        $items_iterable
+            .into_iter()
+            .map(|item_to_wrap| $enum_type::$variant(item_to_wrap))
     };
 }
 // Collects mutable references to data within a specific enum variant from an iterable.
@@ -578,11 +594,12 @@ macro_rules! collect_variant_data_ref {
     ($items:expr, $enum_type:ident :: $variant:ident) => {
         $items
             .iter_mut() // Iterates over &mut EnumType
-            .filter_map(|item_ref| { // item_ref_mut is &mut EnumType
+            .filter_map(|item_ref| {
+                // item_ref_mut is &mut EnumType
                 match item_ref {
                     // `ref mut data` borrows the data mutably from within the enum variant
                     $enum_type::$variant(ref data) => Some(data), // data is &mut InnerDataType
-                    _ => None, // Ignore other variants
+                    _ => None,                                    // Ignore other variants
                 }
             })
             .collect::<Vec<_>>() // Collects into Vec<&mut InnerDataType>
@@ -599,7 +616,8 @@ macro_rules! variant_to_generic_vec_mut {
     ($items_iterable:expr, $enum_type:ident :: $variant:ident) => {
         $items_iterable
             .iter_mut() // Iterates over &mut MyData
-            .map(|item_ref_mut| { // item_ref_mut is &mut MyData
+            .map(|item_ref_mut| {
+                // item_ref_mut is &mut MyData
                 // The enum variant constructor takes the mutable reference
                 $enum_type::$variant(item_ref_mut)
             })
@@ -957,7 +975,7 @@ impl DictionaryDatabase {
             Err(reason) => {
                 Err(Box::new(DictionaryDatabaseError::QueryRequest(
                     QueryRequestError {
-                        queries: iter_variant_to_iter_type!(term_list, QueryRequestMatchType::TermExactQueryRequest), 
+                        queries: iter_type_to_iter_variant!(term_list.to_vec(), QueryRequestMatchType::TermExactQueryRequest).collect(),
                         reason,
                     },
                 )))
@@ -965,17 +983,186 @@ impl DictionaryDatabase {
         }
     }
 
+    pub fn find_term_meta_bulk(
+        &self,
+        term_list_input: &[impl AsRef<str> + Sync], // JS: termList
+        dictionaries: &(impl DictionarySet + Sync), // JS: dictionaries
+    ) -> Result<Vec<DatabaseTermMeta>, Box<DictionaryDatabaseError>> {
+        let terms_as_strings: Vec<String> = term_list_input
+            .iter()
+            .map(|s| s.as_ref().to_string())
+            .collect();
+
+        if terms_as_strings.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // In JS, _findMultiBulk is called with indexNames: ['expression']
+        // This translates to querying the 'expression' secondary key in Rust.
+        let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
+            SecondaryKeyQueryKind::Expression,
+        )];
+
+        // In JS, _createOnlyQuery1 creates an IDBKeyRange.only(item).
+        // This translates to NativeDbQueryInfo::Exact in Rust.
+        let create_query_fn_closure = Box::new(
+            |item_from_list: &String, _idx_identifier: IndexQueryIdentifier| {
+                NativeDbQueryInfo::Exact(item_from_list.clone())
+            },
+        );
+
+        let mut all_term_meta_results: Vec<DatabaseTermMeta> = Vec::new();
+
+        // The JS function queries a single 'termMeta' store.
+        // This store contains entries for
+        // frequency, pitch, and IPA, distinguished by a 'mode' field.
+        // In Rust, these are separate database models:
+        // DatabaseMetaFrequency, DatabaseMetaPitch, DatabaseMetaPhonetic.
+        // We query each and combine the results.
+
+        // 1. Find Frequency Metadata
+        let resolve_freq_key_fn = |kind: SecondaryKeyQueryKind| match kind {
+            SecondaryKeyQueryKind::Expression => DatabaseMetaFrequencyKey::expression,
+            _ => unreachable!("Only Expression key is expected for TermMetaFrequency"),
+        };
+        // JS predicate: (row) => dictionaries.has(row.dictionary)
+        let predicate_freq_fn = |db_row: &DatabaseMetaFrequency, _item_to_query: &String| {
+            dictionaries.has(&db_row.dictionary)
+        };
+        // JS createResult: _createTermMeta(row, data)
+        //   data = { item, itemIndex, indexIndex }
+        //   row = {
+        //   expression, reading, definitionTags, termTags,
+        //   rules, glossary, score, dictionary, id, sequence
+        //   }
+        //   for terms
+        //   For termMeta, row = { dictionary, expression, mode, data }
+        //   _createTermMeta returns {
+        //   index: data.itemIndex,
+        //   term: row.expression,
+        //   mode: row.mode,
+        //   data: row.data,
+        //   dictionary: row.dictionary
+        //   }
+        let create_freq_result_fn = |db_entry: DatabaseMetaFrequency,
+                                     _item_from_list: &String,
+                                     item_idx: usize,
+                                     _index_kind_idx: usize|
+         -> DatabaseTermMeta {
+            DatabaseTermMeta {
+                index: item_idx,
+                term: db_entry.expression, // In JS output, this is 'term' from 'row.expression'
+                mode: db_entry.mode,       // This is TermMetaModeType::Freq
+                data: TermMetaDataMatchType::Frequency(db_entry.data),
+                dictionary: db_entry.dictionary,
+            }
+        };
+
+        let freq_results = self.find_multi_bulk::<
+        String,                   // ItemQueryType (type of elements in terms_as_strings)
+        DatabaseMetaFrequency,    // M (Model) - JS 'row' type
+        String,                   // ModelKeyType (type for expression query values)
+        DatabaseMetaFrequencyKey, // SecondaryKeyEnumType
+        DatabaseTermMeta,      // QueryResultType - JS output object type
+        _, _, _                   // Infer closure types
+    >(
+        &index_query_identifiers,
+        &terms_as_strings,
+        create_query_fn_closure.clone(), // Clone Box for reuse
+        resolve_freq_key_fn,
+        predicate_freq_fn,
+        create_freq_result_fn,
+    )?;
+        all_term_meta_results.extend(freq_results);
+
+        // 2. Find Pitch Metadata
+        let resolve_pitch_key_fn = |kind: SecondaryKeyQueryKind| match kind {
+            SecondaryKeyQueryKind::Expression => DatabaseMetaPitchKey::expression,
+            _ => unreachable!("Only Expression key is expected for DatabaseMetaPitch"),
+        };
+        let predicate_pitch_fn = |db_row: &DatabaseMetaPitch, _item_to_query: &String| {
+            dictionaries.has(&db_row.dictionary)
+        };
+        let create_pitch_result_fn = |db_entry: DatabaseMetaPitch,
+                                      _item_from_list: &String,
+                                      item_idx: usize,
+                                      _index_kind_idx: usize|
+         -> DatabaseTermMeta {
+            DatabaseTermMeta {
+                index: item_idx,
+                term: db_entry.expression,
+                mode: db_entry.mode, // This is TermMetaModeType::Pitch
+                data: TermMetaDataMatchType::Pitch(db_entry.data),
+                dictionary: db_entry.dictionary,
+            }
+        };
+
+        let pitch_results = self.find_multi_bulk::<
+        String,
+        DatabaseMetaPitch,
+        String,
+        DatabaseMetaPitchKey,
+        DatabaseTermMeta,
+        _, _, _
+    >(
+        &index_query_identifiers,
+        &terms_as_strings,
+        create_query_fn_closure.clone(),
+        resolve_pitch_key_fn,
+        predicate_pitch_fn,
+        create_pitch_result_fn,
+    )?;
+        all_term_meta_results.extend(pitch_results);
+
+        // 3. Find Phonetic (IPA) Metadata
+        let resolve_phonetic_key_fn = |kind: SecondaryKeyQueryKind| match kind {
+            SecondaryKeyQueryKind::Expression => DatabaseMetaPhoneticKey::expression,
+            _ => unreachable!("Only Expression key is expected for DatabaseMetaPhonetic"),
+        };
+        let predicate_phonetic_fn = |db_row: &DatabaseMetaPhonetic, _item_to_query: &String| {
+            dictionaries.has(&db_row.dictionary)
+        };
+        let create_phonetic_result_fn = |db_entry: DatabaseMetaPhonetic,
+                                         _item_from_list: &String,
+                                         item_idx: usize,
+                                         _index_kind_idx: usize|
+         -> DatabaseTermMeta {
+            DatabaseTermMeta {
+                index: item_idx,
+                term: db_entry.expression,
+                mode: db_entry.mode, // This is TermMetaModeType::Ipa
+                data: TermMetaDataMatchType::Phonetic(db_entry.data), // Assuming db_entry.data is TermMetaPhoneticData
+                dictionary: db_entry.dictionary,
+            }
+        };
+
+        let phonetic_results = self.find_multi_bulk::<
+        String,
+        DatabaseMetaPhonetic,    // Model here is DatabaseMetaPhonetic
+        String,
+        DatabaseMetaPhoneticKey, // Key for DatabaseMetaPhonetic
+        DatabaseTermMeta,
+        _, _, _
+    >(
+        &index_query_identifiers,
+        &terms_as_strings,
+        create_query_fn_closure, // Can move the last Boxed closure
+        resolve_phonetic_key_fn,
+        predicate_phonetic_fn,
+        create_phonetic_result_fn,
+    )?;
+        all_term_meta_results.extend(phonetic_results);
+
+        Ok(all_term_meta_results)
+    }
+
     pub fn find_terms_by_sequence_bulk(
         &self,
-        item_request_input: Vec<QueryRequestMatchType>, // Renamed
+        items_to_query_vec: Vec<GenericQueryRequest>, // Renamed
     ) -> Result<Vec<TermEntry>, Box<DictionaryDatabaseError>> {
         let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
             SecondaryKeyQueryKind::Sequence,
         )];
-        let items_to_query_vec: Vec<GenericQueryRequest> = collect_variant_data!(
-            item_request_input,
-            QueryRequestMatchType::GenericQueryRequest
-        );
 
         let create_query_fn_closure = Box::new(
             |req: &GenericQueryRequest, _idx_identifier: IndexQueryIdentifier| match req.query_type
@@ -1031,7 +1218,7 @@ impl DictionaryDatabase {
             Err(reason) => {
                 Err(Box::new(DictionaryDatabaseError::QueryRequest(
                     QueryRequestError {
-                        queries: item_request_input, // Original item_request_input for error
+                        queries: iter_type_to_iter_variant!(items_to_query_vec, QueryRequestMatchType::GenericQueryRequest).collect(),
                         reason
                     }
                 )))
@@ -1187,24 +1374,20 @@ mod ycd {
             // 奉迎
             QueryType::Sequence(14713900000),
         ];
-        let queries_generic_req = // Renamed for clarity
+        let queries_generic_req =
             GenericQueryRequest::from_query_type_slice_to_vec(queries, "大辞林\u{3000}第四版");
-        let entries = ycd.find_terms_by_sequence_bulk(variant_to_generic_vec!(
-            queries_generic_req, // Use renamed variable
-            QueryRequestMatchType::GenericQueryRequest
-        ));
+        let entries = ycd.find_terms_by_sequence_bulk(queries_generic_req);
         match entries {
             Ok(entries) => {
-                // Consider asserting specific results rather than just dbg!
                 assert!(
                     !entries.is_empty(),
                     "Expected entries for sequence bulk search"
                 );
                 entries.into_iter().for_each(|entry| {
-                    dbg!(&entry); // dbg! is fine for local testing
+                    dbg!(&entry);
                 });
             }
-            Err(e) => panic!("find_terms_sequence_bulk_failed: {e}"), // panic! is better for tests
+            Err(e) => panic!("find_terms_sequence_bulk_failed: {e}"),
         };
     }
 

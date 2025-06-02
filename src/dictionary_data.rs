@@ -288,7 +288,7 @@ impl<'de> Deserialize<'de> for TermMetaDataMatchType {
                     TermMetaFreqDataMatchType::Generic(GenericFreqData::String(str.to_string())),
                 ))
             })
-            .u32(|int| {
+            .u64(|int| {
                 Ok(TermMetaDataMatchType::Frequency(
                     TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(int)),
                 ))
@@ -364,7 +364,7 @@ impl<'de> Deserialize<'de> for TermMetaFreqDataMatchType {
                     str.to_string(),
                 )))
             })
-            .u32(|int| {
+            .u64(|int| {
                 Ok(TermMetaFreqDataMatchType::Generic(
                     GenericFreqData::Integer(int),
                 ))
@@ -387,13 +387,20 @@ impl<'de> Deserialize<'de> for TermMetaFreqDataMatchType {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FrequencyInfo {
+    pub frequency: u64,
+    pub display_value: Option<String>,
+    pub display_value_parsed: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum GenericFreqData {
-    Integer(u32),
+    Integer(u64),
     String(String),
     Object {
-        value: u32,
+        value: u64,
         #[serde(rename = "displayValue")]
         display_value: Option<String>,
     },
@@ -419,13 +426,13 @@ impl<'de> Deserialize<'de> for GenericFreqData {
     {
         serde_untagged::UntaggedEnumVisitor::new()
             .string(|str| Ok(GenericFreqData::String(str.to_string())))
-            .u32(|int| Ok(GenericFreqData::Integer(int)))
+            .u64(|int| Ok(GenericFreqData::Integer(int)))
             .map(|map| {
                 let obj = map.deserialize::<serde_json::Value>()?;
-                let value: u32 =
+                let value: u64 =
                     obj.get("value").and_then(|v| v.as_u64()).ok_or_else(|| {
                         serde::de::Error::custom("Missing or invalid 'value' field")
-                    })? as u32;
+                    })? as u64;
 
                 let display_value = if let Some(display_value) = obj.get("displayValue") {
                     display_value.as_str().map(String::from)
@@ -464,14 +471,14 @@ pub struct TermMetaPitch {
 pub struct Pitch {
     /// Mora position of the pitch accent downstep.
     /// A value of 0 indicates that the word does not have a downstep (heiban).
-    position: u8,
+    pub position: u8,
     /// Positions of a morae with nasal sound.
-    nasal: Option<VecNumOrNum>,
+    pub nasal: Option<VecNumOrNum>,
     /// Positions of morae with devoiced sound.
-    devoice: Option<VecNumOrNum>,
+    pub devoice: Option<VecNumOrNum>,
     /// List of tags for this pitch accent.
     /// This typically corresponds to a certain type of part of speech.
-    tags: Option<Vec<String>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -483,9 +490,9 @@ pub struct TermMetaPitchData {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermMetaPhoneticData {
-    reading: String,
+    pub reading: String,
     /// List of different IPA transcription information for the term and reading combination.
-    transcriptions: Vec<PhoneticTranscription>,
+    pub transcriptions: Vec<PhoneticTranscription>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

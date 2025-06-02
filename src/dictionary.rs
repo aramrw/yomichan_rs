@@ -35,14 +35,14 @@ pub enum NumOrStr {
     Str(String),
 }
 
-/// Helper enum to match expected schema types more accurately.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Helper enum to match [TermMetaPitchAccent] data more accurately.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum VecNumOrNum {
-    Vec(u8),
-    Str(String),
+    Vec(Vec<u8>),
+    Num(u8),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 /// A tag represents some brief information about part of a dictionary entry.
 pub struct DictionaryTag {
     /// The name of the tag.
@@ -165,7 +165,7 @@ pub enum TermSourceMatchType {
 
 /// Frequency information corresponds to how frequently a term appears in a corpus,
 /// which can be a number of occurrences or an overall rank.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TermFrequency {
     /// The original order of the frequency, which is usually used for sorting.
     pub index: usize,
@@ -180,7 +180,7 @@ pub struct TermFrequency {
     /// Whether or not the frequency had an explicit reading specified.
     pub has_reading: bool,
     /// The frequency for the term, as a number of occurrences or an overall rank.
-    pub frequency: u128,
+    pub frequency: u64,
     /// A display value to show to the user.
     pub display_value: Option<String>,
     /// Whether or not the displayValue string was parsed to determine the frequency value.
@@ -236,7 +236,7 @@ pub struct TermDefinition {
     pub entries: Vec<TermGlossaryContent>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 /// A term pronunciation represents different ways to pronounce one of the headwords.
 pub struct TermPronunciation {
     /// The original order of the pronunciation, which is usually used for sorting.
@@ -309,7 +309,7 @@ pub struct TermDictionaryEntry {
 
 /*************** Pitch Accent & Pronunciation ***************/
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum TermPronunciationMatchType {
     #[serde(rename = "lowercase")]
     PitchAccent,
@@ -317,35 +317,35 @@ pub enum TermPronunciationMatchType {
     PhoneticTranscription,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Pronunciation {
     PitchAccent(PitchAccent),
     PhoneticTranscription(PhoneticTranscription),
 }
 
 /// Pitch accent information for a term, represented as the position of the downstep.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PitchAccent {
     /// Type of the pronunciation, for disambiguation between union type members.
     /// Should be `"pitch-accent"` in the json.
-    term: TermPronunciationMatchType,
+    pub term: TermPronunciationMatchType,
     /// Position of the downstep, as a number of mora.
-    position: u8,
+    pub position: u8,
     /// Positions of morae with a nasal sound.
-    nasal_positions: Vec<u8>,
+    pub nasal_positions: Vec<u8>,
     /// Positions of morae with a devoiced sound.
-    devoic_positions: Vec<u8>,
+    pub devoice_positions: Vec<u8>,
     /// Tags for the pitch accent.
-    tags: Vec<DictionaryTag>,
+    pub tags: Vec<DictionaryTag>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PhoneticTranscription {
     /// Type of the pronunciation, for disambiguation between union type members.
     /// Should be `"phonetic-transcription"` in the json.
-    match_type: TermPronunciationMatchType,
+    pub match_type: TermPronunciationMatchType,
     /// IPA transcription for the term.
-    ipa: String,
+    pub ipa: String,
     /// List of tags for this IPA transcription.
-    tags: Vec<DictionaryTag>,
+    pub tags: Vec<DictionaryTag>,
 }
