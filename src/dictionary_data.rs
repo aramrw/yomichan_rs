@@ -3,6 +3,7 @@ use crate::database::dictionary_importer::{FrequencyMode, StructuredContent};
 use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
 // use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
 use crate::structured_content::ImageElement;
+use native_db::{Key, ToKey};
 
 use bimap::BiHashMap;
 use indexmap::IndexMap;
@@ -117,11 +118,11 @@ pub struct IndexTagMeta {
     pub tags: IndexMap<String, IndexTag>,
 }
 
-//#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
 /// Tag information for terms and kanji.
 ///
 /// This object is deprecated, and individual tag files should be used instead.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IndexTag {
     category: String,
     order: u16,
@@ -323,12 +324,34 @@ impl<'de> Deserialize<'de> for TermMetaDataMatchType {
 }
 
 /// A helper Enum to select the mode for TermMeta data structures.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermMetaModeType {
     Freq,
     Pitch,
     Ipa,
+}
+
+impl From<TermMetaModeType> for u8 {
+    fn from(value: TermMetaModeType) -> Self {
+        match value {
+            TermMetaModeType::Freq => 0,
+            TermMetaModeType::Pitch => 1,
+            TermMetaModeType::Ipa => 2,
+        }
+    }
+}
+
+impl ToKey for TermMetaModeType {
+    fn to_key(&self) -> Key {
+        Key::new(vec![self.to_owned().into()])
+    }
+    fn key_names() -> Vec<String> {
+        ["Freq", "Pitch", "Ipa"]
+            .into_iter()
+            .map(|v| v.to_string())
+            .collect()
+    }
 }
 
 /************* Frequency *************/

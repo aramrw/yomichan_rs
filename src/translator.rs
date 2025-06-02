@@ -1,8 +1,12 @@
 use crate::{
     collect_variant_data_ref,
-    database::dictionary_database::{
-        DatabaseTermMeta, DictionaryDatabase, DictionaryDatabaseTag, DictionarySet,
-        GenericQueryRequest, QueryRequestMatchType, QueryType, TermEntry, TermExactQueryRequest,
+    database::{
+        self,
+        dictionary_database::{
+            DatabaseTermMeta, DictionaryDatabase, DictionaryDatabaseTag, DictionarySet,
+            GenericQueryRequest, QueryRequestMatchType, QueryType, TermEntry,
+            TermExactQueryRequest,
+        },
     },
     dictionary::{
         self, DictionaryTag, EntryInflectionRuleChainCandidatesKey, InflectionRuleChainCandidate,
@@ -55,10 +59,6 @@ use std::{
     cell::RefCell, fmt::Display, hash::Hash, iter, ops::Index, path::Path, rc::Rc, str::FromStr,
     sync::LazyLock,
 };
-type TagCache = IndexMap<&'static str, Option<DictionaryDatabaseTag>>;
-static GET_NEXT_SUBSTRING_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"[^\p{L}][\p{L}\p{N}]*$").expect("Invalid get_next_substring_regex pattern")
-});
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct SequenceQuery {
     query: i128,
@@ -155,7 +155,7 @@ type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadwor
 struct Translator {
     db: DictionaryDatabase,
     mlt: MultiLanguageTransformer,
-    tag_cache: IndexMap<&'static str, TagCache>,
+    tag_cache: IndexMap<String, TagCache>,
     /// Invariant Locale
     /// Default: "en-US"
     string_comparer: CollatorBorrowed<'static>,
@@ -282,7 +282,7 @@ impl Translator {
     }
     fn _expand_tag_groups_and_group() {}
 
-    f _expand_tag_groups(tag_targets: &mut [TagExpansionTarget]) {
+    fn _expand_tag_groups(&mut self, tag_targets: &mut [TagExpansionTarget]) {
         let mut all_items: Vec<TagTargetItem> = Vec::new();
         let mut target_map: IndexMap<String, IndexMap<String, TagTargetItem>> = IndexMap::new();
         for target in tag_targets {
@@ -307,10 +307,28 @@ impl Translator {
                         all_items.push(new_item.clone());
                         new_item
                     });
-
-                    item.targets.push(tags.clone());
                 }
             }
+        }
+
+        let mut non_cached_items = vec![];
+        let mut tag_cache = &mut self.tag_cache;
+        for (dictionary, mut dictionary_items) in target_map {
+            let cache = tag_cache.entry(dictionary.clone()).or_default();
+            for item in dictionary_items.values_mut() {
+                let database_tag = cache.get(item.query.as_str());
+                match database_tag {
+                    Some(database_tag) => item.database_tag = database_tag.clone(),
+                    None => {
+                        item.cache = Some(cache.clone());
+                        non_cached_items.push(item.clone());
+                    }
+                }
+            }
+        }
+
+        if !non_cached_items.is_empty() {
+            let database_tags = &self.db.find_tag_meta_bulk();
         }
     }
 
@@ -2601,11 +2619,19 @@ impl Translator {
         text.to_string()
     }
 }
+
+static GET_NEXT_SUBSTRING_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"[^\p{L}][\p{L}\p{N}]*$").expect("Invalid get_next_substring_regex pattern")
+});
+
 #[derive(Clone, Debug)]
 pub struct TagGroup {
     dictionary: String,
     tag_names: Vec<String>,
 }
+
+type TagCache = IndexMap<String, Option<DictionaryDatabaseTag>>;
+
 #[derive(Clone, Debug, PartialEq)]
 struct TagTargetItem {
     pub query: String,
@@ -2615,11 +2641,13 @@ struct TagTargetItem {
     pub database_tag: Option<DictionaryDatabaseTag>,
     pub targets: Vec<Vec<DictionaryTag>>,
 }
+
 #[derive(Clone, Debug)]
 struct TagExpansionTarget {
     tags: Vec<DictionaryTag>,
     tag_groups: Vec<TagGroup>,
 }
+
 #[derive(Clone, Debug, Default)]
 struct TranslatorTagAggregator {
     tag_expansion_target_map: IndexMap<Vec<DictionaryTag>, Vec<TagGroup>>,

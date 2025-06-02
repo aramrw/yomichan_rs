@@ -4,8 +4,9 @@ use crate::dictionary_data::{
     TermMetaDataMatchType, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType,
     TermMetaPhoneticData, TermMetaPitch, TermMetaPitchData,
 };
+use serde_with::{serde_as, NoneAsEmptyString};
 
-use crate::database::dictionary_importer::{Summary, TermMetaBank};
+use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
 // KANA_MAP is unused, consider removing if not used elsewhere in this module or submodules
 // use crate::dictionary_data::KANA_MAP;
 use crate::errors::{DBError, ImportError};
@@ -78,25 +79,41 @@ impl<V: Send + Sync> DictionarySet for &IndexMap<String, V> {
 
 pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     let mut models = Models::new();
+    models.define::<DictionarySummary>().unwrap();
     models.define::<DatabaseTermEntry>().unwrap();
+    /// in js, freq, pitch, and phonetic are grouped under an enum
+    /// native_model doesn't support this you can only have a single primary key
+    /// so we add all 3 types
     models.define::<DatabaseMetaFrequency>().unwrap();
     models.define::<DatabaseMetaPitch>().unwrap();
     models.define::<DatabaseMetaPhonetic>().unwrap();
+    models.define::<DatabaseKanjiEntry>().unwrap();
+    models.define::<DatabaseKanjiEntry>().unwrap();
+    models.define::<DictionaryDatabaseTag>().unwrap();
+    /// serialization is not implemented for this yet
+    /// native_db doesn't like generics for the model struct
+    /// until then don't serialize
+    //models.define::<MediaDataArrayBufferContent>().unwrap();
     models
 });
 
+pub type MediaDataArrayBufferContent = MediaDataBase<Vec<u8>>;
+pub type MediaDataStringContent = MediaDataBase<String>;
+
+// #[native_db]
+// #[native_model(id = 11, version = 1)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct MediaDataBase<TContentType> {
+pub struct MediaDataBase<TContentType: Serialize> {
+    //#[primary_key]
     dictionary: String,
+    //#[secondary_key]
     path: String,
+    //#[secondary_key]
     media_type: String,
     width: u16,
     height: u16,
     content: TContentType,
 }
-
-pub type MediaDataArrayBufferContent = MediaDataBase<Vec<u8>>;
-pub type MediaDataStringContent = MediaDataBase<String>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum MediaType {
@@ -127,12 +144,15 @@ pub struct DatabaseTermMeta {
     /// Index of the original query term in the input term_list_input.
     pub index: usize,
     /// The term expression. (Corresponds to JS row.expression, named 'term' in JS output)
+    //#[primary_key]
     pub term: String,
     /// The type of metadata (e.g., Freq, Pitch, Ipa). (Corresponds to JS row.mode)
+    //#[secondary_key]
     pub mode: TermMetaModeType,
     /// The actual metadata content. (Corresponds to JS row.data)
     pub data: TermMetaDataMatchType,
     /// The name of the dictionary this metadata belongs to.
+    //#[secondary_key]
     pub dictionary: String,
 }
 
@@ -258,12 +278,17 @@ impl DatabaseTermEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[native_model(id = 1, version = 1)]
+#[native_db]
 pub struct DictionaryDatabaseTag {
+    #[primary_key]
     name: String,
+    #[secondary_key]
     category: String,
-    order: i32,
+    order: u64,
     notes: String,
-    score: i32,
+    score: i128,
+    #[secondary_key]
     dictionary: String,
 }
 
@@ -492,37 +517,49 @@ impl DBMetaType for DatabaseMetaPhonetic {
 
 /*************** Database Kanji Meta ***************/
 
+/// Kanji Meta's only have frequency data
+#[native_db]
+#[native_model(id = 7, version = 1)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseKanjiMetaFrequency {
+pub struct DatabaseKanjiMeta {
+    #[primary_key]
     pub character: String,
-    /// Is of type [`TermMetaModeType::Freq`]
+    /// Is of type [TermMetaModeType::Freq]
+    #[secondary_key]
     pub mode: TermMetaModeType,
-    pub data: TermMetaFreqDataMatchType,
+    pub data: GenericFreqData,
+    #[secondary_key]
     pub dictionary: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[native_db]
+#[native_model(id = 6, version = 1)]
+#[serde_as]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseKanjiEntry {
+    #[primary_key]
     pub character: String,
-    // all of these are most likely empty strings-
-    // its better dx to if let them then use .is_empty()
-    // so add this serde macro later
-    //#[serde_as(as = "NoneAsEmptyString")]
+    #[secondary_key]
+    #[serde_as(as = "NoneAsEmptyString")]
     pub onyomi: Option<String>,
+    #[secondary_key]
+    #[serde_as(as = "NoneAsEmptyString")]
     pub kunyomi: Option<String>,
+    #[secondary_key]
+    #[serde_as(as = "NoneAsEmptyString")]
     pub tags: Option<String>,
-    pub definitions: Vec<String>, // In JS this is `meanings`
-    /// The kanji dictionary name.
-    ///
-    /// Does not exist within the JSON, gets added _after_ deserialization.
+    pub meanings: Vec<String>,
     pub stats: Option<IndexMap<String, String>>,
+    /// The kanji dictionary name.
+    /// Does not exist within the JSON, gets added _after_ deserialization.
+    #[secondary_key]
     #[serde(skip_deserializing)]
     pub dictionary: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KanjiEntry {
-    pub index: i32,
+    pub index: usize,
     pub character: String,
     pub onyomi: Vec<String>,
     pub kunyomi: Vec<String>,
@@ -717,7 +754,7 @@ pub struct DatabaseDictData {
     pub kanji_list: Vec<DatabaseKanjiEntry>,
     pub term_meta_list: Vec<DatabaseMeta>,
     pub term_list: VecDBTermEntry,
-    pub summary: Summary,
+    pub summary: DictionarySummary,
     pub dictionary_options: DictionaryOptions,
 }
 
@@ -740,7 +777,7 @@ use native_db::{
 };
 // std::marker::PhantomData is unused
 // use std::marker::PhantomData;
-use std::ops::{Bound, RangeBounds}; // RangeBounds unused
+use std::ops::{Bound, Deref, RangeBounds}; // RangeBounds unused
 
 /// Describes the kind of secondary key to query.
 /// This enum IS `Clone` and `Copy`.
@@ -774,10 +811,16 @@ pub enum NativeDbQueryInfo<K: ToKey + Clone> {
 type CreateQueryFn<Item, KeyVal> =
     dyn Fn(&Item, IndexQueryIdentifier) -> NativeDbQueryInfo<KeyVal> + Sync + Send;
 
-#[derive(Clone)]
 pub struct DictionaryDatabase {
-    db: &'static Database<'static>,
+    db: Database<'static>,
     db_name: &'static str,
+}
+
+impl Deref for DictionaryDatabase {
+    type Target = Database<'static>;
+    fn deref(&self) -> &Self::Target {
+        &self.db
+    }
 }
 
 impl From<native_db::db_type::Error> for DictionaryDatabaseError {
@@ -799,7 +842,7 @@ impl From<Box<native_db::db_type::Error>> for Box<DictionaryDatabaseError> {
 impl DictionaryDatabase {
     pub fn new(path: impl AsRef<Path>) -> Self {
         Self {
-            db: Box::leak(Box::new(DBBuilder::new().open(&DB_MODELS, path).unwrap())),
+            db: DBBuilder::new().open(&DB_MODELS, path).unwrap(),
             db_name: "dict",
         }
     }
@@ -1315,6 +1358,111 @@ impl DictionaryDatabase {
         }
         Ok(all_final_results)
     }
+
+    // Finds tag metadata for a list of tag names and their respective dictionaries.
+    //
+    // For each query in `queries`, this function attempts to find a matching tag.
+    // The result is a `Vec` of `Option<DictionaryDatabaseTag>` where each element
+    // corresponds to the query at the same index. `Some(tag)` if found, `None` otherwise.
+    // [GenericQueryRequest] is `DictionaryAndQueryRequest` in yomitan JS.
+    // pub fn find_tag_meta_bulk(
+    //     &self,
+    //     queries: &[GenericQueryRequest],
+    // ) -> Result<Vec<Option<DictionaryDatabaseTag>>, Box<DictionaryDatabaseError>> {
+    //     if queries.is_empty() {
+    //         return Ok(Vec::new());
+    //     }
+    //
+    //     // We will query by the 'name' secondary key of DbTagDefinition.
+    //     // We use SecondaryKeyQueryKind::Expression as a convention for the "main name/text" query.
+    //     let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
+    //         SecondaryKeyQueryKind::Expression,
+    //     )];
+    //
+    //     // create_query_fn: Given a GenericQueryRequest, create an Exact query for its 'name'.
+    //     let create_query_fn_closure = Box::new(
+    //         |req: &GenericQueryRequest, _idx_identifier: IndexQueryIdentifier| {
+    //             NativeDbQueryInfo::Exact(req.name.clone())
+    //         },
+    //     );
+    //
+    //     // resolve_secondary_key_fn: Map SecondaryKeyQueryKind::Expression to DbTagDefinitionKey::name.
+    //     let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| match kind {
+    //         SecondaryKeyQueryKind::Expression => DbTagDefinitionKey::name,
+    //         _ => unreachable!(
+    //             "Only Expression-like key query is expected for tag name in find_tag_meta_bulk"
+    //         ),
+    //     };
+    //
+    //     // predicate_fn: After finding DbTagDefinition by name, filter by the dictionary specified in the request.
+    //     let predicate_fn = |db_tag: &DbTagDefinition, req: &GenericQueryRequest| {
+    //         db_tag.dictionary == req.dictionary
+    //     };
+    //
+    //     // create_result_fn: Convert a found DbTagDefinition to (original_query_index, DictionaryDatabaseTag).
+    //     // The original_query_index (item_idx) is crucial for ordering the final results.
+    //     let create_result_fn = |db_tag: DbTagDefinition,
+    //                             _req: &GenericQueryRequest, // item_to_query from the input 'queries' slice
+    //                             item_idx: usize,          // Original index of req in 'queries'
+    //                             _index_kind_idx: usize| // Index of the IndexQueryIdentifier used (0 in this case)
+    //      -> (usize, DictionaryDatabaseTag) { // QueryResultType for find_multi_bulk
+    //         (
+    //             item_idx, // Pass along the original index
+    //             DictionaryDatabaseTag {
+    //                 name: db_tag.name,
+    //                 category: db_tag.category,
+    //                 order: db_tag.order,
+    //                 notes: db_tag.notes,
+    //                 score: db_tag.score,
+    //                 dictionary: db_tag.dictionary,
+    //             },
+    //         )
+    //     };
+    //
+    //     // Call the generic find_multi_bulk function.
+    //     match self.find_multi_bulk::<
+    //         GenericQueryRequest,        // ItemQueryType: Type of items in the 'queries' slice
+    //         DbTagDefinition,            // M (Model): The database model we are querying (DbTagDefinition)
+    //         String,                     // ModelKeyType: Type of the value used for querying the index (tag name is String)
+    //         DbTagDefinitionKey,         // SecondaryKeyEnumType: Enum for DbTagDefinition's secondary keys
+    //         (usize, DictionaryDatabaseTag), // QueryResultType: What create_result_fn returns for each match
+    //         _,                          // ResolveSecondaryKeyFnParamType: Inferred by compiler
+    //         _,                          // PredicateFnParamType: Inferred by compiler
+    //         _,                          // CreateResultFnParamType: Inferred by compiler
+    //     >(
+    //         &index_query_identifiers,
+    //         queries, // The input slice of GenericQueryRequests
+    //         create_query_fn_closure,
+    //         resolve_secondary_key_fn,
+    //         predicate_fn,
+    //         create_result_fn,
+    //     ) {
+    //         Ok(found_tags_with_indices) => {
+    //             // Reconstruct the Vec<Option<DictionaryDatabaseTag>> in the correct order.
+    //             // Initialize with Nones, then fill in found tags at their original query indices.
+    //             let mut results: Vec<Option<DictionaryDatabaseTag>> = vec![None; queries.len()];
+    //             for (original_idx, tag) in found_tags_with_indices {
+    //                 if original_idx < results.len() { // Should always be true if item_idx is correct
+    //                     results[original_idx] = Some(tag);
+    //                 }
+    //             }
+    //             Ok(results)
+    //         }
+    //         Err(db_err) => {
+    //             // Consistent error reporting with other find_..._bulk methods.
+    //             Err(Box::new(DictionaryDatabaseError::QueryRequest(
+    //                 QueryRequestError {
+    //                     queries: iter_type_to_iter_variant!(
+    //                         queries.to_vec(), // Convert slice to Vec for iter_type_to_iter_variant!
+    //                         QueryRequestMatchType::TagMetaQuery
+    //                     )
+    //                     .collect(),
+    //                     reason: db_err, // This is Box<native_db::db_type::Error>
+    //                 },
+    //             )))
+    //         }
+    //     }
+    // }
 }
 
 pub fn split_optional_string_field(field: Option<String>) -> Vec<String> {

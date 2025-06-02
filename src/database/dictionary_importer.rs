@@ -1,6 +1,6 @@
 use crate::database::dictionary_database::{
-    DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMetaFrequency, DatabaseMeta,
-    DatabaseMetaFrequency, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
+    DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMeta, DatabaseMeta, DatabaseMetaFrequency,
+    DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
     MediaDataArrayBufferContent, TermEntry, DB_MODELS,
 };
 use crate::dictionary::KanjiDictionaryEntry;
@@ -18,8 +18,10 @@ use crate::errors::{DBError, ImportError, ImportZipError};
 use crate::Yomichan;
 
 use indexmap::IndexMap;
-use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
-use transaction::RwTransaction;
+use native_db::transaction::RwTransaction;
+use native_db::ToInput;
+use native_db::{native_db, transaction::query::PrimaryScan, Builder as DBBuilder, ToKey};
+use native_model::{native_model, Model};
 
 use chrono::prelude::*;
 
@@ -44,9 +46,11 @@ use std::sync::{
 use std::time::Instant;
 use std::{fs, io, mem};
 
+use super::dictionary_database::DictionaryDatabase;
+
 //use chrono::{DateTime, Local};
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ImportSteps {
     Uninitialized,
     ValidateIndex,
@@ -58,7 +62,7 @@ pub enum ImportSteps {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum CompiledSchemaNames {
     TermBank,
     /// Metadata & information for terms.
@@ -73,16 +77,16 @@ pub enum CompiledSchemaNames {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImportResult {
-    result: Option<Summary>,
+    result: Option<DictionarySummary>,
     //errors: Vec<ImportError>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Copy, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ImportDetails {
     prefix_wildcards_supported: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum FrequencyMode {
     #[serde(rename = "occurrence-based")]
     OccurrenceBased,
@@ -91,9 +95,12 @@ pub enum FrequencyMode {
 }
 
 // Final details about the Dictionary and it's import process.
+#[native_db]
+#[native_model(id = 10, version = 1)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Summary {
+pub struct DictionarySummary {
     /// Name of the dictionary.
+    #[primary_key]
     pub title: String,
     /// Revision of the dictionary. This value is only used for displaying information.
     pub revision: String,
@@ -120,14 +127,16 @@ pub struct Summary {
     /// Attribution information for the dictionary data.
     pub attribution: Option<String>,
     /// Language of the terms in the dictionary.
+    #[secondary_key]
     pub source_language: Option<String>,
     /// Main language of the definitions in the dictionary.
+    #[secondary_key]
     pub target_language: Option<String>,
     /// (See: [`FrequencyMode`])
     pub frequency_mode: Option<FrequencyMode>,
 }
 
-impl Summary {
+impl DictionarySummary {
     fn new(index: Index, prefix_wildcards_supported: bool, counts: SummaryCounts) -> Self {
         let local: DateTime<Local> = Local::now();
         let formatted = local
@@ -157,7 +166,7 @@ impl Summary {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryDetails {
     pub prefix_wildcard_supported: bool,
     pub counts: SummaryCounts,
@@ -166,7 +175,7 @@ pub struct SummaryDetails {
     //pub styles: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryCounts {
     pub terms: SummaryItemCount,
     pub term_meta: SummaryMetaCount,
@@ -210,20 +219,20 @@ impl SummaryCounts {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryItemCount {
     pub total: u16,
 }
 
 impl SummaryItemCount {}
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryMetaCount {
     pub total: u16,
     pub meta: MetaCounts,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct MetaCounts {
     freq: u32,
     pitch: u32,
@@ -391,7 +400,7 @@ pub fn import_dictionary<P: AsRef<Path>>(
     zip_path: P,
     settings: &Options,
     //db_path: &OsString,
-    db: &Database,
+    db: &DictionaryDatabase,
 ) -> Result<DictionaryOptions, ImportError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
     let rwtx = db.rw_transaction()?;
@@ -523,7 +532,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         kanji_meta_counts,
     );
 
-    let summary = Summary::new(
+    let summary = DictionarySummary::new(
         index,
         settings.global.database.prefix_wildcards_supported,
         counts,

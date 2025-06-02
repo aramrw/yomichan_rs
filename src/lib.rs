@@ -11,6 +11,7 @@ mod translation;
 mod translation_internal;
 mod translator;
 
+use database::dictionary_database::DictionaryDatabase;
 use database::dictionary_database::DB_MODELS;
 use settings::Options;
 use settings::Profile;
@@ -129,7 +130,7 @@ mod yomichan_test_utils {
 
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
-    db: Database<'static>,
+    db: DictionaryDatabase,
     options: Options,
 }
 
@@ -178,7 +179,7 @@ impl Yomichan {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, InitError> {
         let path = path.as_ref().to_path_buf();
         let db_path = fmt_dbpath(path)?;
-        let db = native_db::Builder::new().create(&DB_MODELS, &db_path)?;
+        let db = DictionaryDatabase::new(db_path);
 
         let mut options = Options::default();
         options.profiles.push(Profile::default());
