@@ -1,8 +1,8 @@
-use crate::dictionary::{TermSourceMatchSource, TermSourceMatchType};
+use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    DictionaryDataTag, GenericFreqData, TermGlossary, TermGlossaryContent, TermMeta,
-    TermMetaDataMatchType, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType,
-    TermMetaPhoneticData, TermMetaPitch, TermMetaPitchData,
+    DatabaseMetaMatchType, DictionaryDataTag, GenericFreqData, TermGlossary, TermGlossaryContent,
+    TermMeta, TermMetaDataMatchType, TermMetaFreqDataMatchType, TermMetaFrequency,
+    TermMetaModeType, TermMetaPhoneticData, TermMetaPitch, TermMetaPitchData,
 };
 use serde_with::{serde_as, NoneAsEmptyString};
 
@@ -89,7 +89,7 @@ pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     models.define::<DatabaseMetaPhonetic>().unwrap();
     models.define::<DatabaseKanjiEntry>().unwrap();
     models.define::<DatabaseKanjiEntry>().unwrap();
-    models.define::<DictionaryDatabaseTag>().unwrap();
+    models.define::<DatabaseTag>().unwrap();
     /// serialization is not implemented for this yet
     /// native_db doesn't like generics for the model struct
     /// until then don't serialize
@@ -278,18 +278,23 @@ impl DatabaseTermEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[native_model(id = 1, version = 1)]
+#[native_model(id = 11, version = 1)]
 #[native_db]
-pub struct DictionaryDatabaseTag {
+pub struct DatabaseTag {
+    /// id field doesn't exist in JS
+    /// need it because primary keys must be unique
+    #[serde(skip_deserializing, default)]
     #[primary_key]
-    name: String,
+    pub id: String,
     #[secondary_key]
-    category: String,
-    order: u64,
-    notes: String,
-    score: i128,
+    pub name: String,
     #[secondary_key]
-    dictionary: String,
+    pub category: String,
+    pub order: u64,
+    pub notes: String,
+    pub score: i128,
+    #[secondary_key]
+    pub dictionary: String,
 }
 
 /*************** Database Term Meta ***************/
@@ -299,29 +304,30 @@ pub trait DBMetaType {
     fn expression(&self) -> &str;
 }
 
-/// A custom `Yomichan_rs`-unique, generic Database Meta model.
-///
-/// May contain `any` or `all` of the values.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DatabaseMeta {
-    pub frequency: Option<DatabaseMetaFrequency>,
-    pub pitch: Option<DatabaseMetaPitch>,
-    pub phonetic: Option<DatabaseMetaPhonetic>,
+// /// A custom `Yomichan_rs`-unique, generic Database Meta model.
+// ///
+// /// May contain `any` or `all` of the values.
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum DatabaseMetaMatchType {
+    Frequency(DatabaseMetaFrequency),
+    Pitch(DatabaseMetaPitch),
+    Phonetic(DatabaseMetaPhonetic),
 }
 
-impl DatabaseMeta {
+impl DatabaseMetaMatchType {
     pub fn convert_kanji_meta_file(
         outpath: PathBuf,
         dict_name: String,
-    ) -> Result<Vec<DatabaseMeta>, ImportError> {
+    ) -> Result<Vec<DatabaseMetaFrequency>, ImportError> {
         let file = fs::File::open(&outpath).map_err(|e| {
             ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
         })?;
         let reader = BufReader::new(file);
 
+        // Kanji metas are only frequencies
         let mut stream =
-            JsonDeserializer::from_reader(reader).into_iter::<Vec<TermMetaFrequency>>(); // This seems to expect an array of TermMetaFrequency directly
-        let entries = match stream.next() {
+            JsonDeserializer::from_reader(reader).into_iter::<Vec<DatabaseMetaFrequency>>();
+        let mut entries = match stream.next() {
             Some(Ok(entries)) => entries,
             Some(Err(e)) => {
                 return Err(ImportError::Custom(format!(
@@ -335,33 +341,17 @@ impl DatabaseMeta {
                 )));
             }
         };
-
-        let kanji_metas: Vec<DatabaseMeta> = entries
-            .into_iter()
-            .map(|entry| {
-                // entry here is TermMetaFrequency
-                let dbkmf = DatabaseMetaFrequency {
-                    id: Uuid::new_v4().to_string(),
-                    expression: entry.expression, // entry is TermMetaFrequency, so this is fine
-                    mode: TermMetaModeType::Freq, // entry.mode is already Freq if type is TermMetaFrequency
-                    data: entry.data,             // entry.data is TermMetaFreqDataMatchType
-                    dictionary: dict_name.clone(),
-                };
-
-                DatabaseMeta {
-                    frequency: Some(dbkmf),
-                    pitch: None,
-                    phonetic: None,
-                }
-            })
-            .collect();
-        Ok(kanji_metas)
+        entries.iter_mut().for_each(|entry| {
+            entry.id = Uuid::now_v7().to_string();
+            entry.dictionary = dict_name.clone();
+        });
+        Ok(entries)
     }
 
     pub fn convert_term_meta_file(
         outpath: PathBuf,
         dict_name: String,
-    ) -> Result<Vec<DatabaseMeta>, ImportError> {
+    ) -> Result<Vec<DatabaseMetaMatchType>, ImportError> {
         let file = fs::File::open(&outpath)?;
         let reader = BufReader::new(file);
 
@@ -381,56 +371,44 @@ impl DatabaseMeta {
             }
         };
 
-        let term_metas: Vec<DatabaseMeta> = entries
-            .into_iter() // entries is TermMetaBank which is Vec<TermMetaData>
+        let term_metas: Vec<DatabaseMetaMatchType> = entries
+            // entries is TermMetaBank which is Vec<TermMetaData>
+            .into_iter()
             .map(|entry| {
-                // entry here is TermMetaData
-                let mut meta = DatabaseMeta {
-                    frequency: None,
-                    pitch: None,
-                    phonetic: None,
+                let id = Uuid::now_v7().to_string();
+                let TermMeta {
+                    expression,
+                    mode,
+                    data,
                 };
-
-                let id = Uuid::new_v4().to_string();
-                let dictionary_clone = dict_name.clone(); // Clone once
-                let expression_clone = entry.expression.clone(); // Clone once
 
                 match entry.mode {
                     TermMetaModeType::Freq => {
-                        if let TermMetaDataMatchType::Frequency(data) = entry.data {
-                            meta.frequency = Some(DatabaseMetaFrequency {
-                                id,
-                                expression: expression_clone,
-                                mode: TermMetaModeType::Freq,
-                                data,
-                                dictionary: dictionary_clone,
-                            });
-                        }
+                        DatabaseMetaMatchType::Frequency(DatabaseMetaFrequency {
+                            id,
+                            expression,
+                            mode: TermMetaModeType::Freq,
+                            data,
+                            dictionary: dict_name.clone(),
+                        })
                     }
-                    TermMetaModeType::Pitch => {
-                        if let TermMetaDataMatchType::Pitch(data) = entry.data {
-                            meta.pitch = Some(DatabaseMetaPitch {
-                                id,
-                                expression: expression_clone,
-                                mode: TermMetaModeType::Pitch,
-                                data,
-                                dictionary: dictionary_clone,
-                            });
-                        }
-                    }
+                    TermMetaModeType::Pitch => DatabaseMetaMatchType::Pitch(DatabaseMetaPitch {
+                        id,
+                        expression,
+                        mode: TermMetaModeType::Pitch,
+                        data,
+                        dictionary: dict_name.clone(),
+                    }),
                     TermMetaModeType::Ipa => {
-                        if let TermMetaDataMatchType::Phonetic(data) = entry.data {
-                            meta.phonetic = Some(DatabaseMetaPhonetic {
-                                id,
-                                expression: expression_clone,
-                                mode: TermMetaModeType::Ipa, // Corrected: was Freq
-                                data,
-                                dictionary: dictionary_clone,
-                            });
-                        }
+                        DatabaseMetaMatchType::Phonetic(DatabaseMetaPhonetic {
+                            id,
+                            expression,
+                            mode: TermMetaModeType::Ipa,
+                            data,
+                            dictionary: dict_name.clone(),
+                        })
                     }
                 }
-                meta
             })
             .collect();
         Ok(term_metas)
@@ -443,12 +421,14 @@ impl DatabaseMeta {
 #[native_db]
 pub struct DatabaseMetaFrequency {
     #[primary_key]
+    #[serde(skip_deserializing, default)]
     pub id: String,
     #[secondary_key]
     pub expression: String,
     /// Is of type [`TermMetaModeType::Freq`]
     pub mode: TermMetaModeType,
     pub data: TermMetaFreqDataMatchType,
+    #[serde(skip_deserializing, default)]
     pub dictionary: String,
 }
 
@@ -747,10 +727,9 @@ pub type VecDBTermMeta = Vec<DatabaseMeta>;
 /// Vec<[DatabaseMetaFrequency]>
 pub type VecDBMetaFreq = Vec<DatabaseMetaFrequency>;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseDictData {
-    pub tag_list: Vec<Vec<DictionaryDataTag>>,
-    pub kanji_meta_list: Vec<DatabaseMeta>,
+    pub tag_list: Vec<DatabaseTag>,
+    pub kanji_meta_list: Vec<DatabaseMetaFrequency>,
     pub kanji_list: Vec<DatabaseKanjiEntry>,
     pub term_meta_list: Vec<DatabaseMeta>,
     pub term_list: VecDBTermEntry,
@@ -1362,107 +1341,107 @@ impl DictionaryDatabase {
     // Finds tag metadata for a list of tag names and their respective dictionaries.
     //
     // For each query in `queries`, this function attempts to find a matching tag.
-    // The result is a `Vec` of `Option<DictionaryDatabaseTag>` where each element
+    // The result is a `Vec` of `Option<DatabaseTag>` where each element
     // corresponds to the query at the same index. `Some(tag)` if found, `None` otherwise.
     // [GenericQueryRequest] is `DictionaryAndQueryRequest` in yomitan JS.
-    // pub fn find_tag_meta_bulk(
-    //     &self,
-    //     queries: &[GenericQueryRequest],
-    // ) -> Result<Vec<Option<DictionaryDatabaseTag>>, Box<DictionaryDatabaseError>> {
-    //     if queries.is_empty() {
-    //         return Ok(Vec::new());
-    //     }
-    //
-    //     // We will query by the 'name' secondary key of DbTagDefinition.
-    //     // We use SecondaryKeyQueryKind::Expression as a convention for the "main name/text" query.
-    //     let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
-    //         SecondaryKeyQueryKind::Expression,
-    //     )];
-    //
-    //     // create_query_fn: Given a GenericQueryRequest, create an Exact query for its 'name'.
-    //     let create_query_fn_closure = Box::new(
-    //         |req: &GenericQueryRequest, _idx_identifier: IndexQueryIdentifier| {
-    //             NativeDbQueryInfo::Exact(req.name.clone())
-    //         },
-    //     );
-    //
-    //     // resolve_secondary_key_fn: Map SecondaryKeyQueryKind::Expression to DbTagDefinitionKey::name.
-    //     let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| match kind {
-    //         SecondaryKeyQueryKind::Expression => DbTagDefinitionKey::name,
-    //         _ => unreachable!(
-    //             "Only Expression-like key query is expected for tag name in find_tag_meta_bulk"
-    //         ),
-    //     };
-    //
-    //     // predicate_fn: After finding DbTagDefinition by name, filter by the dictionary specified in the request.
-    //     let predicate_fn = |db_tag: &DbTagDefinition, req: &GenericQueryRequest| {
-    //         db_tag.dictionary == req.dictionary
-    //     };
-    //
-    //     // create_result_fn: Convert a found DbTagDefinition to (original_query_index, DictionaryDatabaseTag).
-    //     // The original_query_index (item_idx) is crucial for ordering the final results.
-    //     let create_result_fn = |db_tag: DbTagDefinition,
-    //                             _req: &GenericQueryRequest, // item_to_query from the input 'queries' slice
-    //                             item_idx: usize,          // Original index of req in 'queries'
-    //                             _index_kind_idx: usize| // Index of the IndexQueryIdentifier used (0 in this case)
-    //      -> (usize, DictionaryDatabaseTag) { // QueryResultType for find_multi_bulk
-    //         (
-    //             item_idx, // Pass along the original index
-    //             DictionaryDatabaseTag {
-    //                 name: db_tag.name,
-    //                 category: db_tag.category,
-    //                 order: db_tag.order,
-    //                 notes: db_tag.notes,
-    //                 score: db_tag.score,
-    //                 dictionary: db_tag.dictionary,
-    //             },
-    //         )
-    //     };
-    //
-    //     // Call the generic find_multi_bulk function.
-    //     match self.find_multi_bulk::<
-    //         GenericQueryRequest,        // ItemQueryType: Type of items in the 'queries' slice
-    //         DbTagDefinition,            // M (Model): The database model we are querying (DbTagDefinition)
-    //         String,                     // ModelKeyType: Type of the value used for querying the index (tag name is String)
-    //         DbTagDefinitionKey,         // SecondaryKeyEnumType: Enum for DbTagDefinition's secondary keys
-    //         (usize, DictionaryDatabaseTag), // QueryResultType: What create_result_fn returns for each match
-    //         _,                          // ResolveSecondaryKeyFnParamType: Inferred by compiler
-    //         _,                          // PredicateFnParamType: Inferred by compiler
-    //         _,                          // CreateResultFnParamType: Inferred by compiler
-    //     >(
-    //         &index_query_identifiers,
-    //         queries, // The input slice of GenericQueryRequests
-    //         create_query_fn_closure,
-    //         resolve_secondary_key_fn,
-    //         predicate_fn,
-    //         create_result_fn,
-    //     ) {
-    //         Ok(found_tags_with_indices) => {
-    //             // Reconstruct the Vec<Option<DictionaryDatabaseTag>> in the correct order.
-    //             // Initialize with Nones, then fill in found tags at their original query indices.
-    //             let mut results: Vec<Option<DictionaryDatabaseTag>> = vec![None; queries.len()];
-    //             for (original_idx, tag) in found_tags_with_indices {
-    //                 if original_idx < results.len() { // Should always be true if item_idx is correct
-    //                     results[original_idx] = Some(tag);
-    //                 }
-    //             }
-    //             Ok(results)
-    //         }
-    //         Err(db_err) => {
-    //             // Consistent error reporting with other find_..._bulk methods.
-    //             Err(Box::new(DictionaryDatabaseError::QueryRequest(
-    //                 QueryRequestError {
-    //                     queries: iter_type_to_iter_variant!(
-    //                         queries.to_vec(), // Convert slice to Vec for iter_type_to_iter_variant!
-    //                         QueryRequestMatchType::TagMetaQuery
-    //                     )
-    //                     .collect(),
-    //                     reason: db_err, // This is Box<native_db::db_type::Error>
-    //                 },
-    //             )))
-    //         }
-    //     }
-    // }
+    pub fn find_tag_meta_bulk(
+        &self,
+        queries: &[GenericQueryRequest],
+    ) -> Result<Vec<Option<DatabaseTag>>, Box<DictionaryDatabaseError>> {
+        if queries.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // We will query by the 'name' secondary key of DbTagDefinition.
+        // We use SecondaryKeyQueryKind::Expression as a convention for the "main name/text" query.
+        let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
+            SecondaryKeyQueryKind::Expression,
+        )];
+
+        // create_query_fn: Given a GenericQueryRequest, create an Exact query for its 'name'.
+        let create_query_fn_closure = Box::new(
+            |req: &GenericQueryRequest, _idx_identifier: IndexQueryIdentifier| {
+                let tag_name = match &req.query_type {
+                    QueryType::String(name) => name,
+                    _ => unreachable!("you cannot pass sequences to this function"),
+                };
+                NativeDbQueryInfo::Exact(tag_name.clone())
+            },
+        );
+
+        // resolve_secondary_key_fn: Map SecondaryKeyQueryKind::Expression to DbTagDefinitionKey::name.
+        let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| match kind {
+            SecondaryKeyQueryKind::Expression => DatabaseTagKey::name,
+            _ => unreachable!(
+                "Only Expression-like key query is expected for tag name in find_tag_meta_bulk"
+            ),
+        };
+
+        let predicate_fn =
+            |db_tag: &DatabaseTag, req: &GenericQueryRequest| db_tag.dictionary == req.dictionary;
+
+        let create_result_fn = |db_tag: DatabaseTag,
+                                _req: &GenericQueryRequest,
+                                item_idx: usize,
+                                _index_kind_idx: usize|
+         -> (usize, DatabaseTag) {
+            (
+                item_idx,
+                DatabaseTag {
+                    id: db_tag.id,
+                    name: db_tag.name,
+                    category: db_tag.category,
+                    order: db_tag.order,
+                    notes: db_tag.notes,
+                    score: db_tag.score,
+                    dictionary: db_tag.dictionary,
+                },
+            )
+        };
+
+        match self.find_multi_bulk::<
+            GenericQueryRequest,
+            DatabaseTag,
+            String,
+            DatabaseTagKey,
+            (usize, DatabaseTag),
+            _,
+            _,
+            _,
+        >(
+            &index_query_identifiers,
+            queries,
+            create_query_fn_closure,
+            resolve_secondary_key_fn,
+            predicate_fn,
+            create_result_fn,
+        ) {
+            Ok(found_tags_with_indices) => {
+                // Reconstruct the Vec<Option<DatabaseTag>> in the correct order.
+                // Initialize with Nones, then fill in found tags at their original query indices.
+                let mut results: Vec<Option<DatabaseTag>> = vec![None; queries.len()];
+                for (original_idx, tag) in found_tags_with_indices {
+                    if original_idx < results.len() { // Should always be true if item_idx is correct
+                        results[original_idx] = Some(tag);
+                    }
+                }
+                Ok(results)
+            }
+            Err(reason) => {
+                // Consistent error reporting with other find_..._bulk methods.
+                Err(Box::new(DictionaryDatabaseError::QueryRequest(
+                    QueryRequestError {
+                        queries: iter_type_to_iter_variant!(
+                            queries.to_vec(),
+                            QueryRequestMatchType::GenericQueryRequest
+                        )
+                        .collect(),
+                        reason,
+                    },
+                )))
+            }
+        }
+    }
 }
 
 pub fn split_optional_string_field(field: Option<String>) -> Vec<String> {

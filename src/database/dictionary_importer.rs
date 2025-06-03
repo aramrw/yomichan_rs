@@ -1,13 +1,13 @@
 use crate::database::dictionary_database::{
-    DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMeta, DatabaseMeta, DatabaseMetaFrequency,
-    DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
+    DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMeta, DatabaseMetaFrequency,
+    DatabaseMetaMatchType, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
     MediaDataArrayBufferContent, TermEntry, DB_MODELS,
 };
 use crate::dictionary::KanjiDictionaryEntry;
 use crate::dictionary_data::{
-    DictionaryDataTag, GenericFreqData, Index, TermGlossary, TermGlossaryContent,
-    TermGlossaryImage, TermMeta, TermMetaDataMatchType, TermMetaFreqDataMatchType,
-    TermMetaFrequency, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
+    DictionaryDataTag, GenericFreqData, Index, MetaDataMatchType, TermGlossary,
+    TermGlossaryContent, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
+    TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
 use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
@@ -17,6 +17,7 @@ use crate::structured_content::{ContentMatchType, Element, LinkElement};
 use crate::errors::{DBError, ImportError, ImportZipError};
 use crate::Yomichan;
 
+use color_eyre::owo_colors::OwoColorize;
 use indexmap::IndexMap;
 use native_db::transaction::RwTransaction;
 use native_db::ToInput;
@@ -32,6 +33,7 @@ use serde_untagged::UntaggedEnumVisitor;
 use rayon::prelude::*;
 
 use tempfile::tempdir;
+use uuid::Uuid;
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
@@ -46,7 +48,7 @@ use std::sync::{
 use std::time::Instant;
 use std::{fs, io, mem};
 
-use super::dictionary_database::DictionaryDatabase;
+use super::dictionary_database::{DatabaseTag, DatabaseTermMeta, DictionaryDatabase};
 
 //use chrono::{DateTime, Local};
 
@@ -240,18 +242,19 @@ pub struct MetaCounts {
 }
 
 impl MetaCounts {
-    fn new(metas: &Vec<DatabaseMeta>) -> Self {
+    fn count_kanji_metas(kanji_metas: &[DatabaseMetaFrequency]) -> Self {
+        let mut metas = MetaCounts::default();
+        metas.freq = kanji_metas.len() as u32;
+        metas
+    }
+    fn count_term_metas(metas: &[DatabaseMetaMatchType]) -> Self {
         let mut meta_counts = MetaCounts::default();
 
-        for mt in metas {
-            if mt.frequency.is_some() {
-                meta_counts.freq += 1;
-            }
-            if mt.pitch.is_some() {
-                meta_counts.pitch += 1;
-            }
-            if mt.phonetic.is_some() {
-                meta_counts.ipa += 1;
+        for database_meta_match_type in metas.iter() {
+            match database_meta_match_type {
+                DatabaseMetaMatchType::Frequency(_) => meta_counts.freq += 1,
+                DatabaseMetaMatchType::Pitch(_) => meta_counts.pitch += 1,
+                DatabaseMetaMatchType::Phonetic(_) => meta_counts.ipa += 1,
             }
         }
 
@@ -405,6 +408,9 @@ pub fn import_dictionary<P: AsRef<Path>>(
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
     let rwtx = db.rw_transaction()?;
     db_rwriter(&rwtx, data.term_list)?;
+    db_rwriter(&rwtx, data.kanji_list)?;
+    db_rwriter(&rwtx, data.tag_list)?;
+    db_rwriter(&rwtx, data.kanji_meta_list)?;
     {
         let term_meta_list = data.term_meta_list;
         for item in term_meta_list {
@@ -461,13 +467,22 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
     // let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title.clone();
-    let tag_list: Vec<Vec<DictionaryDataTag>> = convert_tag_bank_files(tag_bank_paths)?;
+
+    let tag_banks: Result<Vec<Vec<DatabaseTag>>, ImportError> =
+        convert_tag_bank_files(tag_bank_paths);
+    let tag_list: Vec<DatabaseTag> = match tag_banks {
+        Ok(kml) => kml.into_iter().flatten().collect(),
+        Err(e) => {
+            return Err(ImportError::Custom(format!(
+                "Failed to convert tag banks | {e}"
+            )))
+        }
+    };
 
     let term_banks: Result<Vec<Vec<DatabaseTermEntry>>, ImportError> = term_bank_paths
         .into_par_iter()
         .map(|path| convert_term_bank_file(path, &dict_name))
         .collect::<Result<Vec<Vec<DatabaseTermEntry>>, ImportError>>();
-
     let term_list: Vec<DatabaseTermEntry> = match term_banks {
         Ok(tl) => tl.into_iter().flatten().collect(),
         Err(e) => {
@@ -477,12 +492,13 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         }
     };
 
-    let kanji_meta_banks: Result<Vec<Vec<DatabaseMeta>>, ImportError> = kanji_meta_bank_paths
-        .into_par_iter()
-        .map(|path| DatabaseMeta::convert_kanji_meta_file(path, dict_name.clone()))
-        .collect::<Result<Vec<Vec<DatabaseMeta>>, ImportError>>();
+    let kanji_meta_banks: Result<Vec<Vec<DatabaseMetaFrequency>>, ImportError> =
+        kanji_meta_bank_paths
+            .into_par_iter()
+            .map(|path| DatabaseMetaMatchType::convert_kanji_meta_file(path, dict_name.clone()))
+            .collect::<Result<Vec<Vec<DatabaseMetaFrequency>>, ImportError>>();
 
-    let kanji_meta_list: Vec<DatabaseMeta> = match kanji_meta_banks {
+    let kanji_meta_list: Vec<DatabaseMetaFrequency> = match kanji_meta_banks {
         Ok(kml) => kml.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
@@ -491,12 +507,13 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         }
     };
 
-    let term_meta_banks: Result<Vec<Vec<DatabaseMeta>>, ImportError> = term_meta_bank_paths
-        .into_par_iter()
-        .map(|path| DatabaseMeta::convert_term_meta_file(path, dict_name.clone()))
-        .collect::<Result<Vec<Vec<DatabaseMeta>>, ImportError>>();
+    let term_meta_banks: Result<Vec<Vec<DatabaseMetaMatchType>>, ImportError> =
+        term_meta_bank_paths
+            .into_par_iter()
+            .map(|path| DatabaseMetaMatchType::convert_term_meta_file(path, dict_name.clone()))
+            .collect::<Result<Vec<Vec<DatabaseMetaMatchType>>, ImportError>>();
 
-    let term_meta_list: Vec<DatabaseMeta> = match term_meta_banks {
+    let term_meta_list: Vec<DatabaseMetaMatchType> = match term_meta_banks {
         Ok(tml) => tml.into_iter().flatten().collect(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
@@ -519,8 +536,8 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         }
     };
 
-    let term_meta_counts = MetaCounts::new(&term_meta_list);
-    let kanji_meta_counts = MetaCounts::new(&kanji_meta_list);
+    let term_meta_counts = MetaCounts::count_term_metas(&term_meta_list);
+    let kanji_meta_counts = MetaCounts::count_kanji_metas(&kanji_meta_list);
 
     let counts = SummaryCounts::new(
         term_list.len(),
@@ -563,14 +580,15 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
 // this one should probabaly be refactored to:
 // 1. include the file and err if it throws like the rest of the converts
 // 2. only handle one file and have the iteration be handled in the caller function
-fn convert_tag_bank_files(
-    outpaths: Vec<PathBuf>,
-) -> Result<Vec<Vec<DictionaryDataTag>>, ImportError> {
+fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<DatabaseTag>>, ImportError> {
     outpaths
         .into_iter()
         .map(|p| {
             let tag_str = fs::read_to_string(p)?;
-            let tag: Vec<DictionaryDataTag> = serde_json::from_str(&tag_str)?;
+            let mut tag: Vec<DatabaseTag> = serde_json::from_str(&tag_str)?;
+            tag.iter_mut().for_each(|tag| {
+                tag.id = Uuid::now_v7().to_string();
+            });
             Ok(tag)
         })
         .collect()

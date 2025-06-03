@@ -272,25 +272,25 @@ pub struct TermMeta {
 /// The metadata of a term.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
-pub enum TermMetaDataMatchType {
+pub enum MetaDataMatchType {
     Frequency(TermMetaFreqDataMatchType),
     Pitch(TermMetaPitchData),
     Phonetic(TermMetaPhoneticData),
 }
 
-impl<'de> Deserialize<'de> for TermMetaDataMatchType {
+impl<'de> Deserialize<'de> for MetaDataMatchType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         serde_untagged::UntaggedEnumVisitor::new()
             .string(|str| {
-                Ok(TermMetaDataMatchType::Frequency(
+                Ok(MetaDataMatchType::Frequency(
                     TermMetaFreqDataMatchType::Generic(GenericFreqData::String(str.to_string())),
                 ))
             })
             .u64(|int| {
-                Ok(TermMetaDataMatchType::Frequency(
+                Ok(MetaDataMatchType::Frequency(
                     TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(int)),
                 ))
             })
@@ -299,19 +299,19 @@ impl<'de> Deserialize<'de> for TermMetaDataMatchType {
                 #[allow(clippy::if_same_then_else)]
                 if value.get("frequency").is_some() {
                     serde_json::from_value(value)
-                        .map(TermMetaDataMatchType::Frequency)
+                        .map(MetaDataMatchType::Frequency)
                         .map_err(serde::de::Error::custom)
                 } else if value.get("value").is_some() {
                     serde_json::from_value(value)
-                        .map(TermMetaDataMatchType::Frequency)
+                        .map(MetaDataMatchType::Frequency)
                         .map_err(serde::de::Error::custom)
                 } else if value.get("pitches").is_some() {
                     serde_json::from_value(value)
-                        .map(TermMetaDataMatchType::Pitch)
+                        .map(MetaDataMatchType::Pitch)
                         .map_err(serde::de::Error::custom)
                 } else if value.get("transcriptions").is_some() {
                     serde_json::from_value(value)
-                        .map(TermMetaDataMatchType::Phonetic)
+                        .map(MetaDataMatchType::Phonetic)
                         .map_err(serde::de::Error::custom)
                 } else {
                     Err(serde::de::Error::custom(format!(

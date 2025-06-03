@@ -328,7 +328,7 @@ impl Translator {
         }
 
         if !non_cached_items.is_empty() {
-            let database_tags = &self.db.find_tag_meta_bulk();
+            //let database_tags = &self.db.();
         }
     }
 
