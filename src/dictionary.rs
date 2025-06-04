@@ -63,6 +63,20 @@ pub struct DictionaryTag {
     /// Whether or not this tag is redundant with previous tags.
     pub redundant: bool,
 }
+impl DictionaryTag {
+    /// sets the category to "default"
+    pub fn new_default(name: String, dictionary: String) -> Self {
+        Self {
+            name,
+            category: "default".to_string(),
+            order: 0,
+            score: 0,
+            content: vec![],
+            dictionaries: vec![dictionary],
+            redundant: false,
+        }
+    }
+}
 
 /*************** Kanji ***************/
 
@@ -180,7 +194,7 @@ pub struct TermFrequency {
     /// Whether or not the frequency had an explicit reading specified.
     pub has_reading: bool,
     /// The frequency for the term, as a number of occurrences or an overall rank.
-    pub frequency: u64,
+    pub frequency: i128,
     /// A display value to show to the user.
     pub display_value: Option<String>,
     /// Whether or not the displayValue string was parsed to determine the frequency value.

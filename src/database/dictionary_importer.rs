@@ -412,16 +412,11 @@ pub fn import_dictionary<P: AsRef<Path>>(
     db_rwriter(&rwtx, data.tag_list)?;
     db_rwriter(&rwtx, data.kanji_meta_list)?;
     {
-        let term_meta_list = data.term_meta_list;
-        for item in term_meta_list {
-            if let Some(freq) = item.frequency {
-                rwtx.insert(freq)?;
-            }
-            if let Some(pitch) = item.pitch {
-                rwtx.insert(pitch)?;
-            }
-            if let Some(ipa) = item.phonetic {
-                rwtx.insert(ipa)?;
+        for item in data.term_meta_list {
+            match item {
+                DatabaseMetaMatchType::Frequency(freq) => rwtx.insert(freq)?,
+                DatabaseMetaMatchType::Pitch(pitch) => rwtx.insert(pitch)?,
+                DatabaseMetaMatchType::Phonetic(ipa) => rwtx.insert(ipa)?,
             }
         }
     }
@@ -464,7 +459,6 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         &mut term_bank_paths,
     );
 
-    // let paths_len = tag_bank_paths.len() + term_bank_paths.len() + term_meta_bank_paths.len() + 1;
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title.clone();
 

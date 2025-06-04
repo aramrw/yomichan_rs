@@ -1,9 +1,10 @@
 use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    DatabaseMetaMatchType, DictionaryDataTag, GenericFreqData, TermGlossary, TermGlossaryContent,
-    TermMeta, TermMetaDataMatchType, TermMetaFreqDataMatchType, TermMetaFrequency,
-    TermMetaModeType, TermMetaPhoneticData, TermMetaPitch, TermMetaPitchData,
+    DictionaryDataTag, GenericFreqData, MetaDataMatchType, TermGlossary, TermGlossaryContent,
+    TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPhoneticData,
+    TermMetaPitch, TermMetaPitchData,
 };
+use crate::translator::TagTargetItem;
 use serde_with::{serde_as, NoneAsEmptyString};
 
 use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
@@ -150,7 +151,7 @@ pub struct DatabaseTermMeta {
     //#[secondary_key]
     pub mode: TermMetaModeType,
     /// The actual metadata content. (Corresponds to JS row.data)
-    pub data: TermMetaDataMatchType,
+    pub data: MetaDataMatchType,
     /// The name of the dictionary this metadata belongs to.
     //#[secondary_key]
     pub dictionary: String,
@@ -380,10 +381,10 @@ impl DatabaseMetaMatchType {
                     expression,
                     mode,
                     data,
-                };
+                } = entry;
 
-                match entry.mode {
-                    TermMetaModeType::Freq => {
+                match data {
+                    MetaDataMatchType::Frequency(data) => {
                         DatabaseMetaMatchType::Frequency(DatabaseMetaFrequency {
                             id,
                             expression,
@@ -392,14 +393,16 @@ impl DatabaseMetaMatchType {
                             dictionary: dict_name.clone(),
                         })
                     }
-                    TermMetaModeType::Pitch => DatabaseMetaMatchType::Pitch(DatabaseMetaPitch {
-                        id,
-                        expression,
-                        mode: TermMetaModeType::Pitch,
-                        data,
-                        dictionary: dict_name.clone(),
-                    }),
-                    TermMetaModeType::Ipa => {
+                    MetaDataMatchType::Pitch(data) => {
+                        DatabaseMetaMatchType::Pitch(DatabaseMetaPitch {
+                            id,
+                            expression,
+                            mode: TermMetaModeType::Pitch,
+                            data,
+                            dictionary: dict_name.clone(),
+                        })
+                    }
+                    MetaDataMatchType::Phonetic(data) => {
                         DatabaseMetaMatchType::Phonetic(DatabaseMetaPhonetic {
                             id,
                             expression,
@@ -666,11 +669,28 @@ pub enum QueryType {
     String(String),
     Sequence(i128),
 }
-
+/// so far it seems this can be refactored to use references
+/// for now keep owned so don't have to deal with lifetimes
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Eq, PartialOrd, Ord, Hash)]
 pub struct GenericQueryRequest {
     pub query_type: QueryType,
     pub dictionary: String,
+}
+impl From<&TagTargetItem> for GenericQueryRequest {
+    fn from(value: &TagTargetItem) -> Self {
+        Self {
+            query_type: QueryType::String(value.query.clone()),
+            dictionary: value.dictionary.clone(),
+        }
+    }
+}
+impl From<TagTargetItem> for GenericQueryRequest {
+    fn from(value: TagTargetItem) -> Self {
+        Self {
+            query_type: QueryType::String(value.query),
+            dictionary: value.dictionary,
+        }
+    }
 }
 impl GenericQueryRequest {
     pub fn new(query_type: QueryType, dictionary: &str) -> Self {
@@ -723,7 +743,7 @@ pub type VecTermEntry = Vec<TermEntry>;
 /// Vec<[DatabaseTermEntry]>
 pub type VecDBTermEntry = Vec<DatabaseTermEntry>;
 /// Vec<[DatabaseMeta]>
-pub type VecDBTermMeta = Vec<DatabaseMeta>;
+pub type VecDBTermMeta = Vec<DatabaseTermMeta>;
 /// Vec<[DatabaseMetaFrequency]>
 pub type VecDBMetaFreq = Vec<DatabaseMetaFrequency>;
 
@@ -731,7 +751,7 @@ pub struct DatabaseDictData {
     pub tag_list: Vec<DatabaseTag>,
     pub kanji_meta_list: Vec<DatabaseMetaFrequency>,
     pub kanji_list: Vec<DatabaseKanjiEntry>,
-    pub term_meta_list: Vec<DatabaseMeta>,
+    pub term_meta_list: Vec<DatabaseMetaMatchType>,
     pub term_list: VecDBTermEntry,
     pub summary: DictionarySummary,
     pub dictionary_options: DictionaryOptions,
@@ -1075,7 +1095,7 @@ impl DictionaryDatabase {
                 index: item_idx,
                 term: db_entry.expression, // In JS output, this is 'term' from 'row.expression'
                 mode: db_entry.mode,       // This is TermMetaModeType::Freq
-                data: TermMetaDataMatchType::Frequency(db_entry.data),
+                data: MetaDataMatchType::Frequency(db_entry.data),
                 dictionary: db_entry.dictionary,
             }
         };
@@ -1114,7 +1134,7 @@ impl DictionaryDatabase {
                 index: item_idx,
                 term: db_entry.expression,
                 mode: db_entry.mode, // This is TermMetaModeType::Pitch
-                data: TermMetaDataMatchType::Pitch(db_entry.data),
+                data: MetaDataMatchType::Pitch(db_entry.data),
                 dictionary: db_entry.dictionary,
             }
         };
@@ -1153,7 +1173,7 @@ impl DictionaryDatabase {
                 index: item_idx,
                 term: db_entry.expression,
                 mode: db_entry.mode, // This is TermMetaModeType::Ipa
-                data: TermMetaDataMatchType::Phonetic(db_entry.data), // Assuming db_entry.data is TermMetaPhoneticData
+                data: MetaDataMatchType::Phonetic(db_entry.data),
                 dictionary: db_entry.dictionary,
             }
         };
@@ -1338,12 +1358,12 @@ impl DictionaryDatabase {
         Ok(all_final_results)
     }
 
-    // Finds tag metadata for a list of tag names and their respective dictionaries.
-    //
-    // For each query in `queries`, this function attempts to find a matching tag.
-    // The result is a `Vec` of `Option<DatabaseTag>` where each element
-    // corresponds to the query at the same index. `Some(tag)` if found, `None` otherwise.
-    // [GenericQueryRequest] is `DictionaryAndQueryRequest` in yomitan JS.
+    /// Finds tag metadata for a list of tag names and their respective dictionaries.
+    ///
+    /// For each query in `queries`, this function attempts to find a matching tag.
+    /// The result is a `Vec` of `Option<DatabaseTag>` where each element
+    /// corresponds to the query at the same index. `Some(tag)` if found, `None` otherwise.
+    /// [GenericQueryRequest] is `DictionaryAndQueryRequest` in yomitan JS.
     pub fn find_tag_meta_bulk(
         &self,
         queries: &[GenericQueryRequest],
@@ -1353,12 +1373,14 @@ impl DictionaryDatabase {
         }
 
         // We will query by the 'name' secondary key of DbTagDefinition.
-        // We use SecondaryKeyQueryKind::Expression as a convention for the "main name/text" query.
+        // We use SecondaryKeyQueryKind::Expression
+        // as a convention for the "main name/text" query.
         let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
             SecondaryKeyQueryKind::Expression,
         )];
 
-        // create_query_fn: Given a GenericQueryRequest, create an Exact query for its 'name'.
+        // create_query_fn: Given a GenericQueryRequest,
+        // create an Exact query for its 'name'.
         let create_query_fn_closure = Box::new(
             |req: &GenericQueryRequest, _idx_identifier: IndexQueryIdentifier| {
                 let tag_name = match &req.query_type {
@@ -1369,7 +1391,8 @@ impl DictionaryDatabase {
             },
         );
 
-        // resolve_secondary_key_fn: Map SecondaryKeyQueryKind::Expression to DbTagDefinitionKey::name.
+        // resolve_secondary_key_fn:
+        // Map SecondaryKeyQueryKind::Expression to DbTagDefinitionKey::name.
         let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| match kind {
             SecondaryKeyQueryKind::Expression => DatabaseTagKey::name,
             _ => unreachable!(
@@ -1421,14 +1444,14 @@ impl DictionaryDatabase {
                 // Initialize with Nones, then fill in found tags at their original query indices.
                 let mut results: Vec<Option<DatabaseTag>> = vec![None; queries.len()];
                 for (original_idx, tag) in found_tags_with_indices {
-                    if original_idx < results.len() { // Should always be true if item_idx is correct
+                // Should always be true if item_idx is correct
+                    if original_idx < results.len() {
                         results[original_idx] = Some(tag);
                     }
                 }
                 Ok(results)
             }
             Err(reason) => {
-                // Consistent error reporting with other find_..._bulk methods.
                 Err(Box::new(DictionaryDatabaseError::QueryRequest(
                     QueryRequestError {
                         queries: iter_type_to_iter_variant!(

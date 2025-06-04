@@ -71,7 +71,7 @@ pub struct FindTermsOptions {
 pub type FindTermsMatchType = TermSourceMatchType;
 
 /// A sorting order to use when finding terms.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FindTermsSortOrder {
     Ascending,
     Descending,

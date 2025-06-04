@@ -266,7 +266,7 @@ pub struct TermGlossaryDeinflection {
 pub struct TermMeta {
     pub expression: String,
     pub mode: TermMetaModeType,
-    pub data: TermMetaDataMatchType,
+    pub data: MetaDataMatchType,
 }
 
 /// The metadata of a term.
@@ -289,7 +289,7 @@ impl<'de> Deserialize<'de> for MetaDataMatchType {
                     TermMetaFreqDataMatchType::Generic(GenericFreqData::String(str.to_string())),
                 ))
             })
-            .u64(|int| {
+            .i128(|int| {
                 Ok(MetaDataMatchType::Frequency(
                     TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(int)),
                 ))
@@ -387,7 +387,7 @@ impl<'de> Deserialize<'de> for TermMetaFreqDataMatchType {
                     str.to_string(),
                 )))
             })
-            .u64(|int| {
+            .i128(|int| {
                 Ok(TermMetaFreqDataMatchType::Generic(
                     GenericFreqData::Integer(int),
                 ))
@@ -412,7 +412,7 @@ impl<'de> Deserialize<'de> for TermMetaFreqDataMatchType {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FrequencyInfo {
-    pub frequency: u64,
+    pub frequency: i128,
     pub display_value: Option<String>,
     pub display_value_parsed: bool,
 }
@@ -420,10 +420,10 @@ pub struct FrequencyInfo {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum GenericFreqData {
-    Integer(u64),
+    Integer(i128),
     String(String),
     Object {
-        value: u64,
+        value: i128,
         #[serde(rename = "displayValue")]
         display_value: Option<String>,
     },
@@ -449,13 +449,13 @@ impl<'de> Deserialize<'de> for GenericFreqData {
     {
         serde_untagged::UntaggedEnumVisitor::new()
             .string(|str| Ok(GenericFreqData::String(str.to_string())))
-            .u64(|int| Ok(GenericFreqData::Integer(int)))
+            .i128(|int| Ok(GenericFreqData::Integer(int)))
             .map(|map| {
                 let obj = map.deserialize::<serde_json::Value>()?;
-                let value: u64 =
-                    obj.get("value").and_then(|v| v.as_u64()).ok_or_else(|| {
+                let value: i128 =
+                    obj.get("value").and_then(|v| v.as_i64()).ok_or_else(|| {
                         serde::de::Error::custom("Missing or invalid 'value' field")
-                    })? as u64;
+                    })? as i128;
 
                 let display_value = if let Some(display_value) = obj.get("displayValue") {
                     display_value.as_str().map(String::from)

@@ -3,29 +3,29 @@ use crate::{
     database::{
         self,
         dictionary_database::{
-            DatabaseTermMeta, DictionaryDatabase, DictionaryDatabaseTag, DictionarySet,
-            GenericQueryRequest, QueryRequestMatchType, QueryType, TermEntry,
-            TermExactQueryRequest,
+            DatabaseTag, DatabaseTermMeta, DictionaryDatabase, DictionarySet, GenericQueryRequest,
+            QueryRequestMatchType, QueryType, TermEntry, TermExactQueryRequest,
         },
     },
     dictionary::{
-        self, DictionaryTag, EntryInflectionRuleChainCandidatesKey, InflectionRuleChainCandidate,
-        InflectionSource, PhoneticTranscription, PitchAccent, Pronunciation, TermDefinition,
-        TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
-        TermPronunciationMatchType, TermSource, TermSourceMatchSource, TermSourceMatchType,
-        VecNumOrNum,
+        self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
+        InflectionRuleChainCandidate, InflectionSource, PhoneticTranscription, PitchAccent,
+        Pronunciation, TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword,
+        TermPronunciation, TermPronunciationMatchType, TermSource, TermSourceMatchSource,
+        TermSourceMatchType, VecNumOrNum,
     },
     dictionary_data::{
-        FrequencyInfo, GenericFreqData, Pitch, TermGlossary, TermGlossaryContent,
-        TermGlossaryDeinflection, TermMetaDataMatchType, TermMetaFreqDataMatchType,
-        TermMetaModeType, TermMetaPhoneticData,
+        FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermGlossary,
+        TermGlossaryContent, TermGlossaryDeinflection, TermMetaFreqDataMatchType, TermMetaModeType,
+        TermMetaPhoneticData,
     },
     freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
-    settings::SearchResolution,
+    settings::{SearchResolution, SortFrequencyDictionaryOrder},
     to_variant,
     translation::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsOptions,
+        FindTermsSortOrder,
     },
     translation_internal::{
         DatabaseDeinflection, DictionaryEntryGroup, TextCache, TextProcessorRuleChainCandidate,
@@ -56,8 +56,8 @@ use native_db::*;
 use native_model::{native_model, Model};
 use serde::Serialize;
 use std::{
-    cell::RefCell, fmt::Display, hash::Hash, iter, ops::Index, path::Path, rc::Rc, str::FromStr,
-    sync::LazyLock,
+    cell::RefCell, cmp::Ordering, fmt::Display, hash::Hash, iter, mem, ops::Index, path::Path,
+    rc::Rc, str::FromStr, sync::LazyLock,
 };
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct SequenceQuery {
@@ -268,25 +268,400 @@ impl Translator {
                 exclude_dictionary_definitions,
             );
         }
-        if mode != FindTermsMode::Simple {
-            self._add_term_meta(
+        match mode != FindTermsMode::Simple {
+            true => {
+                self._add_term_meta(
+                    &mut dictionary_entries,
+                    enabled_dictionary_map,
+                    &mut tag_aggregator,
+                );
+            }
+            // this is most likely incorrect because of references
+            false => {
+                if let Some(sort_frequency_dictionary) = sort_frequency_dictionary {
+                    let mut sort_dictionary_map: TermEnabledDictionaryMap = IndexMap::new();
+                    let value = enabled_dictionary_map.get(sort_frequency_dictionary);
+                    // in js the values inside the map (sort_frequency_dictionary & value)
+                    // return mutable references with .get(),
+                    // if _add_term_meta updates these, it's updating clones in rust
+                    // sort_dictionary_map might need
+                    // to hold mutable refs since it doesnt get used after this block
+                    //
+                    // if this is true, don't use the TermEnabledDictionaryMap type,
+                    // as it holds owned values
+                    if let Some(value) = value {
+                        sort_dictionary_map
+                            .insert(sort_frequency_dictionary.clone(), value.clone());
+                    }
+                    self._add_term_meta(
+                        &mut dictionary_entries,
+                        &sort_dictionary_map,
+                        &mut tag_aggregator,
+                    );
+                }
+            }
+        }
+
+        if let Some(sort_frequency_dictionary) = sort_frequency_dictionary {
+            Translator::_update_sort_frequencies(
                 &mut dictionary_entries,
-                enabled_dictionary_map,
-                &mut tag_aggregator,
+                sort_frequency_dictionary,
+                *sort_frequency_dictionary_order == FindTermsSortOrder::Ascending,
             );
         }
+        if dictionary_entries.len() > 1 {
+            self._sort_term_dictionary_entries(&mut dictionary_entries);
+        }
+
+        Translator::_flag_redundant
+
         FindTermResult {
             dictionary_entries,
             original_text_length,
         }
     }
-    fn _expand_tag_groups_and_group() {}
 
-    fn _expand_tag_groups(&mut self, tag_targets: &mut [TagExpansionTarget]) {
-        let mut all_items: Vec<TagTargetItem> = Vec::new();
+    fn _sort_term_dictionary_entries(&self, dictionary_entries: &mut [TermDictionaryEntry]) {
+        let string_comparer = &self.string_comparer;
+
+        dictionary_entries.sort_by(|v1, v2| {
+            // 1. Sort by reading match (descending: true comes before false)
+            // (v2.match_primary_reading ? 1 : 0) - (v1.match_primary_reading ? 1 : 0)
+            // This means v2 true and v1 false -> 1 (v1 < v2, so v2 comes first)
+            // v2 false and v1 true -> -1 (v1 > v2, so v1 comes first)
+            // In Rust, .cmp orders bools as false < true. We want true first, so v2.cmp(&v1).
+            let cmp = v2.match_primary_reading.cmp(&v1.match_primary_reading);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+
+            // 2. Sort by length of source term (descending)
+            // i = v2.max_original_text_length - v1.max_original_text_length;
+            let cmp = v2
+                .max_original_text_length
+                .cmp(&v1.max_original_text_length);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+
+            // 3. Sort by length of the shortest text processing chain (ascending)
+            // i = self._get_shortest_text_processing_chain_length(v1.text_processor_rule_chain_candidates) - self._get_shortest_text_processing_chain_length(v2.text_processor_rule_chain_candidates);
+            let len1 = self._get_shortest_text_processing_chain_length(
+                &v1.text_processor_rule_chain_candidates,
+            );
+            let len2 = self._get_shortest_text_processing_chain_length(
+                &v2.text_processor_rule_chain_candidates,
+            );
+            let cmp = len1.cmp(&len2);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+
+            // 4. Sort by length of the shortest inflection chain (ascending)
+            // i = self._get_shortest_inflection_chain_length(v1.inflection_rule_chain_candidates) - self._get_shortest_inflection_chain_length(v2.inflection_rule_chain_candidates);
+            let len1 =
+                self._get_shortest_inflection_chain_length(&v1.inflection_rule_chain_candidates);
+            let len2 =
+                self._get_shortest_inflection_chain_length(&v2.inflection_rule_chain_candidates);
+            let cmp = len1.cmp(&len2);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+
+            // 5. Sort by how many terms exactly match the source (descending)
+            // i = v2.source_term_exact_match_count - v1.source_term_exact_match_count;
+            let cmp = v2
+                .source_term_exact_match_count
+                .cmp(&v1.source_term_exact_match_count);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+
+            // 6. Sort by frequency order (ascending)
+            // i = v1.frequency_order - v2.frequency_order;
+            let cmp = v1.frequency_order.cmp(&v2.frequency_order);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+
+            // 7. Sort by dictionary order (ascending)
+            // i = v1.dictionary_index - v2.dictionary_index;
+            let cmp = v1.dictionary_index.cmp(&v2.dictionary_index);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+
+            let cmp = v2.score.cmp(&v1.score);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+
+            // 9. Sort by headword term text
+            let headwords1 = &v1.headwords;
+            let headwords2 = &v2.headwords;
+            let min_len = headwords1.len().min(headwords2.len());
+
+            for j in 0..min_len {
+                let term1 = &headwords1[j].term;
+                let term2 = &headwords2[j].term;
+
+                // Sort by term length (descending)
+                // i = term2.length - term1.length;
+                let cmp_len = term2.len().cmp(&term1.len());
+                if cmp_len != Ordering::Equal {
+                    return cmp_len;
+                }
+
+                // Sort by string comparison (ascending)
+                // i = stringComparer.compare(term1, term2);
+                let cmp_str = string_comparer.compare(term1, term2);
+                if cmp_str != Ordering::Equal {
+                    return cmp_str;
+                }
+            }
+            v2.definitions.len().cmp(&v1.definitions.len())
+        });
+    }
+
+    fn _get_shortest_text_processing_chain_length(
+        &self,
+        candidates: &[TextProcessorRuleChainCandidate],
+    ) -> usize {
+        candidates
+            .iter()
+            .map(|chain| chain.len())
+            .min()
+            .unwrap_or(0)
+    }
+
+    fn _get_shortest_inflection_chain_length(
+        &self,
+        candidates: &[InflectionRuleChainCandidate],
+    ) -> usize {
+        candidates
+            .iter()
+            .map(|candidate| candidate.inflection_rules.len())
+            .min()
+            .unwrap_or(0)
+    }
+
+    fn _update_sort_frequencies(
+        dictionary_entries: &mut [TermDictionaryEntry],
+        dictionary: &str,
+        ascending: bool,
+    ) {
+        let mut frequency_map: IndexMap<usize, i128> = IndexMap::new();
+        for TermDictionaryEntry {
+            definitions,
+            frequencies,
+            mut frequency_order,
+            ..
+        } in dictionary_entries.iter_mut()
+        {
+            let mut frequency_min = i128::MAX;
+            let mut frequency_max = i128::MIN;
+            for TermFrequency {
+                headword_index,
+                frequency,
+                dictionary: term_freq_dictionary,
+                ..
+            } in frequencies
+            {
+                if term_freq_dictionary != dictionary {
+                    continue;
+                }
+                // JS does this for some reason,
+                // checking type TermFrequency, it's garunteed to be a number..idk
+                // if (typeof frequency !== 'number') { continue; }
+
+                frequency_map.insert(*headword_index, *frequency);
+                frequency_min = frequency_min.min(*frequency);
+                frequency_max = frequency_max.max(*frequency);
+            }
+            frequency_order = match frequency_min <= frequency_max {
+                true => match ascending {
+                    true => frequency_min,
+                    false => -frequency_max,
+                },
+                false => match ascending {
+                    true => i128::MAX,
+                    false => 0,
+                },
+            };
+            for TermDefinition {
+                headword_indices,
+                mut frequency_order,
+                ..
+            } in definitions.iter_mut()
+            {
+                frequency_min = i128::MAX;
+                frequency_max = i128::MIN;
+                for headword_index in headword_indices {
+                    // in js the type for the map is literally <number, number>
+                    // idk what this is supposed to mean
+                    //if (typeof frequency !== 'number') { continue; }
+                    if let Some(frequency) = frequency_map.get(headword_index) {
+                        frequency_min = frequency_min.min(*frequency);
+                        frequency_max = frequency_max.max(*frequency);
+                    }
+                }
+                frequency_order = match frequency_min <= frequency_max {
+                    true => match ascending {
+                        true => frequency_min,
+                        false => (-frequency_max as i128),
+                    },
+                    false => match ascending {
+                        true => i128::MAX,
+                        false => 0,
+                    },
+                };
+            }
+            frequency_map.clear();
+        }
+    }
+
+    fn _expand_tag_groups_and_group(&mut self, tag_expansion_targets: &mut [TagExpansionTarget]) {
+        self._expand_tag_groups_mut(tag_expansion_targets);
+        self._group_tags_mut(tag_expansion_targets);
+    }
+
+    fn _group_tags_mut(&self, tag_targets: &mut [TagExpansionTarget]) {
+        let string_comparer: &CollatorBorrowed<'static> = &self.string_comparer;
+        for tag_expansion_target in tag_targets.iter_mut() {
+            // 1. Skip if tags length is 1 or less
+            if tag_expansion_target.tags.len() <= 1 {
+                continue;
+            }
+            Translator::_merge_similar_tags_mut(&mut tag_expansion_target.tags);
+            tag_expansion_target
+                .tags
+                .sort_by(|v1, v2| match v1.order.cmp(&v2.order) {
+                    Ordering::Equal => string_comparer.compare(&v1.name, &v2.name),
+                    non_eq => non_eq,
+                });
+        }
+    }
+
+    /// Merges similar tags within the given vector.
+    /// Tags are considered similar if they have the same `name` and `category`.
+    /// When merged, the first tag encountered (tag1) is updated:
+    /// - `order` becomes the minimum of the two.
+    /// - `score` becomes the maximum of the two.
+    /// - `dictionaries` are combined.
+    /// - `content` is combined uniquely using `_add_unique_simple`.
+    /// The second tag (tag2) is removed from the vector.
+    pub fn _merge_similar_tags_mut(tags: &mut Vec<DictionaryTag>) {
+        if tags.is_empty() {
+            return;
+        }
+
+        let mut i = 0;
+        while i < tags.len() {
+            // `tags[i]` is our `tag1`.
+            // We need to ensure that any data we read from `tags[i]` for comparison
+            // is read before potentially creating mutable borrows for modification
+            // if `tags[i]` and `tags[j]` were the same (not an issue here as j > i).
+
+            let mut j = i + 1;
+            while j < tags.len() {
+                // `tags[j]` is our `tag2`.
+                // We need to compare tags[i] and tags[j].
+                // To avoid issues with multiple mutable borrows if Rust were stricter,
+                // or complex borrow splitting, we can check names and categories first.
+                // In this specific loop structure (i and j distinct, tags[i] modified
+                // based on tags[j] which is then removed), it's generally manageable.
+
+                if tags[j].name == tags[i].name && tags[j].category == tags[i].category {
+                    // Match found, merge tags[j] into tags[i].
+
+                    // Store values from tags[j] before it's removed or its data moved.
+                    let tag2_order = tags[j].order;
+                    let tag2_score = tags[j].score;
+                    // The .dictionaries and .content will be moved from the removed tag.
+
+                    // Update tag1 (tags[i])
+                    tags[i].order = std::cmp::min(tags[i].order, tag2_order);
+                    tags[i].score = tags[i].score.max(tag2_score); // For f64, .max() is fine.
+
+                    // Remove tag2 (tags[j]) and get its owned data
+                    let removed_tag = tags.remove(j);
+
+                    // Merge dictionaries and content from the removed_tag into tags[i]
+                    tags[i].dictionaries.extend(removed_tag.dictionaries); // Moves elements
+                    Translator::_add_unique_simple(&mut tags[i].content, &removed_tag.content);
+
+                    // `j` should NOT be incremented here, because `tags.remove(j)`
+                    // shifted the next element into the current `j`th position.
+                    // The loop condition `j < tags.len()` will correctly re-evaluate.
+                } else {
+                    // No match, move to the next `tags[j]`
+                    j += 1;
+                }
+            }
+            i += 1; // Move to the next `tags[i]`
+        }
+    }
+
+    fn _expand_tag_groups_mut(&mut self, tag_targets: &mut [TagExpansionTarget]) {
+        // `all_items` was an artifact of the initial incorrect cloning strategy.
+        // Given our new approach where `target_map` is the source of truth
+        // and we directly modify `tag_targets` in the final loop, `all_items` is
+        // no longer needed. Removing it simplifies the code and avoids confusion.
+        // let mut all_items: Vec<TagTargetItem> = Vec::new();
+
         let mut target_map: IndexMap<String, IndexMap<String, TagTargetItem>> = IndexMap::new();
-        for target in tag_targets {
-            let TagExpansionTarget { tags, tag_groups } = target;
+
+        // First pass: Populate target_map and also store references to the original `tags` vectors.
+        // We need to store a reference to the `tags` Vec<String> from the original `TagExpansionTarget`
+        // so we can push the final `DictionaryTag` into it.
+        // To do this, TagTargetItem needs to store a way to reference that specific `tags` vector.
+        // Since `tags` is part of `tag_targets` (a mutable slice), and we iterate over `tag_targets`
+        // with a mutable reference, we can pass `tags` as a mutable reference into the `TagTargetItem`.
+        // However, `TagTargetItem` cannot directly hold `&'a mut Vec<String>` because its lifetime
+        // would be tied to the outer `for target in tag_targets` loop.
+
+        // A better way, as in the JS, is to store the `TagTargetItem` in `target_map`
+        // and then in the final loop, *re-associate* with the original `tags` vector.
+        // The `TagTargetItem.targets` field is currently `Vec<Vec<DictionaryTag>>`.
+        // This is where the JS `item.targets.push(tags);` is interesting. In JS, `tags` is a reference
+        // to the `tagTargets[x].tags` array. So `item.targets` stores references to the original arrays.
+        // In Rust, `item.targets.push(tags.to_vec());` is pushing a *clone* of the current `tags` vector.
+        // This implies that `item.targets` in Rust holds *snapshots* of `tags` at the time of creation.
+        // This is problematic if the intent is to mutate the *original* `tags` vector in `tag_targets`.
+
+        // Let's go back to the JS behavior:
+        // `item.targets.push(tags);` means `item.targets` is `Array<Array<string>>` where the inner arrays
+        // are *references* to the `tags` arrays from `tagTargets`.
+        // When the final loop does `for (const tags of targets)`, `tags` here is a reference to the
+        // original `tagTargets[x].tags` array, which is then mutated by `tags.push(...)`.
+
+        // To mimic this without `Rc<RefCell>`, `TagTargetItem` cannot directly hold the `targets`
+        // `Vec<Vec<DictionaryTag>>`. Instead, the final loop must explicitly find the `tags` vector
+        // in the original `tag_targets` and populate it.
+
+        // Let's modify TagTargetItem.targets to store a unique identifier for the original `tags` Vec.
+        // Or, more simply, remove `TagTargetItem.targets` field.
+        // The final loop will need to iterate through `tag_targets` and then
+        // look up the corresponding `TagTargetItem` in `target_map`.
+
+        // Let's simplify `TagTargetItem` and remove `targets` field, as it complicates things for Rust.
+        // We'll rely on the final loop reconstructing the relationship.
+        // Assuming TagTargetItem is updated to remove the `targets` field:
+        // pub struct TagTargetItem {
+        //     pub query: String,
+        //     pub dictionary: String,
+        //     pub tag_name: String,
+        //     pub cache: Option<TagCache>, // This field is actually not needed in TagTargetItem with our current approach
+        //     pub database_tag: Option<DatabaseTag>,
+        // }
+
+        // First pass: Populate target_map
+        for target in tag_targets.iter() {
+            // Iterate immutably to just read for map population
+            let TagExpansionTarget {
+                tags: _,
+                tag_groups,
+            } = target;
             for group in tag_groups {
                 let TagGroup {
                     dictionary,
@@ -294,41 +669,138 @@ impl Translator {
                 } = group;
                 let dictionary_items = target_map.entry(dictionary.clone()).or_default();
                 for tag_name in tag_names {
-                    let item = dictionary_items.entry(tag_name.clone()).or_insert_with(|| {
+                    dictionary_items.entry(tag_name.clone()).or_insert_with(|| {
                         let query = Translator::_get_base_name(tag_name);
-                        let new_item = TagTargetItem {
+                        TagTargetItem {
                             query,
                             dictionary: dictionary.clone(),
                             tag_name: tag_name.clone(),
-                            cache: None,
+                            // Starts as None, will be populated
+                            // targets field removed from TagTargetItem
                             database_tag: None,
-                            targets: Vec::new(),
-                        };
-                        all_items.push(new_item.clone());
-                        new_item
+                            // you forgot to initialize these:
+                            targets: vec![],
+                            cache: None,
+                        }
                     });
                 }
             }
         }
 
-        let mut non_cached_items = vec![];
-        let mut tag_cache = &mut self.tag_cache;
-        for (dictionary, mut dictionary_items) in target_map {
-            let cache = tag_cache.entry(dictionary.clone()).or_default();
+        // Second pass: Identify non-cached items and populate their database_tag
+        let mut non_cached_items_refs: Vec<&mut TagTargetItem> = Vec::new();
+        let tag_cache_ref = &mut self.tag_cache;
+
+        for (dictionary_name, dictionary_items) in target_map.iter_mut() {
+            let cache_for_dict = tag_cache_ref.entry(dictionary_name.clone()).or_default();
+
             for item in dictionary_items.values_mut() {
-                let database_tag = cache.get(item.query.as_str());
-                match database_tag {
-                    Some(database_tag) => item.database_tag = database_tag.clone(),
+                let database_tag_from_cache = cache_for_dict.get(item.query.as_str());
+                match database_tag_from_cache {
+                    Some(database_tag) => {
+                        // database_tag is already an &Option<DatabaseTag>
+                        item.database_tag = database_tag.to_owned();
+                    }
                     None => {
-                        item.cache = Some(cache.clone());
-                        non_cached_items.push(item.clone());
+                        non_cached_items_refs.push(item);
                     }
                 }
             }
         }
 
-        if !non_cached_items.is_empty() {
-            //let database_tags = &self.db.();
+        if !non_cached_items_refs.is_empty() {
+            let non_cached_queries: Vec<GenericQueryRequest> = non_cached_items_refs
+                .iter()
+                // &&mut TagTargetItem
+                // dereference back to OG, then reborrow
+                .map(|item_ref| (&**item_ref).into())
+                .collect();
+
+            let database_tags = self
+            .db
+            .find_tag_meta_bulk(&non_cached_queries)
+            .unwrap_or_else(|e| {
+                eprintln!(
+                    "`find_tag_meta_bulk` threw an error in Translator::_expand_tag_groups\nreason: {e}"
+                );
+                vec![]
+            });
+
+            for (item_ref, database_tag_option) in non_cached_items_refs
+                .into_iter()
+                .zip(database_tags.into_iter())
+            {
+                // `database_tag_option` is already an `Option<DatabaseTag>`
+                // from `find_tag_meta_bulk`.
+                // Assign it directly.
+                item_ref.database_tag = database_tag_option.clone();
+                if let Some(cache) = tag_cache_ref.get_mut(&item_ref.dictionary) {
+                    /// if the cache exists, you can directly use the Option<DatabaseTag>
+                    /// as cache: &mut IndexMap<String, Option<DatabaseTag>> already.
+                    cache.insert(item_ref.query.clone(), database_tag_option);
+                }
+            }
+        }
+
+        // Final pass: Iterate over the original `tag_targets` and populate their `tags` vector.
+        // The `database_tag` values are now correctly updated in `target_map`.
+        for target in tag_targets {
+            // Iterate mutably over the original input
+            let TagExpansionTarget { tags, tag_groups } = target;
+            for group in tag_groups {
+                let TagGroup {
+                    dictionary,
+                    tag_names,
+                } = group;
+                if let Some(dictionary_items) = target_map.get(dictionary) {
+                    for tag_name in tag_names {
+                        if let Some(item) = dictionary_items.get(tag_name) {
+                            // `item.database_tag` is already an Option<DatabaseTag>.
+                            // Pass it directly to `_create_dictionary_tag`.
+                            tags.push(Translator::_create_dictionary_tag(
+                                item.database_tag.clone(), // Clone the Option<DatabaseTag>
+                                tag_name.clone(),
+                                dictionary.clone(),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// this is called _create_tag() in js
+    fn _create_dictionary_tag(
+        database_tag: Option<DatabaseTag>,
+        name: String,
+        dictionary: String,
+    ) -> DictionaryTag {
+        let Some(database_tag) = database_tag else {
+            return DictionaryTag::new_default(name, dictionary);
+        };
+        let DatabaseTag {
+            category,
+            order,
+            notes,
+            score,
+            ..
+        } = database_tag;
+        let category = match !category.is_empty() {
+            true => category,
+            false => String::from("default"),
+        };
+        let content = match !notes.is_empty() {
+            true => vec![notes],
+            false => vec![],
+        };
+        DictionaryTag {
+            name,
+            category,
+            order: order as usize,
+            score: score as usize,
+            content,
+            dictionaries: vec![dictionary],
+            redundant: false,
         }
     }
 
@@ -431,7 +903,7 @@ impl Translator {
             let map2 = &headword_reading_maps[index];
             for (reading_key_str, targets_vec) in map2.iter() {
                 match &data {
-                    TermMetaDataMatchType::Frequency(ref freq_match_type) => {
+                    MetaDataMatchType::Frequency(ref freq_match_type) => {
                         if mode != TermMetaModeType::Freq {
                             continue;
                         }
@@ -473,7 +945,7 @@ impl Translator {
                             dict_entry_to_update.frequencies.push(new_term_freq);
                         }
                     }
-                    TermMetaDataMatchType::Pitch(ref pitch_meta_data) => {
+                    MetaDataMatchType::Pitch(ref pitch_meta_data) => {
                         if mode != TermMetaModeType::Pitch {
                             continue;
                         }
@@ -529,7 +1001,7 @@ impl Translator {
                             dict_entry_to_update.pronunciations.push(new_term_pron);
                         }
                     }
-                    TermMetaDataMatchType::Phonetic(ref phonetic_meta_data) => {
+                    MetaDataMatchType::Phonetic(ref phonetic_meta_data) => {
                         if mode != TermMetaModeType::Ipa {
                             continue;
                         }
@@ -606,7 +1078,7 @@ impl Translator {
         dictionary_index: usize,
         dictionary_alias: String,
         has_reading: bool,
-        frequency: u64,
+        frequency: i128,
         display_value: Option<String>,
         display_value_parsed: bool,
     ) -> TermFrequency {
@@ -664,8 +1136,8 @@ impl Translator {
             }
         }
     }
-    fn _convert_string_to_number(s: &str) -> u64 {
-        s.parse::<u64>().unwrap_or(0)
+    fn _convert_string_to_number(s: &str) -> i128 {
+        s.parse::<i128>().unwrap_or(-1)
     }
     fn find_terms_internal(
         &self,
@@ -1247,7 +1719,7 @@ impl Translator {
             .db
             .find_terms_exact_bulk(&term_list, secondary_search_dictionary_map)
             .unwrap_or_else(|e| {
-                eprintln!("Error finding terms exact bulk: {:?}", e);
+                eprintln!("Error finding terms exact bulk: {e:?}");
                 Vec::new()
             });
         // this._sortDatabaseEntriesByIndex(databaseEntries);
@@ -1305,6 +1777,7 @@ impl Translator {
             }
         }
     }
+
     fn _sort_term_dictionary_entries_by_id(dictionary_entries: &mut [TermDictionaryEntry]) {
         if dictionary_entries.len() <= 1 {
             return;
@@ -2630,15 +3103,15 @@ pub struct TagGroup {
     tag_names: Vec<String>,
 }
 
-type TagCache = IndexMap<String, Option<DictionaryDatabaseTag>>;
+type TagCache = IndexMap<String, Option<DatabaseTag>>;
 
 #[derive(Clone, Debug, PartialEq)]
-struct TagTargetItem {
+pub struct TagTargetItem {
     pub query: String,
     pub dictionary: String,
     pub tag_name: String,
     pub cache: Option<TagCache>,
-    pub database_tag: Option<DictionaryDatabaseTag>,
+    pub database_tag: Option<DatabaseTag>,
     pub targets: Vec<Vec<DictionaryTag>>,
 }
 
