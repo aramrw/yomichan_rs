@@ -5,16 +5,8 @@ use crate::{
 use derive_more::derive::From;
 use getset::MutGetters;
 use indexmap::IndexMap;
-use language_transformer::transformer::InflectionRuleChainCandidate;
+use language_transformer::transformer::{InflectionRuleChainCandidate, InflectionSource};
 use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum InflectionSource {
-    Algorithm,
-    Dictionary,
-    Both,
-}
 
 /// Dictionary InflectionRuleChainCandidate
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

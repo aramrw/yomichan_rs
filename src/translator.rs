@@ -9,10 +9,9 @@ use crate::{
     },
     dictionary::{
         self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
-        InflectionSource, PhoneticTranscription, PitchAccent, Pronunciation, TermDefinition,
-        TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
-        TermPronunciationMatchType, TermSource, TermSourceMatchSource, TermSourceMatchType,
-        VecNumOrNum,
+        PhoneticTranscription, PitchAccent, Pronunciation, TermDefinition, TermDictionaryEntry,
+        TermFrequency, TermHeadword, TermPronunciation, TermPronunciationMatchType, TermSource,
+        TermSourceMatchSource, TermSourceMatchType, VecNumOrNum,
     },
     dictionary_data::{
         FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermGlossary,
@@ -28,7 +27,8 @@ use crate::{
         FindTermsSortOrder,
     },
     translation_internal::{
-        DatabaseDeinflection, DictionaryEntryGroup, TextCache, TextProcessorRuleChainCandidate,
+        DatabaseDeinflection, DictionaryEntryGroup, FindInternalTermsResult,
+        InternalTermDictionaryEntry, TextCache, TextProcessorRuleChainCandidate,
         VariantAndTextProcessorRuleChainCandidatesMap,
     },
 };
@@ -40,7 +40,9 @@ use icu::{
     locale::locale,
 };
 use indexmap::{IndexMap, IndexSet};
-use language_transformer::transformer::InflectionRuleChainCandidate;
+use language_transformer::transformer::{
+    InflectionRuleChainCandidate, InflectionSource, InternalInflectionRuleChainCandidate,
+};
 use language_transformer::{
     descriptors::{PreAndPostProcessors, PreAndPostProcessorsWithId},
     ja::japanese::is_code_point_japanese,
@@ -139,7 +141,7 @@ impl Translator {
         mode: FindTermsMode,
         text: &str,
         opts: &FindTermsOptions,
-    ) -> FindTermResult {
+    ) -> FindTermsResult {
         let mut text = text.to_string();
         let FindTermsOptions {
             enabled_dictionary_map,
@@ -151,7 +153,7 @@ impl Translator {
             ..
         } = opts;
         let mut tag_aggregator = TranslatorTagAggregator::default();
-        let FindTermResult {
+        let FindInternalTermsResult {
             mut dictionary_entries,
             original_text_length,
         } = self.find_terms_internal(&mut text, opts, &mut tag_aggregator, primary_reading);
@@ -264,10 +266,10 @@ impl Translator {
             }
         });
         let with_user_facing_inflections =
-            self._add_user_facing_inflections(language, &dictionary_entries);
+            self._add_user_facing_inflections(language, dictionary_entries);
 
-        FindTermResult {
-            dictionary_entries,
+        FindTermsResult {
+            dictionary_entries: with_user_facing_inflections,
             original_text_length,
         }
     }
@@ -275,40 +277,64 @@ impl Translator {
     fn _add_user_facing_inflections(
         &self,
         language: &str,
-        dictionary_entries: &[TermDictionaryEntry], // Input can be an immutable slice
+        dictionary_entries: Vec<InternalTermDictionaryEntry>,
     ) -> Vec<TermDictionaryEntry> {
-        let mut result = Vec::with_capacity(dictionary_entries.len()); // Pre-allocate for efficiency
+        let mut result: Vec<TermDictionaryEntry> = Vec::with_capacity(dictionary_entries.len());
 
         for dictionary_entry in dictionary_entries {
-            // Iterates over &TermDictionaryEntry
-            // Create new `expanded_chains`
-            // by mapping over the original entry's candidates
             let expanded_chains: Vec<InflectionRuleChainCandidate> = dictionary_entry
                 .inflection_rule_chain_candidates
                 .iter()
                 .map(|original_candidate| {
-                    // this method takes a string[] cuz js types r ass
-                    // so we need to turn them into strings
-                    let inflection_rules: Vec<String> = original_candidate
-                        .inflection_rules
-                        .iter()
-                        .map(|ir| ir.name.clone())
-                        .collect();
+                    let inflection_rules = &original_candidate.inflection_rules;
                     let new_rules = self
                         .mlt
-                        .get_user_facing_inflection_rules(language, &inflection_rules);
+                        .get_user_facing_inflection_rules(language, inflection_rules);
 
                     InflectionRuleChainCandidate {
-                        source: original_candidate.source.clone(),
+                        source: original_candidate.source,
                         inflection_rules: new_rules,
                     }
                 })
                 .collect();
 
-            // Create a new TermDictionaryEntry, cloning the original and then
-            // replacing its inflectionRuleChainCandidates.
-            let mut new_entry = dictionary_entry.clone();
-            new_entry.inflection_rule_chain_candidates = expanded_chains;
+            let InternalTermDictionaryEntry {
+                entry_type,
+                is_primary,
+                text_processor_rule_chain_candidates,
+                inflection_rule_chain_candidates,
+                score,
+                frequency_order,
+                dictionary_alias,
+                dictionary_index,
+                source_term_exact_match_count,
+                match_primary_reading,
+                max_original_text_length,
+                headwords,
+                definitions,
+                pronunciations,
+                frequencies,
+            } = dictionary_entry;
+
+            // Make the InternalTermDictionaryEntry into a TermDictionaryEntry
+            // only replacing its inflectionRuleChainCandidates.
+            let mut new_entry = TermDictionaryEntry {
+                entry_type,
+                is_primary,
+                text_processor_rule_chain_candidates,
+                inflection_rule_chain_candidates: expanded_chains,
+                score,
+                frequency_order,
+                dictionary_alias,
+                dictionary_index,
+                source_term_exact_match_count,
+                match_primary_reading,
+                max_original_text_length,
+                headwords,
+                definitions,
+                pronunciations,
+                frequencies,
+            };
             result.push(new_entry);
         }
 
@@ -428,7 +454,10 @@ impl Translator {
         res
     }
 
-    fn _sort_term_dictionary_entries(&self, dictionary_entries: &mut [TermDictionaryEntry]) {
+    fn _sort_term_dictionary_entries(
+        &self,
+        dictionary_entries: &mut [InternalTermDictionaryEntry],
+    ) {
         let string_comparer = &self.string_comparer;
 
         dictionary_entries.sort_by(|v1, v2| {
@@ -543,7 +572,7 @@ impl Translator {
 
     fn _get_shortest_inflection_chain_length(
         &self,
-        candidates: &[InflectionRuleChainCandidate],
+        candidates: &[InternalInflectionRuleChainCandidate],
     ) -> usize {
         candidates
             .iter()
@@ -553,12 +582,12 @@ impl Translator {
     }
 
     fn _update_sort_frequencies(
-        dictionary_entries: &mut [TermDictionaryEntry],
+        dictionary_entries: &mut [InternalTermDictionaryEntry],
         dictionary: &str,
         ascending: bool,
     ) {
         let mut frequency_map: IndexMap<usize, i128> = IndexMap::new();
-        for TermDictionaryEntry {
+        for InternalTermDictionaryEntry {
             definitions,
             frequencies,
             mut frequency_order,
@@ -919,7 +948,7 @@ impl Translator {
     }
     fn _add_term_meta(
         &self,
-        dictionary_entries: &mut [TermDictionaryEntry],
+        dictionary_entries: &mut [InternalTermDictionaryEntry],
         enabled_dictionary_map: &TermEnabledDictionaryMap,
         tag_aggregator: &mut TranslatorTagAggregator,
     ) {
@@ -1252,7 +1281,7 @@ impl Translator {
         opts: &FindTermsOptions,
         tag_aggregator: &mut TranslatorTagAggregator,
         primary_reading: &str,
-    ) -> FindTermResult {
+    ) -> FindInternalTermsResult {
         let FindTermsOptions {
             remove_non_japanese_characters,
             enabled_dictionary_map,
@@ -1263,10 +1292,7 @@ impl Translator {
             *text = Translator::get_japanese_chinese_only_text(text);
         }
         if text.is_empty() {
-            return FindTermResult {
-                dictionary_entries: vec![],
-                original_text_length: 0,
-            };
+            return FindInternalTermsResult::default();
         }
         let deinflections = self._get_deinflections(text, opts);
         Translator::_get_dictionary_entries(
@@ -1276,11 +1302,9 @@ impl Translator {
             primary_reading,
         )
     }
-    // fn _add_term_meta() {
-    //
-    // }
+
     fn _remove_excluded_definitions(
-        dictionary_entries: &mut Vec<TermDictionaryEntry>,
+        dictionary_entries: &mut Vec<InternalTermDictionaryEntry>,
         exclude_dictionary_definitions: &IndexSet<String>,
     ) {
         dictionary_entries.retain_mut(|dictionary_entry| {
@@ -1351,7 +1375,7 @@ impl Translator {
             }
         });
     }
-    fn _remove_unused_headwords(dictionary_entry: &mut TermDictionaryEntry) {
+    fn _remove_unused_headwords(dictionary_entry: &mut InternalTermDictionaryEntry) {
         let mut remove_headword_indices: IndexSet<usize> = IndexSet::new();
         // Initially, mark all headword indices for removal.
         for i in 0..dictionary_entry.headwords.len() {
@@ -1506,10 +1530,10 @@ impl Translator {
     }
     fn _get_related_dictionary_entries(
         &self,
-        dictionary_entries_input: &[TermDictionaryEntry],
+        dictionary_entries_input: &[InternalTermDictionaryEntry],
         options: &FindTermsOptions,
         tag_aggregator: &mut TranslatorTagAggregator,
-    ) -> Vec<TermDictionaryEntry> {
+    ) -> Vec<InternalTermDictionaryEntry> {
         let FindTermsOptions {
             main_dictionary,
             enabled_dictionary_map,
@@ -1523,10 +1547,10 @@ impl Translator {
         let mut grouped_dictionary_entries: Vec<DictionaryEntryGroup> = Vec::new();
         // Maps sequence (i128) to the index in `grouped_dictionary_entries` vector
         let mut grouped_dictionary_entries_map: IndexMap<i128, usize> = IndexMap::new();
-        let mut ungrouped_dictionary_entries_map: IndexMap<String, TermDictionaryEntry> =
+        let mut ungrouped_dictionary_entries_map: IndexMap<String, InternalTermDictionaryEntry> =
             IndexMap::new();
         for dictionary_entry in dictionary_entries_input {
-            // dictionary_entry is &TermDictionaryEntry
+            // dictionary_entry is &InternalTermDictionaryEntry
             if let Some(first_definition) = dictionary_entry.definitions.first() {
                 let id = &first_definition.id;
                 let definition_dictionary = &first_definition.dictionary;
@@ -1600,7 +1624,7 @@ impl Translator {
                 )
             }
         }
-        let mut new_dictionary_entries: Vec<TermDictionaryEntry> = Vec::new();
+        let mut new_dictionary_entries: Vec<InternalTermDictionaryEntry> = Vec::new();
         for group in &grouped_dictionary_entries {
             new_dictionary_entries.push(self._create_grouped_dictionary_entry(
                 language,
@@ -1610,7 +1634,7 @@ impl Translator {
                 primary_reading,
             ));
         }
-        let ungrouped_values_collected: Vec<TermDictionaryEntry> =
+        let ungrouped_values_collected: Vec<InternalTermDictionaryEntry> =
             ungrouped_dictionary_entries_map.values().cloned().collect();
         new_dictionary_entries.extend(self._group_dictionary_entries_by_headword(
             language,
@@ -1624,7 +1648,7 @@ impl Translator {
         &self,
         language: &str,
         grouped_dictionary_entries: &mut [DictionaryEntryGroup],
-        ungrouped_dictionary_entries_map: &mut IndexMap<String, TermDictionaryEntry>,
+        ungrouped_dictionary_entries_map: &mut IndexMap<String, InternalTermDictionaryEntry>,
         enabled_dictionary_map: &TermEnabledDictionaryMap,
         secondary_search_dictionary_map: &TermEnabledDictionaryMap,
         tag_aggregator: &mut TranslatorTagAggregator,
@@ -1858,18 +1882,19 @@ impl Translator {
                 }
                 let group_to_update = &mut grouped_dictionary_entries[group_idx_to_update];
                 if group_to_update.ids.contains(&database_entry.id) {
-                    continue; // This group already has this specific database entry by ID
+                    // This group already has this in the DB by id
+                    continue;
                 }
                 let new_dictionary_entry =
-                    Translator::_create_term_dictionary_entry_from_database_entry(
-                        database_entry.clone(), // Clones TermEntry
+                    Translator::_create_internal_term_dictionary_entry_from_database_entry(
+                        database_entry.clone(),
                         source_text,
-                        source_text, // JS uses sourceText for original, transformed, deinflected
                         source_text,
-                        Vec::new(), // empty text_processor_rule_chain_candidates
-                        Vec::new(), // empty inflection_rule_chain_candidates
-                        false,      // is_primary (secondary entries are not primary)
-                        enabled_dictionary_map, // Use the main enabled map for creating entries
+                        source_text,
+                        Vec::new(),
+                        Vec::new(),
+                        false,
+                        enabled_dictionary_map,
                         tag_aggregator,
                         primary_reading,
                     );
@@ -1885,7 +1910,7 @@ impl Translator {
         }
     }
 
-    fn _sort_term_dictionary_entries_by_id(dictionary_entries: &mut [TermDictionaryEntry]) {
+    fn _sort_term_dictionary_entries_by_id(dictionary_entries: &mut [InternalTermDictionaryEntry]) {
         if dictionary_entries.len() <= 1 {
             return;
         }
@@ -1894,7 +1919,7 @@ impl Translator {
     fn _add_related_dictionary_entries(
         &self,
         grouped_dictionary_entries: &mut [DictionaryEntryGroup],
-        ungrouped_dictionary_entries_map: &mut IndexMap<String, TermDictionaryEntry>,
+        ungrouped_dictionary_entries_map: &mut IndexMap<String, InternalTermDictionaryEntry>,
         sequence_list: Vec<GenericQueryRequest>,
         enabled_dictionary_map: &TermEnabledDictionaryMap,
         tag_aggregator: &mut TranslatorTagAggregator,
@@ -1918,18 +1943,19 @@ impl Translator {
             if ids.has(id) {
                 continue;
             }
-            let dictionary_entry = Translator::_create_term_dictionary_entry_from_database_entry(
-                db_entry.clone(),
-                term,
-                term,
-                term,
-                vec![],
-                vec![],
-                false,
-                enabled_dictionary_map,
-                tag_aggregator,
-                primary_reading,
-            );
+            let dictionary_entry =
+                Translator::_create_internal_term_dictionary_entry_from_database_entry(
+                    db_entry.clone(),
+                    term,
+                    term,
+                    term,
+                    vec![],
+                    vec![],
+                    false,
+                    enabled_dictionary_map,
+                    tag_aggregator,
+                    primary_reading,
+                );
             dictionary_entries.push(dictionary_entry);
             ids.insert(id.clone());
             // this could be optimized depending on if order matters
@@ -1953,14 +1979,14 @@ impl Translator {
     fn _group_dictionary_entries_by_headword(
         &self,
         language: &str,
-        dictionary_entries: &[TermDictionaryEntry],
+        dictionary_entries: &[InternalTermDictionaryEntry],
         tag_aggregator: &mut TranslatorTagAggregator,
         primary_reading: &str,
-    ) -> Vec<TermDictionaryEntry> {
-        let mut groups: IndexMap<String, Vec<TermDictionaryEntry>> = IndexMap::new();
+    ) -> Vec<InternalTermDictionaryEntry> {
+        let mut groups: IndexMap<String, Vec<InternalTermDictionaryEntry>> = IndexMap::new();
         let reading_normalizer = self.reading_normalizers.get(language);
         for dictionary_entry in dictionary_entries {
-            let TermDictionaryEntry {
+            let InternalTermDictionaryEntry {
                 inflection_rule_chain_candidates,
                 headwords,
                 ..
@@ -2010,11 +2036,11 @@ impl Translator {
     fn _create_grouped_dictionary_entry(
         &self,
         language: &str,
-        dictionary_entries: &[TermDictionaryEntry],
+        dictionary_entries: &[InternalTermDictionaryEntry],
         mut check_duplicate_definitions: bool,
         tag_aggregator: &mut TranslatorTagAggregator,
         primary_reading: &str,
-    ) -> TermDictionaryEntry {
+    ) -> InternalTermDictionaryEntry {
         // Headwords are generated before sorting,
         // so that the order of dictionaryEntries can be maintained
         let mut definition_entries = vec![];
@@ -2026,7 +2052,7 @@ impl Translator {
                 &dictionary_entry.headwords,
                 tag_aggregator,
             );
-            let term_dictionary_entry_with_map = TermDictionaryEntryWithIndexes {
+            let term_dictionary_entry_with_map = InternalTermDictionaryEntryWithIndexes {
                 index: definition_entries.len(),
                 dictionary_entry: dictionary_entry.clone(),
                 headword_indexes: headword_index_map,
@@ -2048,10 +2074,10 @@ impl Translator {
                 true => Some(IndexMap::new()),
                 false => None,
             };
-        let mut inflections: Option<Vec<InflectionRuleChainCandidate>> = None;
+        let mut inflections: Option<Vec<InternalInflectionRuleChainCandidate>> = None;
         let mut text_processes: Option<Vec<TextProcessorRuleChainCandidate>> = None;
         for definition_entry in &definition_entries {
-            let TermDictionaryEntryWithIndexes {
+            let InternalTermDictionaryEntryWithIndexes {
                 dictionary_entry,
                 headword_indexes,
                 ..
@@ -2112,7 +2138,7 @@ impl Translator {
                 }
             }
         }
-        Translator::_create_term_dictionary_entry(
+        Translator::_create_internal_term_dictionary_entry(
             is_primary,
             text_processes.unwrap_or_default(),
             inflections.unwrap_or_default(),
@@ -2337,9 +2363,9 @@ impl Translator {
         enabled_dictionary_map: &FindTermDictionaryMap,
         tag_aggregator: &mut TranslatorTagAggregator,
         primary_reading: &str,
-    ) -> FindTermResult {
+    ) -> FindInternalTermsResult {
         let mut original_text_length = 0;
-        let mut dictionary_entries: Vec<TermDictionaryEntry> = vec![];
+        let mut dictionary_entries: Vec<InternalTermDictionaryEntry> = vec![];
         let mut ids: IndexSet<String> = IndexSet::new();
         for deinflection in deinflections {
             let DatabaseDeinflection {
@@ -2359,7 +2385,7 @@ impl Translator {
                 let id = database_entry.id.clone();
                 if !ids.contains(id.as_str()) {
                     let dictionary_entry =
-                        Translator::_create_term_dictionary_entry_from_database_entry(
+                        Translator::_create_internal_term_dictionary_entry_from_database_entry(
                             database_entry.clone(),
                             original_text,
                             transformed_text,
@@ -2397,7 +2423,7 @@ impl Translator {
                     continue;
                 }
                 let term_dictionary_entry =
-                    Translator::_create_term_dictionary_entry_from_database_entry(
+                    Translator::_create_internal_term_dictionary_entry_from_database_entry(
                         database_entry.clone(),
                         original_text,
                         transformed_text,
@@ -2423,13 +2449,13 @@ impl Translator {
                 }
             }
         }
-        FindTermResult {
+        FindInternalTermsResult {
             dictionary_entries,
             original_text_length: original_text_length as i128,
         }
     }
     fn _merge_text_processor_rule_chains(
-        existing_entry: &mut TermDictionaryEntry,
+        existing_entry: &mut InternalTermDictionaryEntry,
         text_processor_rule_chain_candidates: &[TextProcessorRuleChainCandidate],
     ) {
         for text_processor_rules in text_processor_rule_chain_candidates {
@@ -2449,11 +2475,11 @@ impl Translator {
     }
     /// mutates the existing_entry
     fn _merge_inflection_rule_chains(
-        existing_entry: &mut TermDictionaryEntry,
-        inflection_rule_chain_candidates: &[InflectionRuleChainCandidate],
+        existing_entry: &mut InternalTermDictionaryEntry,
+        inflection_rule_chain_candidates: &[InternalInflectionRuleChainCandidate],
     ) {
         for candidate in inflection_rule_chain_candidates {
-            let InflectionRuleChainCandidate {
+            let InternalInflectionRuleChainCandidate {
                 source,
                 inflection_rules,
             } = candidate;
@@ -2464,7 +2490,7 @@ impl Translator {
                 .find(|chain| {
                     Translator::_are_arrays_equal_ignore_order(
                         &chain.inflection_rules,
-                        inflection_rules,
+                        &inflection_rules,
                     )
                 })
             {
@@ -2472,7 +2498,7 @@ impl Translator {
                     duplicate.source = InflectionSource::Both;
                 }
             } else {
-                let new_rule_chain_candidate = InflectionRuleChainCandidate {
+                let new_rule_chain_candidate = InternalInflectionRuleChainCandidate {
                     source: source.clone(),
                     inflection_rules: inflection_rules.clone(),
                 };
@@ -2482,11 +2508,13 @@ impl Translator {
             }
         }
     }
+
     fn _are_arrays_equal_ignore_order(x: &[impl AsRef<str>], y: &[impl AsRef<str>]) -> bool {
         x.len() == y.len()
     }
+
     fn _find_existing_entry(
-        dictionary_entries: &[TermDictionaryEntry],
+        dictionary_entries: &[InternalTermDictionaryEntry],
         id: &str,
     ) -> Option<ExistingEntry> {
         dictionary_entries
@@ -2504,18 +2532,18 @@ impl Translator {
             })
     }
     /// [TermGlossary]
-    fn _create_term_dictionary_entry_from_database_entry(
+    fn _create_internal_term_dictionary_entry_from_database_entry(
         database_entry: TermEntry,
         original_text: &str,
         transformed_text: &str,
         deinflected_text: &str,
         text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
-        inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+        inflection_rule_chain_candidates: Vec<InternalInflectionRuleChainCandidate>,
         is_primary: bool,
         enabled_dictionary_map: &FindTermDictionaryMap,
         tag_aggregator: &mut TranslatorTagAggregator,
         primary_reading: &str,
-    ) -> TermDictionaryEntry {
+    ) -> InternalTermDictionaryEntry {
         let TermEntry {
             id,
             index: dictionary_index,
@@ -2594,7 +2622,7 @@ impl Translator {
             definition_tag_groups,
             content_definitions,
         )];
-        Translator::_create_term_dictionary_entry(
+        Translator::_create_internal_term_dictionary_entry(
             is_primary,
             text_processor_rule_chain_candidates,
             inflection_rule_chain_candidates,
@@ -2653,10 +2681,10 @@ impl Translator {
             word_classes,
         }
     }
-    fn _create_term_dictionary_entry(
+    fn _create_internal_term_dictionary_entry(
         is_primary: bool,
         text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
-        inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+        inflection_rule_chain_candidates: Vec<InternalInflectionRuleChainCandidate>,
         score: i128,
         dictionary_index: usize,
         dictionary_alias: String,
@@ -2665,8 +2693,8 @@ impl Translator {
         max_original_text_length: usize,
         headwords: Vec<TermHeadword>,
         definitions: Vec<TermDefinition>,
-    ) -> TermDictionaryEntry {
-        TermDictionaryEntry {
+    ) -> InternalTermDictionaryEntry {
+        InternalTermDictionaryEntry {
             entry_type: TermSourceMatchSource::Term,
             is_primary,
             text_processor_rule_chain_candidates,
@@ -2823,27 +2851,28 @@ impl Translator {
                         if form_of.is_empty() {
                             continue;
                         }
-                        let inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate> =
-                            algorithm_chains
-                                .iter()
-                                .map(|alg_chain_candidate| {
-                                    let alg_inflections = &alg_chain_candidate.inflection_rules;
-                                    let source = if alg_inflections.is_empty() {
-                                        InflectionSource::Dictionary
-                                    } else {
-                                        InflectionSource::Both
-                                    };
-                                    let combined_rules: Vec<String> = alg_inflections
-                                        .iter()
-                                        .cloned()
-                                        .chain(inflection_rules.iter().cloned())
-                                        .collect();
-                                    InflectionRuleChainCandidate {
-                                        source,
-                                        inflection_rules: combined_rules,
-                                    }
-                                })
-                                .collect();
+                        let inflection_rule_chain_candidates: Vec<
+                            InternalInflectionRuleChainCandidate,
+                        > = algorithm_chains
+                            .iter()
+                            .map(|alg_chain_candidate| {
+                                let alg_inflections = &alg_chain_candidate.inflection_rules;
+                                let source = if alg_inflections.is_empty() {
+                                    InflectionSource::Dictionary
+                                } else {
+                                    InflectionSource::Both
+                                };
+                                let inflection_rule_chain_candidates: Vec<String> = alg_inflections
+                                    .iter()
+                                    .cloned()
+                                    .chain(inflection_rules.iter().cloned())
+                                    .collect();
+                                InternalInflectionRuleChainCandidate {
+                                    source,
+                                    inflection_rules: inflection_rule_chain_candidates,
+                                }
+                            })
+                            .collect();
                         let dictionary_deinflection = Translator::_create_deinflection(
                             original_text,
                             transformed_text,
@@ -2903,13 +2932,14 @@ impl Translator {
                     for post_processed_variant in postprocessed_text_variants {
                         let (transformed_text, postprocessor_rule_chain_candidates) =
                             post_processed_variant;
-                        let inflection_rule_chain_candidate = InflectionRuleChainCandidate {
-                            source: InflectionSource::Algorithm,
-                            inflection_rules: trace
-                                .iter()
-                                .map(|frame| frame.transform.clone())
-                                .collect(),
-                        };
+                        let inflection_rule_chain_candidate =
+                            InternalInflectionRuleChainCandidate {
+                                source: InflectionSource::Algorithm,
+                                inflection_rules: trace
+                                    .iter()
+                                    .map(|frame| frame.transform.clone())
+                                    .collect(),
+                            };
                         // every combination of preprocessor rule candidates
                         // and postprocessor rule candidates
                         let text_processor_rule_chain_candidates: Vec<Vec<String>> =
@@ -3103,7 +3133,7 @@ impl Translator {
         deinflected_text: &str,
         conditions: usize,
         text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
-        inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+        inflection_rule_chain_candidates: Vec<InternalInflectionRuleChainCandidate>,
     ) -> DatabaseDeinflection {
         DatabaseDeinflection {
             original_text: original_text.to_string(),
@@ -3509,12 +3539,12 @@ pub enum EnabledDictionaryMapType<'a> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExistingEntry {
     pub index: usize,
-    pub entry: TermDictionaryEntry,
+    pub entry: InternalTermDictionaryEntry,
 }
 #[derive(Clone, Debug, PartialEq)]
-pub struct TermDictionaryEntryWithIndexes {
+pub struct InternalTermDictionaryEntryWithIndexes {
     pub index: usize,
-    pub dictionary_entry: TermDictionaryEntry,
+    pub dictionary_entry: InternalTermDictionaryEntry,
     pub headword_indexes: Vec<usize>,
 }
 #[derive(Clone, Debug)]
@@ -3522,11 +3552,13 @@ struct TermReadingItem {
     pub term: String,
     pub reading: Option<String>,
 }
+
 #[derive(Clone, Debug)]
-pub struct FindTermResult {
+pub struct FindTermsResult {
     pub dictionary_entries: Vec<TermDictionaryEntry>,
     pub original_text_length: i128,
 }
+
 type TextProcessorMap = IndexMap<&'static str, PreAndPostProcessorsWithId>;
 type ReadingNormalizerMap = IndexMap<&'static str, ReadingNormalizer>;
 #[derive(thiserror::Error, Debug)]
