@@ -313,7 +313,7 @@ impl Translator {
             self._sort_term_dictionary_entries(&mut dictionary_entries);
         }
 
-        Translator::_flag_redundant;
+        Translator::_flag_redundant_definition_tags(definitions);
 
         FindTermResult {
             dictionary_entries,
