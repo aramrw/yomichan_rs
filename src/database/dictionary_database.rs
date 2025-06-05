@@ -1007,7 +1007,7 @@ impl DictionaryDatabase {
             _, _, _                // Infer other closure types
         >(
             &index_query_identifiers,
-            &term_list,
+            term_list,
             create_query_fn_closure, // Pass boxed closure
             resolve_secondary_key_fn,
             predicate_fn,
@@ -1028,7 +1028,7 @@ impl DictionaryDatabase {
     pub fn find_term_meta_bulk(
         &self,
         term_list_input: &[impl AsRef<str> + Sync], // JS: termList
-        dictionaries: &(impl DictionarySet + Sync), // JS: dictionaries
+        dictionaries: &(impl DictionarySet),        // JS: dictionaries
     ) -> Result<Vec<DatabaseTermMeta>, Box<DictionaryDatabaseError>> {
         let terms_as_strings: Vec<String> = term_list_input
             .iter()

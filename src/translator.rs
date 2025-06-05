@@ -413,7 +413,7 @@ impl Translator {
         } in definitions
         {
             let tag_names_with_category =
-                Translator::_get_tag_names_with_category(&tags, "partOfSpeech");
+                Translator::_get_tag_names_with_category(tags, "partOfSpeech");
             let part_of_speech = Translator::_create_map_key(&tag_names_with_category);
 
             if last_dictionary.as_ref().is_some_and(|ld| *ld != dictionary) {
@@ -644,7 +644,7 @@ impl Translator {
                 frequency_order = match frequency_min <= frequency_max {
                     true => match ascending {
                         true => frequency_min,
-                        false => (-frequency_max as i128),
+                        false => -frequency_max,
                     },
                     false => match ascending {
                         true => i128::MAX,
@@ -685,7 +685,7 @@ impl Translator {
     /// - `score` becomes the maximum of the two.
     /// - `dictionaries` are combined.
     /// - `content` is combined uniquely using `_add_unique_simple`.
-    /// The second tag (tag2) is removed from the vector.
+    ///   The second tag (tag2) is removed from the vector.
     pub fn _merge_similar_tags_mut(tags: &mut Vec<DictionaryTag>) {
         if tags.is_empty() {
             return;
@@ -1426,25 +1426,25 @@ impl Translator {
         .collect();
         let mut updates = [definitions, frequencies, pronunciations];
         for mut update in &mut updates {
-            Translator::_update_term_headword_indices_mut(&mut update, &index_remap);
+            Translator::_update_term_headword_indices_mut(update, &index_remap);
         }
         dictionary_entry.definitions = iter_variant_to_iter_type!(updates[0], TermType::Definition);
         dictionary_entry.frequencies = iter_variant_to_iter_type!(updates[1], TermType::Frequency);
         dictionary_entry.pronunciations =
             iter_variant_to_iter_type!(updates[2], TermType::Pronunciation);
     }
-    /// Updates headword indices for a collection of `TermType` items based on an index remap.
+    /// Updates headword indices for a collection of
+    /// `TermType` items based on an index remap.
     ///
-    /// This function combines the logic of updating `headword_indices` within `TermDefinition`
+    /// This function combines the logic of updating
+    /// `headword_indices` within `TermDefinition`
     /// and updating `headword_index` for `TermPronunciation` and `TermFrequency`,
     /// removing items of the latter two types if their index cannot be remapped.
     ///
     /// # Arguments
     ///
-    /// * `terms`: A mutable vector of `TermType` items to process. Items may be modified
-    ///            or removed in place.
-    /// * `index_remap`: A map where the key is the old headword index and the value
-    ///                  is the new headword index.
+    /// * `terms`: A mutable vector of `TermType` items to process. Items may be modified or removed in place.
+    /// * `index_remap`: A map where the key is the old headword index and the value is the new headword index.
     fn _update_term_headword_indices_mut(
         terms: &mut Vec<TermType>,
         index_remap: &IndexMap<usize, usize>,
@@ -1690,8 +1690,7 @@ impl Translator {
                 // Ensure headwords exist.
                 let headword = dictionary_entry.headwords.first().unwrap_or_else(|| {
                     panic!(
-                        "DictionaryEntry is missing headwords in _add_secondary_related_dictionary_entries for group processing, group_idx: {}",
-                        group_idx
+                        "DictionaryEntry is missing headwords in _add_secondary_related_dictionary_entries for group processing, group_idx: {group_idx}"
                     )
                 });
                 let term = &headword.term;
@@ -1772,8 +1771,7 @@ impl Translator {
             for dictionary_entry in &group.dictionary_entries {
                 let headword = dictionary_entry.headwords.first().unwrap_or_else(|| {
                     panic!(
-                        "DictionaryEntry is missing headwords (loop 2) for group_idx: {}",
-                        group_idx
+                        "DictionaryEntry is missing headwords (loop 2) for group_idx: {group_idx}"
                     )
                 });
                 let term = &headword.term;
@@ -1804,8 +1802,7 @@ impl Translator {
         for (id, dictionary_entry) in ungrouped_dictionary_entries_map.iter() {
             let headword = dictionary_entry.headwords.first().unwrap_or_else(|| {
                 panic!(
-                    "Ungrouped DictionaryEntry ID '{}' is missing headwords in _add_secondary_related_dictionary_entries",
-                    id
+                    "Ungrouped DictionaryEntry ID '{id}' is missing headwords in _add_secondary_related_dictionary_entries"
                 )
             });
             let term = &headword.term;
@@ -2490,7 +2487,7 @@ impl Translator {
                 .find(|chain| {
                     Translator::_are_arrays_equal_ignore_order(
                         &chain.inflection_rules,
-                        &inflection_rules,
+                        inflection_rules,
                     )
                 })
             {
@@ -2499,7 +2496,7 @@ impl Translator {
                 }
             } else {
                 let new_rule_chain_candidate = InternalInflectionRuleChainCandidate {
-                    source: source.clone(),
+                    source: *source,
                     inflection_rules: inflection_rules.clone(),
                 };
                 existing_entry
