@@ -784,7 +784,7 @@ mod importer_tests {
             dictionary_importer::{self, prepare_dictionary},
         },
         settings::Options,
-        yomichan_test_utils, Yomichan,
+        test_utils, Yomichan,
     };
 
     #[test]

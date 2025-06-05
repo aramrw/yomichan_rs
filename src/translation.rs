@@ -66,8 +66,8 @@ pub struct FindTermsOptions {
     /// ISO-639 code of the language.
     pub language: String,
 }
-impl Default for FindTermsOptions {
-    fn default() -> Self {
+impl FindTermsOptions {
+    fn default_for_language(language: &str) -> Self {
         Self {
             match_type: TermSourceMatchType::Prefix,
             deinflect: true,
@@ -78,9 +78,9 @@ impl Default for FindTermsOptions {
             remove_non_japanese_characters: false,
             text_replacements: vec![],
             enabled_dictionary_map: IndexMap::default(),
-            exclude_dictionary_definitions: (),
-            search_resolution: (),
-            language: (),
+            exclude_dictionary_definitions: None,
+            search_resolution: SearchResolution::Word,
+            language: language.to_string(),
         }
     }
 }

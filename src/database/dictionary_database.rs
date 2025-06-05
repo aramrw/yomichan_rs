@@ -1518,13 +1518,13 @@ mod ycd {
     use crate::{
         database::dictionary_database::DictionarySet,
         dictionary::TermSourceMatchType,
-        yomichan_test_utils::{self, TEST_PATHS}, // TEST_PATHS unused
+        test_utils::{self, TEST_PATHS}, // TEST_PATHS unused
     };
 
     #[test]
     fn find_terms_sequence_bulk() {
-        //let (f_path, _handle) = yomichan_test_utils::copy_test_db();
-        let ycd = &yomichan_test_utils::SHARED_DB_INSTANCE;
+        //let (f_path, _handle) = test_utils::copy_test_db();
+        let ycd = &test_utils::SHARED_DB_INSTANCE;
         let queries = &[
             // 大丈夫
             QueryType::Sequence(9635800000),
@@ -1550,8 +1550,8 @@ mod ycd {
 
     #[test]
     fn find_terms_bulk_daijoubu_exact_match_test() {
-        let (_f_path, _handle) = yomichan_test_utils::copy_test_db(); // _f_path unused
-        let ycd = &yomichan_test_utils::SHARED_DB_INSTANCE;
+        let (_f_path, _handle) = test_utils::copy_test_db(); // _f_path unused
+        let ycd = &test_utils::SHARED_DB_INSTANCE;
         let term_list = vec!["大丈夫".to_string()]; // This is &[String], find_terms_bulk expects &[impl AsRef<str>]
         let mut dictionaries_set = IndexSet::new();
         dictionaries_set.insert("大辞林\u{3000}第四版".to_string());
@@ -1595,14 +1595,14 @@ mod ycd {
 
 #[cfg(test)]
 mod init_db {
-    use crate::{yomichan_test_utils, Yomichan};
+    use crate::{test_utils, Yomichan};
 
     #[test]
     #[ignore]
     /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {
-        let td = &*yomichan_test_utils::TEST_PATHS.tests_dir;
-        let tdcs = &*yomichan_test_utils::TEST_PATHS.test_dicts_dir;
+        let td = &*test_utils::TEST_PATHS.tests_dir;
+        let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [tdcs.join("daijirin"), tdcs.join("ajdfreq")];
         match ycd.import_dictionaries(&paths) {
