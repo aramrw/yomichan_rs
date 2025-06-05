@@ -313,12 +313,35 @@ impl Translator {
             self._sort_term_dictionary_entries(&mut dictionary_entries);
         }
 
-        Translator::_flag_redundant
+        Translator::_flag_redundant;
 
         FindTermResult {
             dictionary_entries,
             original_text_length,
         }
+    }
+
+    fn _flag_redundant_definition_tags(definitions: &mut Vec<TermDefinition>) {
+        if definitions.is_empty() {
+            return;
+        }
+
+        let last_dictionary = None;
+        let last_part_of_speech = "".to_string();
+        let remove_categories_set = IndexSet::new();
+
+        for TermDefinition { dictionary, tags, .. } in definitions {
+            let part_of_speech = Translator::_create_map_key(Translator::get)
+        }
+    }
+
+    fn _get_tag_names_with_category(tags: &[DictionaryTag], category: &str) -> Vec<String> {
+        tags.iter().filter_map(|tag| {
+            if tag.category != category {
+                return None;
+            }
+            Some(tag.name)
+        }).sort().collect::<Vec<String>>()
     }
 
     fn _sort_term_dictionary_entries(&self, dictionary_entries: &mut [TermDictionaryEntry]) {
