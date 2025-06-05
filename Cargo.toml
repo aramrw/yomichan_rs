@@ -25,7 +25,7 @@ unicode-normalization = "0.1.23"
 wana_kana = "3.0.0"
 pretty_assertions = "1.4.1"
 color-eyre = "0.6.3"
-derive_more = { version = "1.0.0", features = ["debug"] }
+derive_more = { version = "1.0.0", features = ["debug", "from"] }
 indexmap = { version = "2.7.0", features = ["serde"] }
 language_transformer = { path = "f:/programming/Rust/language_transformer" }
 icu = "2.0.0"

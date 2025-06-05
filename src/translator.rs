@@ -59,6 +59,8 @@ use std::{
     cell::RefCell, cmp::Ordering, fmt::Display, hash::Hash, iter, mem, ops::Index, path::Path,
     rc::Rc, str::FromStr, sync::LazyLock,
 };
+use derive_more::
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct SequenceQuery {
     query: i128,
@@ -71,19 +73,6 @@ enum FindTermsMode {
     Merge,
     Split,
 }
-trait HasTags {
-    fn get_tags_mut(&mut self) -> &mut Vec<DictionaryTag>;
-}
-impl HasTags for TermDefinition {
-    fn get_tags_mut(&mut self) -> &mut Vec<DictionaryTag> {
-        &mut self.tags
-    }
-}
-impl HasTags for TermHeadword {
-    fn get_tags_mut(&mut self) -> &mut Vec<DictionaryTag> {
-        &mut self.tags
-    }
-}
 /// used to differentiate between the following:
 /// [TermDefinition]
 /// [TermPronunciation]
@@ -94,12 +83,23 @@ pub enum TermType {
     Pronunciation(TermPronunciation),
     Frequency(TermFrequency),
 }
+
 /// helper to not need to match on enum variants to get fields
 trait IsTermType {
+    // TermDefinition sorting
+    /// only exists on [TermDefinition]
+    fn _get_definition_tags_mut(&mut self) -> Option<&mut Vec<DictionaryTag>>;
+    // TermFrequency/TermPronunciation sorting
+    /// only exists on [TermFrequency] && [TermPronunciation]
+    fn _get_ipa_or_freq_headword_index(&self) -> Option<usize>;
+    // Fields common to all or used by both, assumed to be present
+    fn dictionary_index(&self) -> usize;
+    fn index(&self) -> usize;
     /// gets the term's (`.dictionary, .dictionary_alias`)
     fn dictionary_and_alias(&self) -> (&str, &str);
 }
 impl IsTermType for TermType {
+    /// generic for all variants
     fn dictionary_and_alias(&self) -> (&str, &str) {
         match &self {
             Self::Definition(m) => (&m.dictionary, &m.dictionary_alias),
@@ -107,7 +107,37 @@ impl IsTermType for TermType {
             Self::Pronunciation(m) => (&m.dictionary, &m.dictionary_alias),
         }
     }
+    fn dictionary_index(&self) -> usize {
+        match self {
+            TermType::Definition(d) => d.dictionary_index,
+            TermType::Pronunciation(p) => p.dictionary_index,
+            TermType::Frequency(f) => f.dictionary_index,
+        }
+    }
+    fn index(&self) -> usize {
+        match self {
+            TermType::Definition(d) => d.index,
+            TermType::Pronunciation(p) => p.index,
+            TermType::Frequency(f) => f.index,
+        }
+    }
+    /// only exists on [TermDefinition]
+    fn _get_definition_tags_mut(&mut self) -> Option<&mut Vec<DictionaryTag>> {
+        match self {
+            Self::Definition(m) => Some(&mut m.tags),
+            _ => None,
+        }
+    }
+    /// only exists on [TermFrequency] && [TermPronunciation]
+    fn _get_ipa_or_freq_headword_index(&self) -> Option<usize> {
+        match self {
+            TermType::Pronunciation(p) => Some(p.headword_index),
+            TermType::Frequency(f) => Some(f.headword_index),
+            _ => None,
+        }
+    }
 }
+
 pub type TermEnabledDictionaryMap = IndexMap<String, FindTermDictionary>;
 pub type KanjiEnabledDictionaryMap = IndexMap<String, FindKanjiDictionary>;
 #[derive(Clone, Debug, PartialEq)]
@@ -313,7 +343,26 @@ impl Translator {
             self._sort_term_dictionary_entries(&mut dictionary_entries);
         }
 
-        Translator::_flag_redundant_definition_tags(definitions);
+        for TermDictionaryEntry {
+            definitions,
+            frequencies,
+            pronunciations,
+            ..
+        } in dictionary_entries.iter_mut()
+        {
+            Translator::_flag_redundant_definition_tags(definitions);
+            if (definitions.len() > 1) {
+                Translator::_sort_term_dictionary_entry_definitions_mut(definitions);
+            }
+            if (frequencies.len() > 1) {
+                let generic_term_type: Vec<TermType> =
+                    frequencies.iter().map(|f| f.into()).collect();
+                Translator::_sort_term_dictionary_entry_simple_data_mut(frequencies);
+            }
+            if (pronunciations.len() > 1) {
+                Translator::_sort_term_dictionary_entry_simple_data_mut(pronunciations);
+            }
+        }
 
         FindTermResult {
             dictionary_entries,
@@ -321,27 +370,117 @@ impl Translator {
         }
     }
 
+    /// Sorts a slice of items implementing `IsTermType` in place.
+    ///
+    /// This function is intended for lists containing only
+    /// [TermFrequency] or [TermPronunciation]
+    /// variants of `TermType`
+    /// (or other types that correctly implement `IsTermType` for these fields).
+    ///
+    /// Sorting criteria (all ascending):
+    /// 1. `ipa_or_freq_headword_index`
+    /// 2. `dictionary_index`
+    /// 3. `index`
+    pub fn _sort_term_dictionary_entry_simple_data_mut(data_list: &mut [&impl IsTermType]) {
+        data_list.sort_by(|v1, v2| {
+            // 1. Sort by headword order (using ipa_or_freq_headword_index)
+            v1._get_ipa_or_freq_headword_index()
+                .cmp(&v2._get_ipa_or_freq_headword_index())
+                // 2. Sort by dictionary order
+                .then_with(|| v1.dictionary_index().cmp(&v2.dictionary_index()))
+                // 3. Sort by original index (default order)
+                .then_with(|| v1.index().cmp(&v2.index()))
+        });
+    }
+
+    /// Sorts a slice of `TermDefinition` structs in place.
+    ///
+    /// The sorting criteria are applied in the following order:
+    /// 1. `frequency_order` (ascending).
+    /// 2. `dictionary_index` (ascending).
+    /// 3. `score` (descending).
+    /// 4. `headword_indices`:
+    ///    a. Length of `headword_indices` (descending).
+    ///    b. Element-wise values of `headword_indices` (ascending), if lengths are equal.
+    /// 5. Original `index` (ascending) as a final tie-breaker.
+    fn _sort_term_dictionary_entry_definitions_mut(definitions: &mut [TermDefinition]) {
+        definitions.sort_by(|v1, v2| {
+            // 1. Sort by frequency_order (ascending)
+            v1.frequency_order
+                .cmp(&v2.frequency_order)
+                // 2. Sort by dictionary_index (ascending)
+                .then_with(|| v1.dictionary_index.cmp(&v2.dictionary_index))
+                .then_with(|| v2.score.cmp(&v1.score))
+                // 4. Sort by headword_indices
+                .then_with(|| {
+                    // 4a. Length of headword_indices (descending)
+                    // Compare lengths: v2's length vs v1's length for descending order.
+                    v2.headword_indices
+                        .len()
+                        .cmp(&v1.headword_indices.len())
+                        // 4b. Element-wise values (ascending), if lengths are equal.
+                        // Vec<T>::cmp (where T: Ord)
+                        // compares lexicographically if lengths are equal.
+                        .then_with(|| v1.headword_indices.cmp(&v2.headword_indices))
+                })
+                // 5. Sort by original index (ascending)
+                .then_with(|| v1.index.cmp(&v2.index))
+        });
+    }
+
     fn _flag_redundant_definition_tags(definitions: &mut Vec<TermDefinition>) {
         if definitions.is_empty() {
             return;
         }
 
-        let last_dictionary = None;
-        let last_part_of_speech = "".to_string();
-        let remove_categories_set = IndexSet::new();
+        let mut last_dictionary = None;
+        let mut last_part_of_speech = "".to_string();
+        let mut remove_categories_set: IndexSet<String> = IndexSet::new();
 
-        for TermDefinition { dictionary, tags, .. } in definitions {
-            let part_of_speech = Translator::_create_map_key(Translator::get)
+        for TermDefinition {
+            dictionary, tags, ..
+        } in definitions
+        {
+            let tag_names_with_category =
+                Translator::_get_tag_names_with_category(&tags, "partOfSpeech");
+            let part_of_speech = Translator::_create_map_key(&tag_names_with_category);
+
+            if last_dictionary.as_ref().is_some_and(|ld| *ld != dictionary) {
+                last_dictionary = Some(dictionary);
+                last_part_of_speech = "".into();
+            }
+
+            if last_part_of_speech == part_of_speech {
+                remove_categories_set.insert("partOfSpeech".into());
+            } else {
+                last_part_of_speech = part_of_speech;
+            }
+
+            if !remove_categories_set.is_empty() {
+                tags.iter_mut().for_each(|tag| {
+                    if remove_categories_set.contains(&tag.category) {
+                        tag.redundant = true;
+                    }
+                });
+                // theres no need for this, it gets dropped
+                // after this if block
+                // remove_categories_set.clear();
+            }
         }
     }
 
     fn _get_tag_names_with_category(tags: &[DictionaryTag], category: &str) -> Vec<String> {
-        tags.iter().filter_map(|tag| {
-            if tag.category != category {
-                return None;
-            }
-            Some(tag.name)
-        }).sort().collect::<Vec<String>>()
+        let mut res = tags
+            .iter()
+            .filter_map(|tag| {
+                if tag.category != category {
+                    return None;
+                }
+                Some(tag.name.clone())
+            })
+            .collect::<Vec<String>>();
+        res.sort();
+        res
     }
 
     fn _sort_term_dictionary_entries(&self, dictionary_entries: &mut [TermDictionaryEntry]) {
@@ -1378,7 +1517,7 @@ impl Translator {
         });
     }
     fn _remove_tag_groups_with_dictionary_mut(
-        array: &mut [impl HasTags],
+        array: &mut [impl IsTermType],
         exclude_dictionary_definitions: &IndexSet<String>,
     ) {
         for item in array {
