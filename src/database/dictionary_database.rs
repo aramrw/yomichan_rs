@@ -89,7 +89,7 @@ pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     models.define::<DatabaseMetaPitch>().unwrap();
     models.define::<DatabaseMetaPhonetic>().unwrap();
     models.define::<DatabaseKanjiEntry>().unwrap();
-    models.define::<DatabaseKanjiEntry>().unwrap();
+    models.define::<DatabaseKanjiMeta>().unwrap();
     models.define::<DatabaseTag>().unwrap();
     /// serialization is not implemented for this yet
     /// native_db doesn't like generics for the model struct
@@ -158,7 +158,7 @@ pub struct DatabaseTermMeta {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-#[native_model(id = 1, version = 1)]
+#[native_model(id = 2, version = 1)]
 #[native_db]
 pub struct DatabaseTermEntry {
     #[primary_key]
@@ -279,7 +279,7 @@ impl DatabaseTermEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[native_model(id = 11, version = 1)]
+#[native_model(id = 9, version = 1)]
 #[native_db]
 pub struct DatabaseTag {
     /// id field doesn't exist in JS
@@ -294,6 +294,9 @@ pub struct DatabaseTag {
     pub order: u64,
     pub notes: String,
     pub score: i128,
+    /// dictionary gets added afterwards
+    /// it doesn't exist in any yomitan dictionary
+    #[serde(skip_deserializing, default)]
     #[secondary_key]
     pub dictionary: String,
 }
@@ -420,7 +423,7 @@ impl DatabaseMetaMatchType {
 
 /// Used to store the frequency metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 2, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
+#[native_model(id = 3, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
 #[native_db]
 pub struct DatabaseMetaFrequency {
     #[primary_key]
@@ -452,7 +455,7 @@ impl HasExpression for DatabaseMetaFrequency {
 
 /// Used to store the pitch metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 3, version = 1)]
+#[native_model(id = 4, version = 1)]
 #[native_db]
 pub struct DatabaseMetaPitch {
     #[primary_key]
@@ -476,7 +479,7 @@ impl DBMetaType for DatabaseMetaPitch {
 
 /// Used to store the phonetic metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 4, version = 1)]
+#[native_model(id = 5, version = 1)]
 #[native_db]
 pub struct DatabaseMetaPhonetic {
     #[primary_key]
@@ -502,7 +505,7 @@ impl DBMetaType for DatabaseMetaPhonetic {
 
 /// Kanji Meta's only have frequency data
 #[native_db]
-#[native_model(id = 7, version = 1)]
+#[native_model(id = 8, version = 1)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseKanjiMeta {
     #[primary_key]
@@ -516,7 +519,7 @@ pub struct DatabaseKanjiMeta {
 }
 
 #[native_db]
-#[native_model(id = 6, version = 1)]
+#[native_model(id = 7, version = 1)]
 #[serde_as]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseKanjiEntry {
@@ -841,7 +844,11 @@ impl From<Box<native_db::db_type::Error>> for Box<DictionaryDatabaseError> {
 impl DictionaryDatabase {
     pub fn new(path: impl AsRef<Path>) -> Self {
         Self {
-            db: DBBuilder::new().open(&DB_MODELS, path).unwrap(),
+            // if the file does not exist, or is an empty file,
+            // a new database will be initialized in it
+            // if the file is a valid native_db database, it will be opened
+            // otherwise this function will return an error
+            db: DBBuilder::new().create(&DB_MODELS, path).unwrap(),
             db_name: "dict",
         }
     }
@@ -1581,6 +1588,35 @@ mod ycd {
             }
             Err(e) => {
                 panic!("find_terms_bulk_daijoubu_exact_match_test test failed: {e:?}");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod init_db {
+    use crate::{yomichan_test_utils, Yomichan};
+
+    #[test]
+    #[ignore]
+    /// Initializes the repo's yomichan database with specified dicts.
+    fn init_db() {
+        let td = &*yomichan_test_utils::TEST_PATHS.tests_dir;
+        let tdcs = &*yomichan_test_utils::TEST_PATHS.test_dicts_dir;
+        let mut ycd = Yomichan::new(td).unwrap();
+        let paths = [tdcs.join("daijirin"), tdcs.join("ajdfreq")];
+        match ycd.import_dictionaries(&paths) {
+            Ok(_) => {}
+            Err(e) => {
+                let db_path = td.join("db.ycd");
+                if db_path.exists() && db_path.is_file() {
+                    if let Some(ext) = db_path.extension() {
+                        if ext == "ycd" {
+                            std::fs::remove_file(db_path).unwrap();
+                        }
+                    }
+                }
+                panic!("failed init_db test: {e}");
             }
         }
     }

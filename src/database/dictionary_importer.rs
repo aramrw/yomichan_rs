@@ -98,7 +98,7 @@ pub enum FrequencyMode {
 
 // Final details about the Dictionary and it's import process.
 #[native_db]
-#[native_model(id = 10, version = 1)]
+#[native_model(id = 1, version = 1)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DictionarySummary {
     /// Name of the dictionary.
@@ -381,7 +381,7 @@ impl Yomichan {
         zip_paths: &[P],
     ) -> Result<(), ImportError> {
         let settings = self.options.get_options_mut();
-        let db = &self.db;
+        let db = &self.translator.db;
         ImportZipError::check_zip_paths(zip_paths)?;
 
         let mut dictionary_options: Vec<DictionaryOptions> = zip_paths

@@ -65,32 +65,43 @@ use std::{
 };
 
 /// class which finds term and kanji dictionary entries for text.
-struct Translator {
-    db: DictionaryDatabase,
-    mlt: MultiLanguageTransformer,
-    tag_cache: IndexMap<String, TagCache>,
+pub struct Translator {
+    pub db: DictionaryDatabase,
+    pub mlt: MultiLanguageTransformer,
+    pub tag_cache: IndexMap<String, TagCache>,
     /// Invariant Locale
     /// Default: "en-US"
-    string_comparer: CollatorBorrowed<'static>,
-    number_regex: Regex,
-    text_processors: TextProcessorMap,
-    reading_normalizers: ReadingNormalizerMap,
+    pub string_comparer: CollatorBorrowed<'static>,
+    pub number_regex: &'static Regex,
+    pub text_processors: TextProcessorMap,
+    pub reading_normalizers: ReadingNormalizerMap,
 }
+
+static TRANSLATOR_NUMBER_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?").unwrap());
+
 impl Translator {
-    fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(path: impl AsRef<Path>) -> Self {
+        let mut translator = Self::init(path);
+        translator.prepare();
+        translator
+    }
+    fn init(path: impl AsRef<Path>) -> Self {
         Self {
             db: DictionaryDatabase::new(path),
             mlt: MultiLanguageTransformer::default(),
             tag_cache: IndexMap::new(),
             string_comparer: Collator::try_new(locale!("en-US").into(), CollatorOptions::default())
                 .unwrap(),
-            number_regex: Regex::new(r"[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?").unwrap(),
+            number_regex: &*TRANSLATOR_NUMBER_REGEX,
             text_processors: IndexMap::new(),
             reading_normalizers: IndexMap::new(),
         }
     }
     /// Initializes the instance for use.
     /// The public API should not be used until this function has been called.
+    /// fn new() will call it automatically,
+    /// if something needs to be done before call .init() -> work -> .prepare();
     fn prepare(&mut self) {
         let language_processors = get_all_language_text_processors();
         for processor in language_processors {
@@ -118,8 +129,7 @@ impl Translator {
     ///
     /// # Parameters
     ///
-    /// `mode`: The [FindTermsMode] to use for finding terms.
-    /// Determines the format of the resulting array.
+    /// `mode`: The [FindTermsMode] determines the format of the resulting array.
     /// Must be one of: `Group`, `Merge`, `Split`, or `Simple`.
     ///
     ///  `text`: The `&str` text to find terms for.
@@ -2906,7 +2916,7 @@ impl Translator {
         let mut source_cache = IndexMap::new();
         let mut raw_source = text.to_string();
         while !raw_source.is_empty() {
-            let text_replacements = Translator::_get_text_replacement_variants(opts.clone());
+            let text_replacements = Translator::_get_text_replacement_variants(&opts);
             let pre_processed_text_variants = Translator::_get_text_variants(
                 &raw_source,
                 pre,
@@ -3121,8 +3131,8 @@ impl Translator {
         result
     }
     /// helper function to return `(opts: FindTermOptions).text_replacements`
-    fn _get_text_replacement_variants(opts: FindTermsOptions) -> FindTermsTextReplacements {
-        opts.text_replacements
+    fn _get_text_replacement_variants(opts: &FindTermsOptions) -> FindTermsTextReplacements {
+        opts.text_replacements.clone()
     }
     fn _create_deinflection(
         original_text: &str,
@@ -3571,3 +3581,17 @@ struct TermMetaHeadword {
     frequencies: Vec<TermFrequency>,
 }
 type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadword>>>;
+
+#[cfg(test)]
+mod translator_tests {
+    use crate::{yomichan_test_utils, Yomichan};
+
+    use super::{FindTermsMode, Translator};
+
+    #[test]
+    fn find_terms() {
+        let translator = Translator::new(&yomichan_test_utils::TEST_PATHS.tests_yomichan_db_path);
+        let opts = FindTermsOptions = idk;
+        translator.find_terms(FindTermsMode::Simple, "日本語", opts)
+    }
+}

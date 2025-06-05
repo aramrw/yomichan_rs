@@ -19,6 +19,7 @@ use settings::Profile;
 use native_db::*;
 use native_model::{native_model, Model};
 use transaction::RTransaction;
+use translator::Translator;
 
 use std::collections::HashSet;
 use std::fs::DirEntry;
@@ -130,8 +131,8 @@ mod yomichan_test_utils {
 
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
-    db: DictionaryDatabase,
-    options: Options,
+    pub translator: Translator,
+    pub options: Options,
 }
 
 #[derive(thiserror::Error)]
@@ -179,12 +180,15 @@ impl Yomichan {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, InitError> {
         let path = path.as_ref().to_path_buf();
         let db_path = fmt_dbpath(path)?;
-        let db = DictionaryDatabase::new(db_path);
+        let translator = Translator::new(db_path);
 
         let mut options = Options::default();
         options.profiles.push(Profile::default());
 
-        Ok(Self { db, options })
+        Ok(Self {
+            translator,
+            options,
+        })
     }
 }
 

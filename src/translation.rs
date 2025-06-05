@@ -66,6 +66,24 @@ pub struct FindTermsOptions {
     /// ISO-639 code of the language.
     pub language: String,
 }
+impl Default for FindTermsOptions {
+    fn default() -> Self {
+        Self {
+            match_type: TermSourceMatchType::Prefix,
+            deinflect: true,
+            primary_reading: "".into(),
+            main_dictionary: "".into(),
+            sort_frequency_dictionary: None,
+            sort_frequency_dictionary_order: FindTermsSortOrder::Ascending,
+            remove_non_japanese_characters: false,
+            text_replacements: vec![],
+            enabled_dictionary_map: IndexMap::default(),
+            exclude_dictionary_definitions: (),
+            search_resolution: (),
+            language: (),
+        }
+    }
+}
 
 /// The matching type for looking up terms.
 pub type FindTermsMatchType = TermSourceMatchType;
