@@ -3,10 +3,11 @@ use std::any::Any;
 
 use indexmap::{IndexMap, IndexSet};
 use language_transformer::language_d::TextProcessorSetting;
+use language_transformer::transformer::InflectionRuleChainCandidate;
 
 use crate::database::dictionary_database::TermEntry;
 use crate::dictionary::{
-    self, InflectionRuleChainCandidate, InflectionSource, TermDictionaryEntry,
+    self, InflectionSource, TermDictionaryEntry,
 };
 
 pub type TextProcessorRuleChainCandidate = Vec<String>;

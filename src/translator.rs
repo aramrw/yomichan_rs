@@ -9,10 +9,10 @@ use crate::{
     },
     dictionary::{
         self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
-        InflectionRuleChainCandidate, InflectionSource, PhoneticTranscription, PitchAccent,
-        Pronunciation, TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword,
-        TermPronunciation, TermPronunciationMatchType, TermSource, TermSourceMatchSource,
-        TermSourceMatchType, VecNumOrNum,
+        InflectionSource, PhoneticTranscription, PitchAccent, Pronunciation, TermDefinition,
+        TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
+        TermPronunciationMatchType, TermSource, TermSourceMatchSource, TermSourceMatchType,
+        VecNumOrNum,
     },
     dictionary_data::{
         FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermGlossary,
@@ -32,6 +32,7 @@ use crate::{
         VariantAndTextProcessorRuleChainCandidatesMap,
     },
 };
+use derive_more::From;
 use fancy_regex::Regex;
 use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
@@ -39,6 +40,7 @@ use icu::{
     locale::locale,
 };
 use indexmap::{IndexMap, IndexSet};
+use language_transformer::transformer::InflectionRuleChainCandidate;
 use language_transformer::{
     descriptors::{PreAndPostProcessors, PreAndPostProcessorsWithId},
     ja::japanese::is_code_point_japanese,
@@ -59,128 +61,7 @@ use std::{
     cell::RefCell, cmp::Ordering, fmt::Display, hash::Hash, iter, mem, ops::Index, path::Path,
     rc::Rc, str::FromStr, sync::LazyLock,
 };
-use derive_more::
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct SequenceQuery {
-    query: i128,
-    dictionary: String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-enum FindTermsMode {
-    Simple,
-    Group,
-    Merge,
-    Split,
-}
-/// used to differentiate between the following:
-/// [TermDefinition]
-/// [TermPronunciation]
-/// [TermFrequency]
-#[derive(Clone, PartialEq, Debug)]
-pub enum TermType {
-    Definition(TermDefinition),
-    Pronunciation(TermPronunciation),
-    Frequency(TermFrequency),
-}
-
-/// helper to not need to match on enum variants to get fields
-trait IsTermType {
-    // TermDefinition sorting
-    /// only exists on [TermDefinition]
-    fn _get_definition_tags_mut(&mut self) -> Option<&mut Vec<DictionaryTag>>;
-    // TermFrequency/TermPronunciation sorting
-    /// only exists on [TermFrequency] && [TermPronunciation]
-    fn _get_ipa_or_freq_headword_index(&self) -> Option<usize>;
-    // Fields common to all or used by both, assumed to be present
-    fn dictionary_index(&self) -> usize;
-    fn index(&self) -> usize;
-    /// gets the term's (`.dictionary, .dictionary_alias`)
-    fn dictionary_and_alias(&self) -> (&str, &str);
-}
-impl IsTermType for TermType {
-    /// generic for all variants
-    fn dictionary_and_alias(&self) -> (&str, &str) {
-        match &self {
-            Self::Definition(m) => (&m.dictionary, &m.dictionary_alias),
-            Self::Frequency(m) => (&m.dictionary, &m.dictionary_alias),
-            Self::Pronunciation(m) => (&m.dictionary, &m.dictionary_alias),
-        }
-    }
-    fn dictionary_index(&self) -> usize {
-        match self {
-            TermType::Definition(d) => d.dictionary_index,
-            TermType::Pronunciation(p) => p.dictionary_index,
-            TermType::Frequency(f) => f.dictionary_index,
-        }
-    }
-    fn index(&self) -> usize {
-        match self {
-            TermType::Definition(d) => d.index,
-            TermType::Pronunciation(p) => p.index,
-            TermType::Frequency(f) => f.index,
-        }
-    }
-    /// only exists on [TermDefinition]
-    fn _get_definition_tags_mut(&mut self) -> Option<&mut Vec<DictionaryTag>> {
-        match self {
-            Self::Definition(m) => Some(&mut m.tags),
-            _ => None,
-        }
-    }
-    /// only exists on [TermFrequency] && [TermPronunciation]
-    fn _get_ipa_or_freq_headword_index(&self) -> Option<usize> {
-        match self {
-            TermType::Pronunciation(p) => Some(p.headword_index),
-            TermType::Frequency(f) => Some(f.headword_index),
-            _ => None,
-        }
-    }
-}
-
-pub type TermEnabledDictionaryMap = IndexMap<String, FindTermDictionary>;
-pub type KanjiEnabledDictionaryMap = IndexMap<String, FindKanjiDictionary>;
-#[derive(Clone, Debug, PartialEq)]
-pub enum EnabledDictionaryMapType<'a> {
-    Term(&'a TermEnabledDictionaryMap),
-    Kanji(&'a KanjiEnabledDictionaryMap),
-}
-#[derive(Clone, Debug, PartialEq)]
-pub struct ExistingEntry {
-    pub index: usize,
-    pub entry: TermDictionaryEntry,
-}
-#[derive(Clone, Debug, PartialEq)]
-pub struct TermDictionaryEntryWithIndexes {
-    pub index: usize,
-    pub dictionary_entry: TermDictionaryEntry,
-    pub headword_indexes: Vec<usize>,
-}
-#[derive(Clone, Debug)]
-struct TermReadingItem {
-    pub term: String,
-    pub reading: Option<String>,
-}
-#[derive(Clone, Debug)]
-pub struct FindTermResult {
-    pub dictionary_entries: Vec<TermDictionaryEntry>,
-    pub original_text_length: i128,
-}
-type TextProcessorMap = IndexMap<&'static str, PreAndPostProcessorsWithId>;
-type ReadingNormalizerMap = IndexMap<&'static str, ReadingNormalizer>;
-#[derive(thiserror::Error, Debug)]
-pub enum TranslatorError {
-    #[error("Unsupported Language: {0}")]
-    UnsupportedLanguage(String),
-}
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct TermMetaHeadword {
-    headword_index: usize,
-    original_index: usize,
-    pronunciations: Vec<TermPronunciation>,
-    frequencies: Vec<TermFrequency>,
-}
-type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadword>>>;
 /// class which finds term and kanji dictionary entries for text.
 struct Translator {
     db: DictionaryDatabase,
@@ -254,7 +135,7 @@ impl Translator {
     ///
     /// Returns an error if the term lookup process fails for any reason.
     fn find_terms(
-        &self,
+        &mut self,
         mode: FindTermsMode,
         text: &str,
         opts: &FindTermsOptions,
@@ -305,6 +186,7 @@ impl Translator {
                     enabled_dictionary_map,
                     &mut tag_aggregator,
                 );
+                self._expand_tag_groups_and_group(&mut tag_aggregator.get_tag_expansion_targets());
             }
             // this is most likely incorrect because of references
             false => {
@@ -343,31 +225,94 @@ impl Translator {
             self._sort_term_dictionary_entries(&mut dictionary_entries);
         }
 
-        for TermDictionaryEntry {
-            definitions,
-            frequencies,
-            pronunciations,
-            ..
-        } in dictionary_entries.iter_mut()
-        {
+        dictionary_entries.iter_mut().for_each(|mut entry| {
+            let definitions = &mut entry.definitions;
             Translator::_flag_redundant_definition_tags(definitions);
-            if (definitions.len() > 1) {
+            if definitions.len() > 1 {
                 Translator::_sort_term_dictionary_entry_definitions_mut(definitions);
             }
-            if (frequencies.len() > 1) {
-                let generic_term_type: Vec<TermType> =
-                    frequencies.iter().map(|f| f.into()).collect();
-                Translator::_sort_term_dictionary_entry_simple_data_mut(frequencies);
+
+            // Frequencies part
+            if entry.frequencies.len() > 1 {
+                let mut sorted_frequencies_as_term_type: Vec<TermType> =
+                    entry.frequencies.iter().map(|f| f.clone().into()).collect();
+
+                Translator::_sort_term_dictionary_entry_simple_data_mut(
+                    &mut sorted_frequencies_as_term_type,
+                );
+
+                entry.frequencies = sorted_frequencies_as_term_type
+                    .into_iter()
+                    .map(|tt| tt.try_into().unwrap())
+                    .collect();
             }
-            if (pronunciations.len() > 1) {
-                Translator::_sort_term_dictionary_entry_simple_data_mut(pronunciations);
+
+            if entry.pronunciations.len() > 1 {
+                let mut sorted_pronunciations_as_term_type: Vec<TermType> = entry
+                    .pronunciations
+                    .iter()
+                    .map(|p| p.clone().into())
+                    .collect();
+
+                Translator::_sort_term_dictionary_entry_simple_data_mut(
+                    &mut sorted_pronunciations_as_term_type,
+                );
+                entry.pronunciations = sorted_pronunciations_as_term_type
+                    .into_iter()
+                    .map(|tt| tt.try_into().unwrap())
+                    .collect();
             }
-        }
+        });
+        let with_user_facing_inflections =
+            self._add_user_facing_inflections(language, &dictionary_entries);
 
         FindTermResult {
             dictionary_entries,
             original_text_length,
         }
+    }
+
+    fn _add_user_facing_inflections(
+        &self,
+        language: &str,
+        dictionary_entries: &[TermDictionaryEntry], // Input can be an immutable slice
+    ) -> Vec<TermDictionaryEntry> {
+        let mut result = Vec::with_capacity(dictionary_entries.len()); // Pre-allocate for efficiency
+
+        for dictionary_entry in dictionary_entries {
+            // Iterates over &TermDictionaryEntry
+            // Create new `expanded_chains`
+            // by mapping over the original entry's candidates
+            let expanded_chains: Vec<InflectionRuleChainCandidate> = dictionary_entry
+                .inflection_rule_chain_candidates
+                .iter()
+                .map(|original_candidate| {
+                    // this method takes a string[] cuz js types r ass
+                    // so we need to turn them into strings
+                    let inflection_rules: Vec<String> = original_candidate
+                        .inflection_rules
+                        .iter()
+                        .map(|ir| ir.name.clone())
+                        .collect();
+                    let new_rules = self
+                        .mlt
+                        .get_user_facing_inflection_rules(language, &inflection_rules);
+
+                    InflectionRuleChainCandidate {
+                        source: original_candidate.source.clone(),
+                        inflection_rules: new_rules,
+                    }
+                })
+                .collect();
+
+            // Create a new TermDictionaryEntry, cloning the original and then
+            // replacing its inflectionRuleChainCandidates.
+            let mut new_entry = dictionary_entry.clone();
+            new_entry.inflection_rule_chain_candidates = expanded_chains;
+            result.push(new_entry);
+        }
+
+        result
     }
 
     /// Sorts a slice of items implementing `IsTermType` in place.
@@ -381,7 +326,7 @@ impl Translator {
     /// 1. `ipa_or_freq_headword_index`
     /// 2. `dictionary_index`
     /// 3. `index`
-    pub fn _sort_term_dictionary_entry_simple_data_mut(data_list: &mut [&impl IsTermType]) {
+    pub fn _sort_term_dictionary_entry_simple_data_mut(data_list: &mut [impl IsTermType]) {
         data_list.sort_by(|v1, v2| {
             // 1. Sort by headword order (using ipa_or_freq_headword_index)
             v1._get_ipa_or_freq_headword_index()
@@ -1517,12 +1462,12 @@ impl Translator {
         });
     }
     fn _remove_tag_groups_with_dictionary_mut(
-        array: &mut [impl IsTermType],
+        array: &mut [impl HasTags],
         exclude_dictionary_definitions: &IndexSet<String>,
     ) {
         for item in array {
             Translator::_remove_tag_items_with_dictionary(
-                item.get_tags_mut(),
+                item._get_definition_tags_mut(),
                 exclude_dictionary_definitions,
             );
         }
@@ -3413,3 +3358,187 @@ impl TranslatorTagAggregator {
         collection_of_tag_groups.last_mut().unwrap()
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct SequenceQuery {
+    query: i128,
+    dictionary: String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+enum FindTermsMode {
+    Simple,
+    Group,
+    Merge,
+    Split,
+}
+
+trait HasTags {
+    fn _get_definition_tags_mut(&mut self) -> &mut Vec<DictionaryTag>;
+}
+impl HasTags for TermDefinition {
+    fn _get_definition_tags_mut(&mut self) -> &mut Vec<DictionaryTag> {
+        &mut self.tags
+    }
+}
+impl HasTags for TermHeadword {
+    fn _get_definition_tags_mut(&mut self) -> &mut Vec<DictionaryTag> {
+        &mut self.tags
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum TermTypeError {
+    #[error("could not convert from TermType::{}: to {target}", 
+        value.name_as_str()
+    )]
+    TryFrom {
+        value: TermType,
+        target: &'static str,
+    },
+}
+/// used to differentiate between the following:
+/// [TermDefinition]
+/// [TermPronunciation]
+/// [TermFrequency]
+#[derive(Clone, PartialEq, Debug, From)]
+pub enum TermType {
+    Definition(TermDefinition),
+    Pronunciation(TermPronunciation),
+    Frequency(TermFrequency),
+}
+impl TermType {
+    /// returns the name of the variant
+    fn name_as_str(&self) -> &'static str {
+        match &self {
+            Self::Definition(_) => "Definition",
+            Self::Frequency(_) => "Frequency",
+            Self::Pronunciation(_) => "Pronunciation",
+        }
+    }
+}
+
+/// helper to not need to match on enum variants to get fields
+trait IsTermType {
+    // TermDefinition sorting
+    /// only exists on [TermDefinition]
+    // TermFrequency/TermPronunciation sorting
+    /// only exists on [TermFrequency] && [TermPronunciation]
+    fn _get_ipa_or_freq_headword_index(&self) -> Option<usize>;
+    // Fields common to all or used by both, assumed to be present
+    fn dictionary_index(&self) -> usize;
+    fn index(&self) -> usize;
+    /// gets the term's (`.dictionary, .dictionary_alias`)
+    fn dictionary_and_alias(&self) -> (&str, &str);
+}
+impl IsTermType for TermType {
+    /// generic for all variants
+    fn dictionary_and_alias(&self) -> (&str, &str) {
+        match &self {
+            Self::Definition(m) => (&m.dictionary, &m.dictionary_alias),
+            Self::Frequency(m) => (&m.dictionary, &m.dictionary_alias),
+            Self::Pronunciation(m) => (&m.dictionary, &m.dictionary_alias),
+        }
+    }
+    fn dictionary_index(&self) -> usize {
+        match self {
+            TermType::Definition(d) => d.dictionary_index,
+            TermType::Pronunciation(p) => p.dictionary_index,
+            TermType::Frequency(f) => f.dictionary_index,
+        }
+    }
+    fn index(&self) -> usize {
+        match self {
+            TermType::Definition(d) => d.index,
+            TermType::Pronunciation(p) => p.index,
+            TermType::Frequency(f) => f.index,
+        }
+    }
+    /// only exists on [TermFrequency] && [TermPronunciation]
+    fn _get_ipa_or_freq_headword_index(&self) -> Option<usize> {
+        match self {
+            TermType::Pronunciation(p) => Some(p.headword_index),
+            TermType::Frequency(f) => Some(f.headword_index),
+            _ => None,
+        }
+    }
+}
+impl TryFrom<TermType> for TermFrequency {
+    type Error = TermTypeError;
+    fn try_from(value: TermType) -> Result<Self, Self::Error> {
+        match value {
+            TermType::Frequency(f) => Ok(f),
+            _ => Err(TermTypeError::TryFrom {
+                value,
+                target: "TermFrequency",
+            }),
+        }
+    }
+}
+impl TryFrom<TermType> for TermDefinition {
+    type Error = TermTypeError;
+    fn try_from(value: TermType) -> Result<Self, Self::Error> {
+        match value {
+            TermType::Definition(d) => Ok(d),
+            _ => Err(TermTypeError::TryFrom {
+                value,
+                target: "TermDefinition",
+            }),
+        }
+    }
+}
+impl TryFrom<TermType> for TermPronunciation {
+    type Error = TermTypeError;
+    fn try_from(value: TermType) -> Result<Self, Self::Error> {
+        match value {
+            TermType::Pronunciation(p) => Ok(p),
+            _ => Err(TermTypeError::TryFrom {
+                value,
+                target: "TermPronunciation",
+            }),
+        }
+    }
+}
+
+pub type TermEnabledDictionaryMap = IndexMap<String, FindTermDictionary>;
+pub type KanjiEnabledDictionaryMap = IndexMap<String, FindKanjiDictionary>;
+#[derive(Clone, Debug, PartialEq)]
+pub enum EnabledDictionaryMapType<'a> {
+    Term(&'a TermEnabledDictionaryMap),
+    Kanji(&'a KanjiEnabledDictionaryMap),
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExistingEntry {
+    pub index: usize,
+    pub entry: TermDictionaryEntry,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct TermDictionaryEntryWithIndexes {
+    pub index: usize,
+    pub dictionary_entry: TermDictionaryEntry,
+    pub headword_indexes: Vec<usize>,
+}
+#[derive(Clone, Debug)]
+struct TermReadingItem {
+    pub term: String,
+    pub reading: Option<String>,
+}
+#[derive(Clone, Debug)]
+pub struct FindTermResult {
+    pub dictionary_entries: Vec<TermDictionaryEntry>,
+    pub original_text_length: i128,
+}
+type TextProcessorMap = IndexMap<&'static str, PreAndPostProcessorsWithId>;
+type ReadingNormalizerMap = IndexMap<&'static str, ReadingNormalizer>;
+#[derive(thiserror::Error, Debug)]
+pub enum TranslatorError {
+    #[error("Unsupported Language: {0}")]
+    UnsupportedLanguage(String),
+}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct TermMetaHeadword {
+    headword_index: usize,
+    original_index: usize,
+    pronunciations: Vec<TermPronunciation>,
+    frequencies: Vec<TermFrequency>,
+}
+type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadword>>>;

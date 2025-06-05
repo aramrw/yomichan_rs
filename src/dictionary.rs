@@ -1,8 +1,11 @@
 use crate::{
     dictionary_data::TermGlossaryContent, translation_internal::TextProcessorRuleChainCandidate,
+    translator::TermType,
 };
+use derive_more::derive::From;
 use getset::MutGetters;
 use indexmap::IndexMap;
+use language_transformer::transformer::InflectionRuleChainCandidate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -15,7 +18,7 @@ pub enum InflectionSource {
 
 /// Dictionary InflectionRuleChainCandidate
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct InflectionRuleChainCandidate {
+pub struct DictionaryInflectionRuleChainCandidate {
     pub source: InflectionSource,
     pub inflection_rules: Vec<String>,
 }
@@ -25,7 +28,7 @@ pub struct InflectionRuleChainCandidate {
 pub struct EntryInflectionRuleChainCandidatesKey {
     pub term: String,
     pub reading: String,
-    pub inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+    pub inflection_rule_chain_candidates: Vec<DictionaryInflectionRuleChainCandidate>,
 }
 
 /// Helper enum to match expected schema types more accurately.
