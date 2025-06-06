@@ -3584,14 +3584,12 @@ type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadwor
 
 #[cfg(test)]
 mod translator_tests {
-    use crate::{translation::FindTermsOptions, yomichan_test_utils, Yomichan};
-
     use super::{FindTermsMode, Translator};
+    use crate::{test_utils::TEST_PATHS, translation::FindTermsOptions};
 
     #[test]
     fn find_terms() {
-        let translator = Translator::new(&yomichan_test_utils::TEST_PATHS.tests_yomichan_db_path);
-        let opts = FindTermsOptions = idk;
-        translator.find_terms(FindTermsMode::Simple, "日本語", opts)
+        let translator = Translator::new(&TEST_PATHS.tests_yomichan_db_path);
+        translator.find_terms(FindTermsMode::Simple, "日本語", opts);
     }
 }

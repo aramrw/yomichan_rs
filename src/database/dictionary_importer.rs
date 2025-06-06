@@ -3,11 +3,11 @@ use crate::database::dictionary_database::{
     DatabaseMetaMatchType, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
     MediaDataArrayBufferContent, TermEntry, DB_MODELS,
 };
-use crate::dictionary::KanjiDictionaryEntry;
+use crate::dictionary::{self, KanjiDictionaryEntry};
 use crate::dictionary_data::{
-    DictionaryDataTag, GenericFreqData, Index, MetaDataMatchType, TermGlossary,
-    TermGlossaryContent, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
-    TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
+    self, dictionary_data_util, DictionaryDataTag, GenericFreqData, Index, MetaDataMatchType,
+    TermGlossary, TermGlossaryContent, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType,
+    TermMetaFrequency, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
 use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
@@ -104,14 +104,17 @@ pub struct DictionarySummary {
     /// Name of the dictionary.
     #[primary_key]
     pub title: String,
-    /// Revision of the dictionary. This value is only used for displaying information.
+    /// Revision of the dictionary.
+    /// This value is only used for displaying information.
     pub revision: String,
     /// Whether or not this dictionary contains sequencing information for related terms.
     pub sequenced: Option<bool>,
+    /// The minimum Yomitan version necessary for the dictionary to function
+    pub minimum_yomitan_version: Option<String>,
     /// Format of data found in the JSON data files.
     pub version: Option<u8>,
     /// Date the dictionary was added to the db.
-    pub import_date: String,
+    pub import_date: DateTime<Local>,
     /// Whether or not wildcards can be used for the search query.
     ///
     /// Rather than searching for the source text exactly,
@@ -121,6 +124,10 @@ pub struct DictionarySummary {
     pub prefix_wildcards_supported: bool,
     pub counts: SummaryCounts,
     /// Creator of the dictionary.
+    pub styles: String,
+    pub is_updatable: bool,
+    pub index_url: Option<String>,
+    pub download_url: Option<String>,
     pub author: Option<String>,
     /// URL for the source of the dictionary.
     pub url: Option<String>,
@@ -134,37 +141,116 @@ pub struct DictionarySummary {
     /// Main language of the definitions in the dictionary.
     #[secondary_key]
     pub target_language: Option<String>,
-    /// (See: [`FrequencyMode`])
+    /// (See: [FrequencyMode])
     pub frequency_mode: Option<FrequencyMode>,
 }
 
-impl DictionarySummary {
-    fn new(index: Index, prefix_wildcards_supported: bool, counts: SummaryCounts) -> Self {
-        let local: DateTime<Local> = Local::now();
-        let formatted = local
-            .to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
-            .to_string()
-            .rsplit_once('T')
-            .unwrap()
-            .0
-            .to_string();
+#[derive(thiserror::Error, Debug)]
+pub enum DictionarySummaryError {
+    #[error("dictionary is incompatible with current version of Yomitan: (${yomitan_version}; minimum required: ${minimum_required_yomitan_version}); dictionary: {dictionary}")]
+    IncompatibleYomitanVersion {
+        yomitan_version: String,
+        minimum_required_yomitan_version: String,
+        dictionary: String,
+    },
+    #[error("invalid index data: `is_updatable` exists but is false")]
+    InvalidIndexIsNotUpdatabale,
+    #[error("index url: {url} is not a valid url\nreason: {err}")]
+    InvalidIndexUrl { url: String, err: url::ParseError },
+}
 
-        Self {
-            title: index.title,
-            revision: index.revision,
-            sequenced: index.sequenced,
-            version: index.version,
-            import_date: formatted,
+impl DictionarySummary {
+    fn new(
+        index: Index,
+        prefix_wildcards_supported: bool,
+        details: SummaryDetails,
+    ) -> Result<Self, DictionarySummaryError> {
+        let import_date: DateTime<Local> = Local::now();
+        let SummaryDetails {
+            prefix_wildcard_supported,
+            counts,
+            styles,
+            yomitan_version,
+        } = details;
+        let Index {
+            title,
+            revision,
+            sequenced,
+            format,
+            version,
+            minimum_yomitan_version,
+            is_updatable,
+            index_url,
+            download_url,
+            author,
+            url,
+            description,
+            attribution,
+            source_language,
+            target_language,
+            frequency_mode,
+            tag_meta,
+        } = index;
+
+        if yomitan_version == "0.0.0.0" {
+            // running development version
+        } else if let Some(minimum_yomitan_version) = &minimum_yomitan_version {
+            if dictionary_data_util::compare_revisions(&yomitan_version, &minimum_yomitan_version) {
+                return Err(DictionarySummaryError::IncompatibleYomitanVersion {
+                    yomitan_version,
+                    minimum_required_yomitan_version: minimum_yomitan_version.clone(),
+                    dictionary: title,
+                });
+            }
+        }
+
+        if let Some(is_updatable) = is_updatable {
+            if !is_updatable {
+                return Err(DictionarySummaryError::InvalidIndexIsNotUpdatabale);
+            }
+            if let Some(index_url) = &index_url {
+                if let Err(err) = dictionary_data_util::validate_url(&index_url) {
+                    return Err(DictionarySummaryError::InvalidIndexUrl {
+                        url: index_url.clone(),
+                        err,
+                    });
+                }
+            }
+            if let Some(download_url) = &download_url {
+                if let Err(err) = dictionary_data_util::validate_url(&download_url) {
+                    return Err(DictionarySummaryError::InvalidIndexUrl {
+                        url: download_url.clone(),
+                        err,
+                    });
+                }
+            }
+        }
+
+        let res = Self {
+            title,
+            revision,
+            sequenced,
+            minimum_yomitan_version,
+            version,
+            import_date,
             prefix_wildcards_supported,
             counts,
-            author: index.author,
-            url: index.url,
-            description: index.description,
-            attribution: index.attribution,
-            source_language: index.source_language,
-            target_language: index.target_language,
-            frequency_mode: index.frequency_mode,
-        }
+            styles,
+            is_updatable: match is_updatable {
+                Some(v) => v,
+                None => false,
+            },
+            index_url,
+            download_url,
+            author,
+            url,
+            description,
+            attribution,
+            source_language,
+            target_language,
+            frequency_mode,
+        };
+        Ok(res)
     }
 }
 
@@ -174,7 +260,8 @@ pub struct SummaryDetails {
     pub counts: SummaryCounts,
     // I dont know what this is
     // some kind of styles.css file stuff
-    //pub styles: String,
+    pub styles: String,
+    pub yomitan_version: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -384,16 +471,17 @@ impl Yomichan {
         let db = &self.translator.db;
         ImportZipError::check_zip_paths(zip_paths)?;
 
-        let mut dictionary_options: Vec<DictionaryOptions> = zip_paths
+        let mut data: Vec<DatabaseDictData> = zip_paths
             .par_iter()
             .map(|path| import_dictionary(path, settings, db))
-            .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
+            .collect::<Result<Vec<DatabaseDictData>, ImportError>>()?;
 
         let current_profile = settings.get_current_profile_mut();
-        current_profile
-            .options
-            .dictionaries
-            .append(&mut dictionary_options);
+        let mut options: Vec<DictionaryOptions> = data
+            .iter()
+            .map(|data| data.dictionary_options.clone())
+            .collect();
+        current_profile.options.dictionaries.append(&mut options);
 
         Ok(())
     }
@@ -404,25 +492,25 @@ pub fn import_dictionary<P: AsRef<Path>>(
     settings: &Options,
     //db_path: &OsString,
     db: &DictionaryDatabase,
-) -> Result<DictionaryOptions, ImportError> {
+) -> Result<DatabaseDictData, ImportError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
     let rwtx = db.rw_transaction()?;
-    db_rwriter(&rwtx, data.term_list)?;
-    db_rwriter(&rwtx, data.kanji_list)?;
-    db_rwriter(&rwtx, data.tag_list)?;
-    db_rwriter(&rwtx, data.kanji_meta_list)?;
+    db_rwriter(&rwtx, data.term_list.clone())?;
+    db_rwriter(&rwtx, data.kanji_list.clone())?;
+    db_rwriter(&rwtx, data.tag_list.clone())?;
+    db_rwriter(&rwtx, data.kanji_meta_list.clone())?;
     {
-        for item in data.term_meta_list {
+        for item in &data.term_meta_list {
             match item {
-                DatabaseMetaMatchType::Frequency(freq) => rwtx.insert(freq)?,
-                DatabaseMetaMatchType::Pitch(pitch) => rwtx.insert(pitch)?,
-                DatabaseMetaMatchType::Phonetic(ipa) => rwtx.insert(ipa)?,
+                DatabaseMetaMatchType::Frequency(freq) => rwtx.insert(freq.clone())?,
+                DatabaseMetaMatchType::Pitch(pitch) => rwtx.insert(pitch.clone())?,
+                DatabaseMetaMatchType::Phonetic(ipa) => rwtx.insert(ipa.clone())?,
             }
         }
     }
 
     rwtx.commit()?;
-    Ok(data.dictionary_options)
+    Ok(data)
 }
 
 fn db_rwriter<L: ToInput>(
@@ -543,11 +631,20 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         kanji_meta_counts,
     );
 
+    let yomitan_version = env!("CARGO_PKG_VERSION").to_string();
+    let summary_details = SummaryDetails {
+        prefix_wildcard_supported: settings.global.database.prefix_wildcards_supported,
+        counts,
+        /// this is incorrect, it parses a 'styles.css' file
+        /// need to do this later
+        styles: "".to_string(),
+        yomitan_version,
+    };
     let summary = DictionarySummary::new(
         index,
         settings.global.database.prefix_wildcards_supported,
-        counts,
-    );
+        summary_details,
+    )?;
 
     let dictionary_options = DictionaryOptions::new(settings, dict_name);
 

@@ -750,12 +750,18 @@ pub type VecDBTermMeta = Vec<DatabaseTermMeta>;
 /// Vec<[DatabaseMetaFrequency]>
 pub type VecDBMetaFreq = Vec<DatabaseMetaFrequency>;
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct DictionaryDataDetails {
+    pub summary: DictionarySummary,
+    pub dictionary_options: DictionaryOptions,
+}
+
 pub struct DatabaseDictData {
     pub tag_list: Vec<DatabaseTag>,
     pub kanji_meta_list: Vec<DatabaseMetaFrequency>,
     pub kanji_list: Vec<DatabaseKanjiEntry>,
     pub term_meta_list: Vec<DatabaseMetaMatchType>,
-    pub term_list: VecDBTermEntry,
+    pub term_list: Vec<DatabaseTermEntry>,
     pub summary: DictionarySummary,
     pub dictionary_options: DictionaryOptions,
 }

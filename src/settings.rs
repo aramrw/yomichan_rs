@@ -1,6 +1,8 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
+use crate::database::dictionary_importer::DictionarySummary;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct GlobalOptions {
     pub database: GlobalDatabaseOptions,
@@ -296,7 +298,7 @@ pub struct TranslationTextReplacementGroup {
     pub replacement: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DictionaryOptions {
     /// The title of the dictionary.
     pub name: String,

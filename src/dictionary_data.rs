@@ -89,6 +89,10 @@ pub struct Index {
     ///
     /// Versions can include: `1 - 3`.
     pub version: Option<u8>,
+    pub minimum_yomitan_version: Option<String>,
+    pub is_updatable: Option<bool>,
+    pub index_url: Option<String>,
+    pub download_url: Option<String>,
     /// Creator of the dictionary.
     pub author: Option<String>,
     /// URL for the source of the dictionary.
@@ -533,3 +537,55 @@ pub struct TermMetaPhonetic {
 //     mode: TermMetaModeType,
 //     data: GenericFreqData,
 // }
+
+pub mod dictionary_data_util {
+    use fancy_regex::Regex;
+    use std::sync::LazyLock;
+    use url::{ParseError as UrlParseError, Url};
+
+    pub static SIMPLE_VERSION_TEST: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^(\d+\.)*\d+$").unwrap());
+
+    pub fn compare_revisions(current: &str, latest: &str) -> bool {
+        // If either string doesn't match the simple version format,
+        // fall back to a lexicographical string comparison.
+        if !SIMPLE_VERSION_TEST.is_match(current).unwrap()
+            || !SIMPLE_VERSION_TEST.is_match(latest).unwrap()
+        {
+            return current < latest;
+        }
+
+        // The regex ensures all parts are digits, so `unwrap()` is safe here.
+        let current_parts: Vec<u32> = current
+            .split('.')
+            .map(|part| part.parse::<u32>().unwrap())
+            .collect();
+
+        let latest_parts: Vec<u32> = latest
+            .split('.')
+            .map(|part| part.parse::<u32>().unwrap())
+            .collect();
+
+        // This logic is from the original JS: if the number of parts is
+        // different, fall back to a string comparison. This can cause
+        // unexpected results (e.g., "1.5" vs "1.20" would be false).
+        if current_parts.len() != latest_parts.len() {
+            return current < latest;
+        }
+
+        // Compare each version part numerically.
+        for i in 0..current_parts.len() {
+            if current_parts[i] != latest_parts[i] {
+                return current_parts[i] < latest_parts[i];
+            }
+        }
+        false
+    }
+
+    pub fn validate_url(s: &str) -> Result<(), UrlParseError> {
+        let Err(e) = Url::parse(s) else {
+            return Ok(());
+        };
+        Err(e)
+    }
+}

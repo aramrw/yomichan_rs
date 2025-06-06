@@ -6,6 +6,8 @@ use std::{
 };
 use thiserror::Error;
 
+use crate::database::dictionary_importer::DictionarySummaryError;
+
 #[derive(Error, Debug)]
 pub enum ImportZipError {
     #[error("the zip path: `{0}` does not exist")]
@@ -56,6 +58,8 @@ pub enum ImportError {
          file: {file}"
     )]
     Empty { file: PathBuf },
+    #[error("failed to create summary: {0}")]
+    Summary(#[from] DictionarySummaryError),
 }
 
 impl From<native_db::db_type::Error> for ImportError {
