@@ -27,7 +27,7 @@ pretty_assertions = "1.4.1"
 color-eyre = "0.6.3"
 derive_more = { version = "1.0.0", features = ["debug", "from"] }
 indexmap = { version = "2.7.0", features = ["serde"] }
-language_transformer = { path = "f:/programming/Rust/language_transformer" }
+language_transformer = { git = "https://github.com/aramrw/ycrs_language_transformer", branch = "update" }
 icu = "2.0.0"
 fancy-regex = "0.14.0"
 getset = "0.1.5"

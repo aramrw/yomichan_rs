@@ -1705,6 +1705,7 @@ dependencies = [
 [[package]]
 name = "language_transformer"
 version = "0.0.1"
+source = "git+https://github.com/aramrw/ycrs_language_transformer?branch=update#37edac31258fa36ee6626eda2e8bfce826ba0dcb"
 dependencies = [
  "derivative",
  "derive_more 2.0.1",
@@ -1716,7 +1717,7 @@ dependencies = [
  "serde_json",
  "snafu",
  "strace",
- "thiserror 2.0.12",
+ "thiserror 1.0.69",
  "unicode-normalization",
  "unicode-segmentation",
  "wana_kana 4.0.0",
