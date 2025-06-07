@@ -1,7 +1,9 @@
 #![allow(unused)]
+mod backend;
 mod database;
 mod dictionary;
 mod dictionary_data;
+mod environment;
 mod errors;
 mod freq;
 mod regex_util;
@@ -12,14 +14,18 @@ mod translation;
 mod translation_internal;
 mod translator;
 
+use backend::Backend;
 use database::dictionary_database::DictionaryDatabase;
 use database::dictionary_database::DB_MODELS;
+use indexmap::IndexMap;
 use settings::Options;
 use settings::Profile;
 
 use native_db::*;
 use native_model::{native_model, Model};
 use transaction::RTransaction;
+use translation::FindTermsOptions;
+use translator::FindTermsMode;
 use translator::Translator;
 
 use std::collections::HashSet;
@@ -32,11 +38,57 @@ use std::{
 
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
-    pub translator: Translator,
+    pub backend: Backend,
     pub options: Options,
 }
 
 impl Yomichan {
+    // pub fn search_terms(
+    //     &self,
+    //     text_to_search: &str,
+    //     language_code: &str,
+    //     mode: FindTermsMode,
+    // ) -> YourResultType {
+    //     let mut opts = &FindTermsOptions::default_for_language(language_code);
+    //
+    //     // Language-specific override for remove_non_japanese_characters
+    //     if language_code.eq_ignore_ascii_case("ja") || language_code.eq_ignore_ascii_case("jpn") {
+    //         opts.remove_non_japanese_characters = true;
+    //     } else {
+    //         opts.remove_non_japanese_characters = false; // Default from default_for_language is false
+    //     }
+    //
+    //     let mut enabled_map = IndexMap::new();
+    //     let mut main_dict_name: Option<String> = None;
+    //     let mut lowest_priority_val = usize::MAX;
+    //     let current_profile = self.options.get_current_profile();
+    //
+    //     for dict_profile_opt in current_profile.options.dictionaries {
+    //         if dict_profile_opt.enabled {
+    //             let search_config = translation::FindTermDictionary
+    //                 { index, alias, allow_secondary_searches,
+    //                 parts_of_speech_filter, use_deinflections
+    //             } {
+    //                 use_deinflections: dict_profile_opt.use_deinflections,
+    //                 parts_of_speech_filter: dict_profile_opt.parts_of_speech_filter,
+    //                 allow_secondary_searches: dict_profile_opt.allow_secondary_searches,
+    //             };
+    //             enabled_map.insert(dict_profile_opt.name.clone(), search_config);
+    //
+    //             if dict_profile_opt.priority < lowest_priority_val {
+    //                 lowest_priority_val = dict_profile_opt.priority;
+    //                 main_dict_name = Some(dict_profile_opt.name.clone());
+    //             }
+    //         }
+    //     }
+    //
+    //     opts.enabled_dictionary_map = enabled_map;
+    //     if let Some(name) = main_dict_name {
+    //         opts.main_dictionary = name;
+    //     }
+    //     self.translator.find_terms(mode, text_to_search, opts)
+    // }
+    //
     /// Initializes _(or if one already exists, opens)_ a Yomichan Dictionary Database.
     ///
     /// # Arguments
@@ -52,15 +104,18 @@ impl Yomichan {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, InitError> {
         let path = path.as_ref().to_path_buf();
         let db_path = fmt_dbpath(path)?;
-        let translator = Translator::new(db_path);
+        let backend = Backend::new(db_path);
+        let rtx = backend.translator.db.r_transaction()?;
+        let opts: Option<Options> = rtx.get().primary("global_user_options")?;
+        let options = match opts {
+            Some(opts) => opts,
+            None => {
+                println!("no options found in db");
+                Options::new()
+            }
+        };
 
-        let mut options = Options::default();
-        options.profiles.push(Profile::default());
-
-        Ok(Self {
-            translator,
-            options,
-        })
+        Ok(Self { backend, options })
     }
 }
 
@@ -150,4 +205,3 @@ impl std::fmt::Debug for InitError {
         write!(f, "{self}")
     }
 }
-

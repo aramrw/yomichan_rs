@@ -346,18 +346,6 @@ impl From<TermMetaModeType> for u8 {
     }
 }
 
-impl ToKey for TermMetaModeType {
-    fn to_key(&self) -> Key {
-        Key::new(vec![self.to_owned().into()])
-    }
-    fn key_names() -> Vec<String> {
-        ["Freq", "Pitch", "Ipa"]
-            .into_iter()
-            .map(|v| v.to_string())
-            .collect()
-    }
-}
-
 /************* Frequency *************/
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

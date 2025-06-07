@@ -1,7 +1,14 @@
 use indexmap::IndexMap;
+use native_db::native_db;
+use native_db::ToKey;
+use native_model::native_model;
+use native_model::Model;
 use serde::{Deserialize, Serialize};
 
-use crate::database::dictionary_importer::DictionarySummary;
+use crate::{
+    database::dictionary_importer::DictionarySummary, translation::FindTermsSortOrder,
+    translator::FindTermsMode,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct GlobalOptions {
@@ -14,27 +21,27 @@ pub struct GlobalDatabaseOptions {
 }
 
 /// Global Yomichan Settings.
+#[native_model(id = 20, version = 1)]
+#[native_db]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct Options {
+    #[primary_key]
+    id: String,
     // should get it from crates / rust somehow
-    pub version: u8,
+    pub version: String,
     pub profiles: Vec<Profile>,
     pub current_profile: usize,
     pub global: GlobalOptions,
 }
 
 impl Options {
-    fn new(
-        version: u8,
-        profiles: Vec<Profile>,
-        current_profile: usize,
-        global: GlobalOptions,
-    ) -> Self {
+    pub fn new() -> Self {
         Self {
-            version,
-            profiles,
-            current_profile,
-            global,
+            id: "global_user_options".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            profiles: vec![Profile::default()],
+            current_profile: 0,
+            global: GlobalOptions::default(),
         }
     }
 
@@ -121,7 +128,7 @@ pub struct ProfileOptions {
 pub struct GeneralOptions {
     pub enable: bool,
     pub language: String,
-    pub result_output_mode: ResultOutputMode,
+    pub result_output_mode: FindTermsMode,
     pub debug_info: bool,
     pub max_results: u8,
     pub show_advanced: bool,
@@ -163,7 +170,7 @@ pub struct GeneralOptions {
     pub frequency_display_mode: FrequencyDisplayStyle,
     pub term_display_mode: TermDisplayStyle,
     pub sort_frequency_dictionary: Option<String>,
-    pub sort_frequency_dictionary_order: SortFrequencyDictionaryOrder,
+    pub sort_frequency_dictionary_order: FindTermsSortOrder,
     pub sticky_search_header: bool,
 }
 
@@ -302,8 +309,9 @@ pub struct TranslationTextReplacementGroup {
 pub struct DictionaryOptions {
     /// The title of the dictionary.
     pub name: String,
-    /// What order the dictionary's results get returned.
-    pub priority: usize,
+    pub alias: String,
+    // /// What order the dictionary's results get returned.
+    // pub priority: usize,
     /// Whether or not the dictionary will be used.
     pub enabled: bool,
     /// If you have two dictionaries, `Dict 1` and `Dict 2`:
@@ -357,12 +365,13 @@ impl DictionaryOptions {
         let p_len = profile.options.dictionaries.len();
 
         DictionaryOptions {
-            name: dict_name,
-            priority: p_len,
+            name: dict_name.clone(),
+            alias: dict_name,
+            //priority: p_len,
             enabled: true,
             allow_secondary_searches: false,
             definitions_collapsible: DictionaryDefinitionsCollapsible::Expanded,
-            parts_of_speech_filter: true,
+            parts_of_speech_filter: false,
             use_deinflections: true,
             styles: None,
         }

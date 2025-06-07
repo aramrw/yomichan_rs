@@ -8,6 +8,7 @@
 use fancy_regex::Regex;
 use indexmap::{IndexMap, IndexSet};
 use language_transformer::language_d::FindTermsTextReplacements;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     database::dictionary_database::DictionarySet, dictionary::TermSourceMatchType,
@@ -67,9 +68,9 @@ pub struct FindTermsOptions {
     pub language: String,
 }
 impl FindTermsOptions {
-    fn default_for_language(language: &str) -> Self {
+    pub fn default_for_language(language: &str) -> Self {
         Self {
-            match_type: TermSourceMatchType::Prefix,
+            match_type: TermSourceMatchType::Exact,
             deinflect: true,
             primary_reading: "".into(),
             main_dictionary: "".into(),
@@ -89,9 +90,12 @@ impl FindTermsOptions {
 pub type FindTermsMatchType = TermSourceMatchType;
 
 /// A sorting order to use when finding terms.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
+)]
 pub enum FindTermsSortOrder {
     Ascending,
+    #[default]
     Descending,
 }
 

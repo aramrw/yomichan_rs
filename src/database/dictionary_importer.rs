@@ -468,7 +468,7 @@ impl Yomichan {
         zip_paths: &[P],
     ) -> Result<(), ImportError> {
         let settings = self.options.get_options_mut();
-        let db = &self.translator.db;
+        let db = &self.backend.translator.db;
         ImportZipError::check_zip_paths(zip_paths)?;
 
         let mut data: Vec<DatabaseDictData> = zip_paths
@@ -481,7 +481,11 @@ impl Yomichan {
             .iter()
             .map(|data| data.dictionary_options.clone())
             .collect();
+        current_profile.options.general.main_dictionary = options[0].name.clone();
         current_profile.options.dictionaries.append(&mut options);
+        let rwtx = db.rw_transaction()?;
+        db_rwriter(&rwtx, vec![settings.clone()]);
+        rwtx.commit()?;
 
         Ok(())
     }

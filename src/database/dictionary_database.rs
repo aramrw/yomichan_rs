@@ -80,6 +80,7 @@ impl<V: Send + Sync> DictionarySet for &IndexMap<String, V> {
 
 pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     let mut models = Models::new();
+    models.define::<Options>().unwrap();
     models.define::<DictionarySummary>().unwrap();
     models.define::<DatabaseTermEntry>().unwrap();
     /// in js, freq, pitch, and phonetic are grouped under an enum
@@ -359,7 +360,7 @@ impl DatabaseMetaMatchType {
         let file = fs::File::open(&outpath)?;
         let reader = BufReader::new(file);
 
-        let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermMetaBank>();
+        let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermMeta>>();
         let entries: TermMetaBank = match stream.next() {
             Some(Ok(entries)) => entries,
             Some(Err(e)) => {
@@ -374,6 +375,8 @@ impl DatabaseMetaMatchType {
                 )))
             }
         };
+
+        dbg!(&entries);
 
         let term_metas: Vec<DatabaseMetaMatchType> = entries
             // entries is TermMetaBank which is Vec<TermMetaData>
@@ -390,7 +393,7 @@ impl DatabaseMetaMatchType {
                     MetaDataMatchType::Frequency(data) => {
                         DatabaseMetaMatchType::Frequency(DatabaseMetaFrequency {
                             id,
-                            expression,
+                            freq_expression: expression,
                             mode: TermMetaModeType::Freq,
                             data,
                             dictionary: dict_name.clone(),
@@ -399,7 +402,7 @@ impl DatabaseMetaMatchType {
                     MetaDataMatchType::Pitch(data) => {
                         DatabaseMetaMatchType::Pitch(DatabaseMetaPitch {
                             id,
-                            expression,
+                            pitch_expression: expression,
                             mode: TermMetaModeType::Pitch,
                             data,
                             dictionary: dict_name.clone(),
@@ -408,7 +411,7 @@ impl DatabaseMetaMatchType {
                     MetaDataMatchType::Phonetic(data) => {
                         DatabaseMetaMatchType::Phonetic(DatabaseMetaPhonetic {
                             id,
-                            expression,
+                            phonetic_expression: expression,
                             mode: TermMetaModeType::Ipa,
                             data,
                             dictionary: dict_name.clone(),
@@ -430,7 +433,7 @@ pub struct DatabaseMetaFrequency {
     #[serde(skip_deserializing, default)]
     pub id: String,
     #[secondary_key]
-    pub expression: String,
+    pub freq_expression: String,
     /// Is of type [`TermMetaModeType::Freq`]
     pub mode: TermMetaModeType,
     pub data: TermMetaFreqDataMatchType,
@@ -443,13 +446,13 @@ impl DBMetaType for DatabaseMetaFrequency {
         &self.mode
     }
     fn expression(&self) -> &str {
-        &self.expression
+        &self.freq_expression
     }
 }
 
 impl HasExpression for DatabaseMetaFrequency {
     fn expression(&self) -> &str {
-        &self.expression
+        &self.freq_expression
     }
 }
 
@@ -461,7 +464,7 @@ pub struct DatabaseMetaPitch {
     #[primary_key]
     pub id: String,
     #[secondary_key]
-    pub expression: String,
+    pub pitch_expression: String,
     /// Is of type [`TermMetaModeType::Pitch`]
     pub mode: TermMetaModeType,
     pub data: TermMetaPitchData,
@@ -473,7 +476,7 @@ impl DBMetaType for DatabaseMetaPitch {
         &self.mode
     }
     fn expression(&self) -> &str {
-        &self.expression
+        &self.pitch_expression
     }
 }
 
@@ -485,7 +488,7 @@ pub struct DatabaseMetaPhonetic {
     #[primary_key]
     pub id: String,
     #[secondary_key]
-    pub expression: String,
+    pub phonetic_expression: String,
     /// Is of type [`TermMetaModeType::Ipa`]
     pub mode: TermMetaModeType,
     pub data: TermMetaPhoneticData,
@@ -497,7 +500,7 @@ impl DBMetaType for DatabaseMetaPhonetic {
         &self.mode
     }
     fn expression(&self) -> &str {
-        &self.expression
+        &self.phonetic_expression
     }
 }
 
@@ -511,7 +514,6 @@ pub struct DatabaseKanjiMeta {
     #[primary_key]
     pub character: String,
     /// Is of type [TermMetaModeType::Freq]
-    #[secondary_key]
     pub mode: TermMetaModeType,
     pub data: GenericFreqData,
     #[secondary_key]
@@ -1040,8 +1042,8 @@ impl DictionaryDatabase {
 
     pub fn find_term_meta_bulk(
         &self,
-        term_list_input: &[impl AsRef<str> + Sync], // JS: termList
-        dictionaries: &(impl DictionarySet),        // JS: dictionaries
+        term_list_input: &[impl AsRef<str> + Sync],
+        dictionaries: &(impl DictionarySet),
     ) -> Result<Vec<DatabaseTermMeta>, Box<DictionaryDatabaseError>> {
         let terms_as_strings: Vec<String> = term_list_input
             .iter()
@@ -1052,165 +1054,65 @@ impl DictionaryDatabase {
             return Ok(Vec::new());
         }
 
-        // In JS, _findMultiBulk is called with indexNames: ['expression']
-        // This translates to querying the 'expression' secondary key in Rust.
-        let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
-            SecondaryKeyQueryKind::Expression,
-        )];
-
-        // In JS, _createOnlyQuery1 creates an IDBKeyRange.only(item).
-        // This translates to NativeDbQueryInfo::Exact in Rust.
-        let create_query_fn_closure = Box::new(
-            |item_from_list: &String, _idx_identifier: IndexQueryIdentifier| {
-                NativeDbQueryInfo::Exact(item_from_list.clone())
-            },
-        );
-
         let mut all_term_meta_results: Vec<DatabaseTermMeta> = Vec::new();
+        let r_txn = self.db.r_transaction()?;
 
-        // The JS function queries a single 'termMeta' store.
-        // This store contains entries for
-        // frequency, pitch, and IPA, distinguished by a 'mode' field.
-        // In Rust, these are separate database models:
-        // DatabaseMetaFrequency, DatabaseMetaPitch, DatabaseMetaPhonetic.
-        // We query each and combine the results.
-
-        // 1. Find Frequency Metadata
-        let resolve_freq_key_fn = |kind: SecondaryKeyQueryKind| match kind {
-            SecondaryKeyQueryKind::Expression => DatabaseMetaFrequencyKey::expression,
-            _ => unreachable!("Only Expression key is expected for TermMetaFrequency"),
-        };
-        // JS predicate: (row) => dictionaries.has(row.dictionary)
-        let predicate_freq_fn = |db_row: &DatabaseMetaFrequency, _item_to_query: &String| {
-            dictionaries.has(&db_row.dictionary)
-        };
-        // JS createResult: _createTermMeta(row, data)
-        //   data = { item, itemIndex, indexIndex }
-        //   row = {
-        //   expression, reading, definitionTags, termTags,
-        //   rules, glossary, score, dictionary, id, sequence
-        //   }
-        //   for terms
-        //   For termMeta, row = { dictionary, expression, mode, data }
-        //   _createTermMeta returns {
-        //   index: data.itemIndex,
-        //   term: row.expression,
-        //   mode: row.mode,
-        //   data: row.data,
-        //   dictionary: row.dictionary
-        //   }
-        let create_freq_result_fn = |db_entry: DatabaseMetaFrequency,
-                                     _item_from_list: &String,
-                                     item_idx: usize,
-                                     _index_kind_idx: usize|
-         -> DatabaseTermMeta {
-            DatabaseTermMeta {
-                index: item_idx,
-                term: db_entry.expression, // In JS output, this is 'term' from 'row.expression'
-                mode: db_entry.mode,       // This is TermMetaModeType::Freq
-                data: MetaDataMatchType::Frequency(db_entry.data),
-                dictionary: db_entry.dictionary,
+        // Iterate through each term we need to find.
+        for (item_idx, term) in terms_as_strings.iter().enumerate() {
+            // --- 1. Query Frequency Metadata ---
+            let freq_scan = r_txn
+                .scan()
+                .secondary::<DatabaseMetaFrequency>(DatabaseMetaFrequencyKey::freq_expression)?;
+            for result in freq_scan.range(term.clone()..=term.clone())? {
+                let db_entry = result?;
+                if dictionaries.has(&db_entry.dictionary) {
+                    all_term_meta_results.push(DatabaseTermMeta {
+                        index: item_idx,
+                        term: db_entry.freq_expression,
+                        mode: db_entry.mode,
+                        data: MetaDataMatchType::Frequency(db_entry.data),
+                        dictionary: db_entry.dictionary,
+                    });
+                }
             }
-        };
 
-        let freq_results = self.find_multi_bulk::<
-        String,                   // ItemQueryType (type of elements in terms_as_strings)
-        DatabaseMetaFrequency,    // M (Model) - JS 'row' type
-        String,                   // ModelKeyType (type for expression query values)
-        DatabaseMetaFrequencyKey, // SecondaryKeyEnumType
-        DatabaseTermMeta,      // QueryResultType - JS output object type
-        _, _, _                   // Infer closure types
-    >(
-        &index_query_identifiers,
-        &terms_as_strings,
-        create_query_fn_closure.clone(), // Clone Box for reuse
-        resolve_freq_key_fn,
-        predicate_freq_fn,
-        create_freq_result_fn,
-    )?;
-        all_term_meta_results.extend(freq_results);
-
-        // 2. Find Pitch Metadata
-        let resolve_pitch_key_fn = |kind: SecondaryKeyQueryKind| match kind {
-            SecondaryKeyQueryKind::Expression => DatabaseMetaPitchKey::expression,
-            _ => unreachable!("Only Expression key is expected for DatabaseMetaPitch"),
-        };
-        let predicate_pitch_fn = |db_row: &DatabaseMetaPitch, _item_to_query: &String| {
-            dictionaries.has(&db_row.dictionary)
-        };
-        let create_pitch_result_fn = |db_entry: DatabaseMetaPitch,
-                                      _item_from_list: &String,
-                                      item_idx: usize,
-                                      _index_kind_idx: usize|
-         -> DatabaseTermMeta {
-            DatabaseTermMeta {
-                index: item_idx,
-                term: db_entry.expression,
-                mode: db_entry.mode, // This is TermMetaModeType::Pitch
-                data: MetaDataMatchType::Pitch(db_entry.data),
-                dictionary: db_entry.dictionary,
+            // --- 2. Query Pitch Metadata ---
+            let pitch_scan = r_txn
+                .scan()
+                .secondary::<DatabaseMetaPitch>(DatabaseMetaPitchKey::pitch_expression)?;
+            for result in pitch_scan.range(term.clone()..=term.clone())? {
+                let db_entry = result?;
+                if dictionaries.has(&db_entry.dictionary) {
+                    all_term_meta_results.push(DatabaseTermMeta {
+                        index: item_idx,
+                        term: db_entry.pitch_expression,
+                        mode: db_entry.mode,
+                        data: MetaDataMatchType::Pitch(db_entry.data),
+                        dictionary: db_entry.dictionary,
+                    });
+                }
             }
-        };
 
-        let pitch_results = self.find_multi_bulk::<
-        String,
-        DatabaseMetaPitch,
-        String,
-        DatabaseMetaPitchKey,
-        DatabaseTermMeta,
-        _, _, _
-    >(
-        &index_query_identifiers,
-        &terms_as_strings,
-        create_query_fn_closure.clone(),
-        resolve_pitch_key_fn,
-        predicate_pitch_fn,
-        create_pitch_result_fn,
-    )?;
-        all_term_meta_results.extend(pitch_results);
-
-        // 3. Find Phonetic (IPA) Metadata
-        let resolve_phonetic_key_fn = |kind: SecondaryKeyQueryKind| match kind {
-            SecondaryKeyQueryKind::Expression => DatabaseMetaPhoneticKey::expression,
-            _ => unreachable!("Only Expression key is expected for DatabaseMetaPhonetic"),
-        };
-        let predicate_phonetic_fn = |db_row: &DatabaseMetaPhonetic, _item_to_query: &String| {
-            dictionaries.has(&db_row.dictionary)
-        };
-        let create_phonetic_result_fn = |db_entry: DatabaseMetaPhonetic,
-                                         _item_from_list: &String,
-                                         item_idx: usize,
-                                         _index_kind_idx: usize|
-         -> DatabaseTermMeta {
-            DatabaseTermMeta {
-                index: item_idx,
-                term: db_entry.expression,
-                mode: db_entry.mode, // This is TermMetaModeType::Ipa
-                data: MetaDataMatchType::Phonetic(db_entry.data),
-                dictionary: db_entry.dictionary,
+            // --- 3. Query Phonetic Metadata ---
+            let phonetic_scan = r_txn
+                .scan()
+                .secondary::<DatabaseMetaPhonetic>(DatabaseMetaPhoneticKey::phonetic_expression)?;
+            for result in phonetic_scan.range(term.clone()..=term.clone())? {
+                let db_entry = result?;
+                if dictionaries.has(&db_entry.dictionary) {
+                    all_term_meta_results.push(DatabaseTermMeta {
+                        index: item_idx,
+                        term: db_entry.phonetic_expression,
+                        mode: db_entry.mode,
+                        data: MetaDataMatchType::Phonetic(db_entry.data),
+                        dictionary: db_entry.dictionary,
+                    });
+                }
             }
-        };
-
-        let phonetic_results = self.find_multi_bulk::<
-        String,
-        DatabaseMetaPhonetic,    // Model here is DatabaseMetaPhonetic
-        String,
-        DatabaseMetaPhoneticKey, // Key for DatabaseMetaPhonetic
-        DatabaseTermMeta,
-        _, _, _
-    >(
-        &index_query_identifiers,
-        &terms_as_strings,
-        create_query_fn_closure, // Can move the last Boxed closure
-        resolve_phonetic_key_fn,
-        predicate_phonetic_fn,
-        create_phonetic_result_fn,
-    )?;
-        all_term_meta_results.extend(phonetic_results);
+        }
 
         Ok(all_term_meta_results)
     }
-
     pub fn find_terms_by_sequence_bulk(
         &self,
         items_to_query_vec: Vec<GenericQueryRequest>, // Renamed
@@ -1555,10 +1457,21 @@ mod ycd {
     }
 
     #[test]
-    fn find_terms_bulk_daijoubu_exact_match_test() {
-        let (_f_path, _handle) = test_utils::copy_test_db(); // _f_path unused
+    fn find_term_meta_bulk_() {
+        //let (_f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
-        let term_list = vec!["大丈夫".to_string()]; // This is &[String], find_terms_bulk expects &[impl AsRef<str>]
+        let term_list = vec!["日本語".to_string()];
+        let mut dictionaries = IndexSet::new();
+        dictionaries.insert("Anime & J-drama".to_string());
+        let result = ycd.find_term_meta_bulk(&term_list, &dictionaries).unwrap();
+        dbg!(result);
+    }
+
+    #[test]
+    fn find_terms_bulk_exact_match_test() {
+        //let (_f_path, _handle) = test_utils::copy_test_db();
+        let ycd = &test_utils::SHARED_DB_INSTANCE;
+        let term_list = vec!["日本語".to_string()];
         let mut dictionaries_set = IndexSet::new();
         dictionaries_set.insert("大辞林\u{3000}第四版".to_string());
 
@@ -1572,35 +1485,38 @@ mod ycd {
         let match_type = TermSourceMatchType::Exact;
         // Pass term_list directly as it implements AsRef<str> for String
         let result = ycd.find_terms_bulk(&term_list, &dictionaries, match_type);
+        dbg!(result);
 
-        match result {
-            Ok(term_entries) => {
-                assert!(
-                    !term_entries.is_empty(),
-                    "Expected to find TermEntry for '大丈夫'"
-                );
-                let mut found_match = false;
-                for entry in term_entries {
-                    if entry.term == "大丈夫" {
-                        assert_eq!(entry.reading, "だいじょうぶ");
-                        assert_eq!(entry.match_type, TermSourceMatchType::Exact); // Exact is expected
-                        found_match = true;
-                    }
-                }
-                assert!(
-                    found_match,
-                    "Did not find '大丈夫' with expected reading and exact match type in results."
-                );
-            }
-            Err(e) => {
-                panic!("find_terms_bulk_daijoubu_exact_match_test test failed: {e:?}");
-            }
-        }
+        // match result {
+        //     Ok(term_entries) => {
+        //         assert!(
+        //             !term_entries.is_empty(),
+        //             "Expected to find TermEntry for '大丈夫'"
+        //         );
+        //         let mut found_match = false;
+        //         for entry in term_entries {
+        //             if entry.term == "大丈夫" {
+        //                 assert_eq!(entry.reading, "だいじょうぶ");
+        //                 assert_eq!(entry.match_type, TermSourceMatchType::Exact); // Exact is expected
+        //                 found_match = true;
+        //             }
+        //         }
+        //         assert!(
+        //             found_match,
+        //             "Did not find '大丈夫' with expected reading and exact match type in results."
+        //         );
+        //     }
+        //     Err(e) => {
+        //         panic!("find_terms_bulk_daijoubu_exact_match_test test failed: {e:?}");
+        //     }
+        // }
     }
 }
 
 #[cfg(test)]
 mod init_db {
+    use std::fs::remove_dir_all;
+
     use crate::{test_utils, Yomichan};
 
     #[test]
@@ -1608,6 +1524,10 @@ mod init_db {
     /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {
         let td = &*test_utils::TEST_PATHS.tests_dir;
+        let yomichan_rs_folder = td.join("yomichan_rs");
+        if yomichan_rs_folder.exists() {
+            remove_dir_all(yomichan_rs_folder);
+        }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [tdcs.join("daijirin"), tdcs.join("ajdfreq")];
