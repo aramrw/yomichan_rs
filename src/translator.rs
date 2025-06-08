@@ -4,19 +4,18 @@ use crate::{
         self,
         dictionary_database::{
             DatabaseTag, DatabaseTermMeta, DictionaryDatabase, DictionarySet, GenericQueryRequest,
-            QueryRequestMatchType, QueryType, TermEntry, TermExactQueryRequest,
+            PhoneticTranscription, PitchAccent, Pronunciation, QueryRequestMatchType, QueryType,
+            TermEntry, TermExactQueryRequest, TermPronunciationMatchType,
         },
     },
     dictionary::{
         self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
-        PhoneticTranscription, PitchAccent, Pronunciation, TermDefinition, TermDictionaryEntry,
-        TermFrequency, TermHeadword, TermPronunciation, TermPronunciationMatchType, TermSource,
-        TermSourceMatchSource, TermSourceMatchType, VecNumOrNum,
+        TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
+        TermSource, TermSourceMatchSource, TermSourceMatchType, VecNumOrNum,
     },
     dictionary_data::{
         FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermGlossary,
         TermGlossaryContent, TermGlossaryDeinflection, TermMetaFreqDataMatchType, TermMetaModeType,
-        TermMetaPhoneticData,
     },
     freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
@@ -1316,12 +1315,9 @@ impl Translator {
     }
     fn _get_frequency_info(frequency_data: GenericFreqData) -> FrequencyInfo {
         match frequency_data {
-            GenericFreqData::Object {
-                value,
-                display_value,
-            } => FrequencyInfo {
-                frequency: value,
-                display_value,
+            GenericFreqData::Object(obj) => FrequencyInfo {
+                frequency: obj.value,
+                display_value: obj.display_value,
                 display_value_parsed: false,
             },
             GenericFreqData::Integer(num) => FrequencyInfo {
