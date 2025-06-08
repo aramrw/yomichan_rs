@@ -1,6 +1,6 @@
-use crate::database::dictionary_database::DBMetaType;
+use crate::database::dictionary_database::{DBMetaType, TermMetaPhoneticData};
 use crate::database::dictionary_importer::{FrequencyMode, StructuredContent};
-use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
+use crate::dictionary::VecNumOrNum;
 // use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
 use crate::structured_content::ImageElement;
 use native_db::{Key, ToKey};
@@ -13,6 +13,31 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::string::String;
 
 use std::sync::LazyLock;
+
+trait StrMacro {
+    fn from_static_str(s: &'static ::core::primitive::str) -> Self;
+}
+impl StrMacro for &::core::primitive::str {
+    fn from_static_str(s: &'static ::core::primitive::str) -> Self {
+        s
+    }
+}
+impl StrMacro for ::std::string::String {
+    fn from_static_str(s: &'static ::core::primitive::str) -> Self {
+        ::std::borrow::ToOwned::to_owned(s)
+    }
+}
+macro_rules! str {
+    ($s:literal) => {
+        StrMacro::from_static_str($s)
+    };
+}
+
+fn main() {
+    let _: &str = str!("foo");
+    let _: String = str!("foo");
+    let _: &'static str = str!("foo");
+}
 
 #[rustfmt::skip]
 pub static KANA_MAP: LazyLock<BiHashMap<&'static str, &'static str>> = LazyLock::new(|| {
@@ -86,7 +111,6 @@ pub struct Index {
     /// Format of data found in the JSON data files.
     pub format: Option<u8>,
     /// Alias for format.
-    ///
     /// Versions can include: `1 - 3`.
     pub version: Option<u8>,
     pub minimum_yomitan_version: Option<String>,
@@ -142,14 +166,14 @@ pub struct DictionaryDataTag {
     /// Category for the tag.
     pub category: String,
     /// Sorting order for the tag.
-    pub order: i8,
+    pub order: u64,
     /// Notes for the tag.
     pub notes: String,
     /// Score used to determine popularity.
     ///
     /// Negative values are more rare and positive values are more frequent.
     /// This score is also used to sort search results.
-    pub score: i8,
+    pub score: i128,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -335,7 +359,6 @@ pub enum TermMetaModeType {
     Pitch,
     Ipa,
 }
-
 impl From<TermMetaModeType> for u8 {
     fn from(value: TermMetaModeType) -> Self {
         match value {
@@ -360,65 +383,36 @@ pub struct TermMetaFrequency {
     pub mode: TermMetaModeType,
     pub data: TermMetaFreqDataMatchType,
 }
-
-#[derive(Clone, Debug, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum TermMetaFreqDataMatchType {
-    Generic(GenericFreqData),
-    WithReading(TermMetaFreqDataWithReading),
-}
-
-impl<'de> Deserialize<'de> for TermMetaFreqDataMatchType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        serde_untagged::UntaggedEnumVisitor::new()
-            .string(|str| {
-                Ok(TermMetaFreqDataMatchType::Generic(GenericFreqData::String(
-                    str.to_string(),
-                )))
-            })
-            .i128(|int| {
-                Ok(TermMetaFreqDataMatchType::Generic(
-                    GenericFreqData::Integer(int),
-                ))
-            })
-            .map(|map| {
-                let value = map.deserialize::<serde_json::Value>()?;
-                if value.get("reading").is_some() {
-                    serde_json::from_value(value)
-                        .map(TermMetaFreqDataMatchType::WithReading)
-                        .map_err(serde::de::Error::custom)
-                } else if value.get("value").is_some() {
-                    serde_json::from_value(value)
-                        .map(TermMetaFreqDataMatchType::Generic)
-                        .map_err(serde::de::Error::custom)
-                } else {
-                    Err(serde::de::Error::custom("Unknown term meta data type"))
-                }
-            })
-            .deserialize(deserializer)
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FrequencyInfo {
     pub frequency: i128,
     pub display_value: Option<String>,
     pub display_value_parsed: bool,
 }
-
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TermMetaFreqDataMatchType {
+    Generic(GenericFreqData),
+    WithReading(TermMetaFreqDataWithReading),
+}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum GenericFreqData {
     Integer(i128),
     String(String),
-    Object {
-        value: i128,
-        #[serde(rename = "displayValue")]
-        display_value: Option<String>,
-    },
+    Object(FreqObjectData),
+}
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct FreqObjectData {
+    pub value: i128,
+    #[serde(rename = "displayValue")]
+    pub display_value: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TermMetaFreqDataWithReading {
+    pub reading: String,
+    pub frequency: GenericFreqData,
 }
 
 impl GenericFreqData {
@@ -426,48 +420,10 @@ impl GenericFreqData {
         match self {
             Self::Integer(_) => None,
             Self::String(str) => Some(str),
-            Self::Object {
-                value: _,
-                display_value,
-            } => display_value.as_ref(),
+            Self::Object(obj) => obj.display_value.as_ref(),
+            //Self::WithReading(wr) => Some(&wr.reading),
         }
     }
-}
-
-impl<'de> Deserialize<'de> for GenericFreqData {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        serde_untagged::UntaggedEnumVisitor::new()
-            .string(|str| Ok(GenericFreqData::String(str.to_string())))
-            .i128(|int| Ok(GenericFreqData::Integer(int)))
-            .map(|map| {
-                let obj = map.deserialize::<serde_json::Value>()?;
-                let value: i128 =
-                    obj.get("value").and_then(|v| v.as_i64()).ok_or_else(|| {
-                        serde::de::Error::custom("Missing or invalid 'value' field")
-                    })? as i128;
-
-                let display_value = if let Some(display_value) = obj.get("displayValue") {
-                    display_value.as_str().map(String::from)
-                } else {
-                    None
-                };
-
-                Ok(GenericFreqData::Object {
-                    value,
-                    display_value,
-                })
-            })
-            .deserialize(deserializer)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermMetaFreqDataWithReading {
-    pub reading: String,
-    pub frequency: GenericFreqData,
 }
 
 /************* Pitch / Speech Data *************/
@@ -501,20 +457,6 @@ pub struct Pitch {
 pub struct TermMetaPitchData {
     pub reading: String,
     pub pitches: Vec<Pitch>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermMetaPhoneticData {
-    pub reading: String,
-    /// List of different IPA transcription information for the term and reading combination.
-    pub transcriptions: Vec<PhoneticTranscription>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermMetaPhonetic {
-    expression: String,
-    mode: TermMetaModeType,
-    data: String,
 }
 
 /************* Kanji Data *************/
