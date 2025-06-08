@@ -5,16 +5,16 @@ use crate::database::dictionary_database::{
 };
 use crate::dictionary::{self, KanjiDictionaryEntry};
 use crate::dictionary_data::{
-    self, dictionary_data_util, DictionaryDataTag, GenericFreqData, Index, MetaDataMatchType,
-    TermGlossary, TermGlossaryContent, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType,
-    TermMetaFrequency, TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
+    self, dictionary_data_util, DictionaryDataTag, Index, MetaDataMatchType, TermGlossary,
+    TermGlossaryContent, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
+    TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
 };
 use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
 };
 use crate::structured_content::{ContentMatchType, Element, LinkElement};
 
-use crate::errors::{DBError, ImportError, ImportZipError};
+use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
 use crate::Yomichan;
 
 use color_eyre::owo_colors::OwoColorize;
@@ -195,7 +195,7 @@ impl DictionarySummary {
         if yomitan_version == "0.0.0.0" {
             // running development version
         } else if let Some(minimum_yomitan_version) = &minimum_yomitan_version {
-            if dictionary_data_util::compare_revisions(&yomitan_version, &minimum_yomitan_version) {
+            if dictionary_data_util::compare_revisions(&yomitan_version, minimum_yomitan_version) {
                 return Err(DictionarySummaryError::IncompatibleYomitanVersion {
                     yomitan_version,
                     minimum_required_yomitan_version: minimum_yomitan_version.clone(),
@@ -209,7 +209,7 @@ impl DictionarySummary {
                 return Err(DictionarySummaryError::InvalidIndexIsNotUpdatabale);
             }
             if let Some(index_url) = &index_url {
-                if let Err(err) = dictionary_data_util::validate_url(&index_url) {
+                if let Err(err) = dictionary_data_util::validate_url(index_url) {
                     return Err(DictionarySummaryError::InvalidIndexUrl {
                         url: index_url.clone(),
                         err,
@@ -217,7 +217,7 @@ impl DictionarySummary {
                 }
             }
             if let Some(download_url) = &download_url {
-                if let Err(err) = dictionary_data_util::validate_url(&download_url) {
+                if let Err(err) = dictionary_data_util::validate_url(download_url) {
                     return Err(DictionarySummaryError::InvalidIndexUrl {
                         url: download_url.clone(),
                         err,
@@ -236,10 +236,7 @@ impl DictionarySummary {
             prefix_wildcards_supported,
             counts,
             styles,
-            is_updatable: match is_updatable {
-                Some(v) => v,
-                None => false,
-            },
+            is_updatable: is_updatable.unwrap_or_default(),
             index_url,
             download_url,
             author,
@@ -555,7 +552,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
     let dict_name = index.title.clone();
 
     let tag_banks: Result<Vec<Vec<DatabaseTag>>, ImportError> =
-        convert_tag_bank_files(tag_bank_paths);
+        convert_tag_bank_files(tag_bank_paths, &dict_name);
     let tag_list: Vec<DatabaseTag> = match tag_banks {
         Ok(kml) => kml.into_iter().flatten().collect(),
         Err(e) => {
@@ -565,10 +562,10 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         }
     };
 
-    let term_banks: Result<Vec<Vec<DatabaseTermEntry>>, ImportError> = term_bank_paths
+    let term_banks: Result<Vec<Vec<DatabaseTermEntry>>, DictionaryFileError> = term_bank_paths
         .into_par_iter()
         .map(|path| convert_term_bank_file(path, &dict_name))
-        .collect::<Result<Vec<Vec<DatabaseTermEntry>>, ImportError>>();
+        .collect::<Result<Vec<Vec<DatabaseTermEntry>>, DictionaryFileError>>();
     let term_list: Vec<DatabaseTermEntry> = match term_banks {
         Ok(tl) => tl.into_iter().flatten().collect(),
         Err(e) => {
@@ -578,11 +575,11 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         }
     };
 
-    let kanji_meta_banks: Result<Vec<Vec<DatabaseMetaFrequency>>, ImportError> =
+    let kanji_meta_banks: Result<Vec<Vec<DatabaseMetaFrequency>>, DictionaryFileError> =
         kanji_meta_bank_paths
             .into_par_iter()
             .map(|path| DatabaseMetaMatchType::convert_kanji_meta_file(path, dict_name.clone()))
-            .collect::<Result<Vec<Vec<DatabaseMetaFrequency>>, ImportError>>();
+            .collect::<Result<Vec<Vec<DatabaseMetaFrequency>>, DictionaryFileError>>();
 
     let kanji_meta_list: Vec<DatabaseMetaFrequency> = match kanji_meta_banks {
         Ok(kml) => kml.into_iter().flatten().collect(),
@@ -593,11 +590,11 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         }
     };
 
-    let term_meta_banks: Result<Vec<Vec<DatabaseMetaMatchType>>, ImportError> =
+    let term_meta_banks: Result<Vec<Vec<DatabaseMetaMatchType>>, DictionaryFileError> =
         term_meta_bank_paths
             .into_par_iter()
             .map(|path| DatabaseMetaMatchType::convert_term_meta_file(path, dict_name.clone()))
-            .collect::<Result<Vec<Vec<DatabaseMetaMatchType>>, ImportError>>();
+            .collect::<Result<Vec<Vec<DatabaseMetaMatchType>>, DictionaryFileError>>();
 
     let term_meta_list: Vec<DatabaseMetaMatchType> = match term_meta_banks {
         Ok(tml) => tml.into_iter().flatten().collect(),
@@ -608,10 +605,10 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         }
     };
 
-    let kanji_banks: Result<Vec<Vec<DatabaseKanjiEntry>>, ImportError> = kanji_bank_paths
+    let kanji_banks: Result<Vec<Vec<DatabaseKanjiEntry>>, DictionaryFileError> = kanji_bank_paths
         .into_iter()
         .map(|path| convert_kanji_bank(path, &dict_name))
-        .collect::<Result<Vec<Vec<DatabaseKanjiEntry>>, ImportError>>();
+        .collect::<Result<Vec<Vec<DatabaseKanjiEntry>>, DictionaryFileError>>();
 
     let kanji_list: Vec<DatabaseKanjiEntry> = match kanji_banks {
         Ok(kl) => kl.into_iter().flatten().collect(),
@@ -664,7 +661,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
 }
 
 fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
-    let index_str = fs::read_to_string(&outpath).map_err(|e| ImportError::Index {
+    let index_str = fs::read_to_string(&outpath).map_err(|e| DictionaryFileError::File {
         outpath,
         reason: e.to_string(),
     })?;
@@ -675,16 +672,37 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
 // this one should probabaly be refactored to:
 // 1. include the file and err if it throws like the rest of the converts
 // 2. only handle one file and have the iteration be handled in the caller function
-fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<DatabaseTag>>, ImportError> {
+fn convert_tag_bank_files(
+    outpaths: Vec<PathBuf>,
+    dictionary: &str,
+) -> Result<Vec<Vec<DatabaseTag>>, ImportError> {
     outpaths
         .into_iter()
         .map(|p| {
             let tag_str = fs::read_to_string(p)?;
-            let mut tag: Vec<DatabaseTag> = serde_json::from_str(&tag_str)?;
-            tag.iter_mut().for_each(|tag| {
-                tag.id = Uuid::now_v7().to_string();
-            });
-            Ok(tag)
+            let mut tag: Vec<DictionaryDataTag> = serde_json::from_str(&tag_str)?;
+            let res = tag
+                .into_iter()
+                .map(|tag| {
+                    let DictionaryDataTag {
+                        name,
+                        category,
+                        order,
+                        notes,
+                        score,
+                    } = tag;
+                    DatabaseTag {
+                        id: Uuid::now_v7().to_string(),
+                        name,
+                        category,
+                        order,
+                        notes,
+                        score,
+                        dictionary: dictionary.to_string(),
+                    }
+                })
+                .collect();
+            Ok(res)
         })
         .collect()
 }
@@ -694,22 +712,23 @@ fn convert_tag_bank_files(outpaths: Vec<PathBuf>) -> Result<Vec<Vec<DatabaseTag>
 fn convert_kanji_bank(
     outpath: PathBuf,
     dict_name: &str,
-) -> Result<Vec<DatabaseKanjiEntry>, ImportError> {
-    let file = fs::File::open(&outpath).map_err(|e| {
-        ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
+) -> Result<Vec<DatabaseKanjiEntry>, DictionaryFileError> {
+    let file = fs::File::open(&outpath).map_err(|reason| DictionaryFileError::FailedOpen {
+        outpath: outpath.clone(),
+        reason: reason.to_string(),
     })?;
     let reader = BufReader::new(file);
 
     let mut stream = JsonDeserializer::from_reader(reader).into_iter::<KanjiBank>();
     let mut entries = match stream.next() {
         Some(Ok(entries)) => entries,
-        Some(Err(e)) => {
-            return Err(ImportError::InvalidJson {
-                file: outpath,
-                e: Some(e.to_string()),
+        Some(Err(reason)) => {
+            return Err(crate::errors::DictionaryFileError::File {
+                outpath,
+                reason: reason.to_string(),
             })
         }
-        None => return Err(ImportError::Empty { file: outpath }),
+        None => return Err(DictionaryFileError::Empty(outpath)),
     };
 
     for item in &mut entries {
@@ -724,22 +743,23 @@ fn convert_kanji_bank(
 fn convert_term_bank_file(
     outpath: PathBuf,
     dict_name: &str,
-) -> Result<Vec<DatabaseTermEntry>, ImportError> {
-    let file = fs::File::open(&outpath).map_err(|e| {
-        ImportError::Custom(format!("file: {:#?} | err: {e}", outpath.to_string_lossy()))
+) -> Result<Vec<DatabaseTermEntry>, DictionaryFileError> {
+    let file = fs::File::open(&outpath).map_err(|reason| DictionaryFileError::FailedOpen {
+        outpath: outpath.clone(),
+        reason: reason.to_string(),
     })?;
     let reader = BufReader::new(file);
 
     let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
     let mut entries = match stream.next() {
         Some(Ok(entries)) => entries,
-        Some(Err(e)) => {
-            return Err(ImportError::InvalidJson {
-                file: outpath,
-                e: Some(e.to_string()),
+        Some(Err(reason)) => {
+            return Err(crate::errors::DictionaryFileError::File {
+                outpath,
+                reason: reason.to_string(),
             })
         }
-        None => return Err(ImportError::Empty { file: outpath }),
+        None => return Err(DictionaryFileError::Empty(outpath)),
     };
 
     // Beginning of each word/phrase/expression (entry)
