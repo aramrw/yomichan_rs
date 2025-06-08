@@ -1,5 +1,7 @@
 use crate::{
-    dictionary_data::TermGlossaryContent, translation_internal::TextProcessorRuleChainCandidate,
+    database::dictionary_database::{Pronunciation, TermPronunciationMatchType},
+    dictionary_data::TermGlossaryContent,
+    translation_internal::TextProcessorRuleChainCandidate,
     translator::TermType,
 };
 use derive_more::derive::From;
@@ -318,43 +320,3 @@ pub struct TermDictionaryEntry {
 
 /*************** Pitch Accent & Pronunciation ***************/
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum TermPronunciationMatchType {
-    #[serde(rename = "lowercase")]
-    PitchAccent,
-    #[serde(rename = "phonetic-transcription")]
-    PhoneticTranscription,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum Pronunciation {
-    PitchAccent(PitchAccent),
-    PhoneticTranscription(PhoneticTranscription),
-}
-
-/// Pitch accent information for a term, represented as the position of the downstep.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct PitchAccent {
-    /// Type of the pronunciation, for disambiguation between union type members.
-    /// Should be `"pitch-accent"` in the json.
-    pub term: TermPronunciationMatchType,
-    /// Position of the downstep, as a number of mora.
-    pub position: u8,
-    /// Positions of morae with a nasal sound.
-    pub nasal_positions: Vec<u8>,
-    /// Positions of morae with a devoiced sound.
-    pub devoice_positions: Vec<u8>,
-    /// Tags for the pitch accent.
-    pub tags: Vec<DictionaryTag>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct PhoneticTranscription {
-    /// Type of the pronunciation, for disambiguation between union type members.
-    /// Should be `"phonetic-transcription"` in the json.
-    pub match_type: TermPronunciationMatchType,
-    /// IPA transcription for the term.
-    pub ipa: String,
-    /// List of tags for this IPA transcription.
-    pub tags: Vec<DictionaryTag>,
-}
