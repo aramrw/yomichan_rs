@@ -1,8 +1,8 @@
 use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    DictionaryDataTag, GenericFreqData, MetaDataMatchType, TermGlossary, TermGlossaryContent,
-    TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPhoneticData,
-    TermMetaPitch, TermMetaPitchData,
+    DictionaryDataTag, MetaDataMatchType, TermGlossary, TermGlossaryContent, TermMeta,
+    TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPitch,
+    TermMetaPitchData,
 };
 use crate::translator::TagTargetItem;
 use serde_with::{serde_as, NoneAsEmptyString};
@@ -10,7 +10,7 @@ use serde_with::{serde_as, NoneAsEmptyString};
 use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
 // KANA_MAP is unused, consider removing if not used elsewhere in this module or submodules
 // use crate::dictionary_data::KANA_MAP;
-use crate::errors::{DBError, ImportError};
+use crate::errors::{DBError, DictionaryFileError, ImportError};
 use crate::settings::{DictionaryOptions, Options, Profile};
 // Yomichan is unused, consider removing if not used elsewhere in this module or submodules
 // use crate::Yomichan;
@@ -129,16 +129,6 @@ pub struct Media<T = MediaType> {
     data: T,
 }
 
-pub trait HasExpression {
-    fn expression(&self) -> &str;
-}
-
-impl HasExpression for DatabaseTermEntry {
-    fn expression(&self) -> &str {
-        &self.expression
-    }
-}
-
 /// Represents a single term metadata entry found by find_term_meta_bulk.
 /// This structure matches the output of the JavaScript _createTermMeta function.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -203,20 +193,6 @@ pub struct TermEntry {
 }
 
 impl DatabaseTermEntry {
-    // pub fn predicate(
-    //      &self,
-    //      dictionaries: impl DictionarySet,
-    //      visited_ids: &mut IndexSet<String>,
-    // ) -> bool {
-    //      if !dictionaries.has(&self.dictionary) {
-    //          return false;
-    //      }
-    //      if visited_ids.contains(&self.id) {
-    //          return false;
-    //      }
-    //      visited_ids.insert(self.id.clone());
-    //      true
-    // }
     pub fn into_term_generic(
         self,
         match_type: &mut TermSourceMatchType,
@@ -285,7 +261,7 @@ impl DatabaseTermEntry {
 pub struct DatabaseTag {
     /// id field doesn't exist in JS
     /// need it because primary keys must be unique
-    #[serde(skip_deserializing, default)]
+    //#[serde(skip_deserializing, default)]
     #[primary_key]
     pub id: String,
     #[secondary_key]
@@ -297,7 +273,7 @@ pub struct DatabaseTag {
     pub score: i128,
     /// dictionary gets added afterwards
     /// it doesn't exist in any yomitan dictionary
-    #[serde(skip_deserializing, default)]
+    //#[serde(skip_deserializing, default)]
     #[secondary_key]
     pub dictionary: String,
 }
@@ -323,28 +299,26 @@ impl DatabaseMetaMatchType {
     pub fn convert_kanji_meta_file(
         outpath: PathBuf,
         dict_name: String,
-    ) -> Result<Vec<DatabaseMetaFrequency>, ImportError> {
-        let file = fs::File::open(&outpath).map_err(|e| {
-            ImportError::Custom(format!("File: {:#?} | Err: {e}", outpath.to_string_lossy()))
+    ) -> Result<Vec<DatabaseMetaFrequency>, DictionaryFileError> {
+        let file = fs::File::open(&outpath).map_err(|reason| DictionaryFileError::FailedOpen {
+            outpath: outpath.clone(),
+            reason: reason.to_string(),
         })?;
         let reader = BufReader::new(file);
 
         // Kanji metas are only frequencies
         let mut stream =
             JsonDeserializer::from_reader(reader).into_iter::<Vec<DatabaseMetaFrequency>>();
+
         let mut entries = match stream.next() {
             Some(Ok(entries)) => entries,
-            Some(Err(e)) => {
-                return Err(ImportError::Custom(format!(
-                    "File: {} | Err: {e}",
-                    &outpath.to_string_lossy(),
-                )))
+            Some(Err(reason)) => {
+                return Err(crate::errors::DictionaryFileError::File {
+                    outpath,
+                    reason: reason.to_string(),
+                })
             }
-            None => {
-                return Err(ImportError::Custom(String::from(
-                    "no data in kanji_meta_bank stream", // Corrected message
-                )));
-            }
+            None => return Err(DictionaryFileError::Empty(outpath)),
         };
         entries.iter_mut().for_each(|entry| {
             entry.id = Uuid::now_v7().to_string();
@@ -356,27 +330,26 @@ impl DatabaseMetaMatchType {
     pub fn convert_term_meta_file(
         outpath: PathBuf,
         dict_name: String,
-    ) -> Result<Vec<DatabaseMetaMatchType>, ImportError> {
-        let file = fs::File::open(&outpath)?;
+    ) -> Result<Vec<DatabaseMetaMatchType>, DictionaryFileError> {
+        let file = fs::File::open(&outpath).map_err(|reason| DictionaryFileError::FailedOpen {
+            outpath: outpath.clone(),
+            reason: reason.to_string(),
+        })?;
         let reader = BufReader::new(file);
 
         let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermMeta>>();
-        let entries: TermMetaBank = match stream.next() {
+        let mut entries = match stream.next() {
             Some(Ok(entries)) => entries,
-            Some(Err(e)) => {
-                return Err(ImportError::Custom(format!(
-                    "File: {} | Err: {e}",
-                    &outpath.to_string_lossy(),
-                )))
+            Some(Err(reason)) => {
+                return Err(crate::errors::DictionaryFileError::File {
+                    outpath,
+                    reason: reason.to_string(),
+                })
             }
-            None => {
-                return Err(ImportError::Custom(String::from(
-                    "no data in term_meta_bank stream",
-                )))
-            }
+            None => return Err(DictionaryFileError::Empty(outpath)),
         };
 
-        dbg!(&entries);
+        //dbg!(&entries);
 
         let term_metas: Vec<DatabaseMetaMatchType> = entries
             // entries is TermMetaBank which is Vec<TermMetaData>
@@ -430,27 +403,18 @@ impl DatabaseMetaMatchType {
 #[native_db]
 pub struct DatabaseMetaFrequency {
     #[primary_key]
-    #[serde(skip_deserializing, default)]
     pub id: String,
     #[secondary_key]
     pub freq_expression: String,
     /// Is of type [`TermMetaModeType::Freq`]
     pub mode: TermMetaModeType,
     pub data: TermMetaFreqDataMatchType,
-    #[serde(skip_deserializing, default)]
     pub dictionary: String,
 }
-
 impl DBMetaType for DatabaseMetaFrequency {
     fn mode(&self) -> &TermMetaModeType {
         &self.mode
     }
-    fn expression(&self) -> &str {
-        &self.freq_expression
-    }
-}
-
-impl HasExpression for DatabaseMetaFrequency {
     fn expression(&self) -> &str {
         &self.freq_expression
     }
@@ -470,7 +434,21 @@ pub struct DatabaseMetaPitch {
     pub data: TermMetaPitchData,
     pub dictionary: String,
 }
-
+/// Pitch accent information for a term, represented as the position of the downstep.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct PitchAccent {
+    /// Type of the pronunciation, for disambiguation between union type members.
+    /// Should be `"pitch-accent"` in the json.
+    pub term: TermPronunciationMatchType,
+    /// Position of the downstep, as a number of mora.
+    pub position: u8,
+    /// Positions of morae with a nasal sound.
+    pub nasal_positions: Vec<u8>,
+    /// Positions of morae with a devoiced sound.
+    pub devoice_positions: Vec<u8>,
+    /// Tags for the pitch accent.
+    pub tags: Vec<DictionaryTag>,
+}
 impl DBMetaType for DatabaseMetaPitch {
     fn mode(&self) -> &TermMetaModeType {
         &self.mode
@@ -494,7 +472,34 @@ pub struct DatabaseMetaPhonetic {
     pub data: TermMetaPhoneticData,
     pub dictionary: String,
 }
-
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TermMetaPhoneticData {
+    pub reading: String,
+    /// List of different IPA transcription information for the term and reading combination.
+    pub transcriptions: Vec<PhoneticTranscription>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct PhoneticTranscription {
+    /// Type of the pronunciation, for disambiguation between union type members.
+    /// Should be `"phonetic-transcription"` in the json.
+    pub match_type: TermPronunciationMatchType,
+    /// IPA transcription for the term.
+    pub ipa: String,
+    /// List of tags for this IPA transcription.
+    pub tags: Vec<DictionaryTag>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum TermPronunciationMatchType {
+    #[serde(rename = "lowercase")]
+    PitchAccent,
+    #[serde(rename = "phonetic-transcription")]
+    PhoneticTranscription,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum Pronunciation {
+    PitchAccent(PitchAccent),
+    PhoneticTranscription(PhoneticTranscription),
+}
 impl DBMetaType for DatabaseMetaPhonetic {
     fn mode(&self) -> &TermMetaModeType {
         &self.mode
@@ -515,7 +520,7 @@ pub struct DatabaseKanjiMeta {
     pub character: String,
     /// Is of type [TermMetaModeType::Freq]
     pub mode: TermMetaModeType,
-    pub data: GenericFreqData,
+    pub data: TermMetaFreqDataMatchType,
     #[secondary_key]
     pub dictionary: String,
 }
@@ -541,7 +546,7 @@ pub struct DatabaseKanjiEntry {
     /// The kanji dictionary name.
     /// Does not exist within the JSON, gets added _after_ deserialization.
     #[secondary_key]
-    #[serde(skip_deserializing)]
+    //#[serde(skip_deserializing)]
     pub dictionary: Option<String>,
 }
 
@@ -1460,7 +1465,7 @@ mod ycd {
     fn find_term_meta_bulk_() {
         //let (_f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
-        let term_list = vec!["日本語".to_string()];
+        let term_list = vec!["自得".to_string()];
         let mut dictionaries = IndexSet::new();
         dictionaries.insert("Anime & J-drama".to_string());
         let result = ycd.find_term_meta_bulk(&term_list, &dictionaries).unwrap();
@@ -1486,30 +1491,6 @@ mod ycd {
         // Pass term_list directly as it implements AsRef<str> for String
         let result = ycd.find_terms_bulk(&term_list, &dictionaries, match_type);
         dbg!(result);
-
-        // match result {
-        //     Ok(term_entries) => {
-        //         assert!(
-        //             !term_entries.is_empty(),
-        //             "Expected to find TermEntry for '大丈夫'"
-        //         );
-        //         let mut found_match = false;
-        //         for entry in term_entries {
-        //             if entry.term == "大丈夫" {
-        //                 assert_eq!(entry.reading, "だいじょうぶ");
-        //                 assert_eq!(entry.match_type, TermSourceMatchType::Exact); // Exact is expected
-        //                 found_match = true;
-        //             }
-        //         }
-        //         assert!(
-        //             found_match,
-        //             "Did not find '大丈夫' with expected reading and exact match type in results."
-        //         );
-        //     }
-        //     Err(e) => {
-        //         panic!("find_terms_bulk_daijoubu_exact_match_test test failed: {e:?}");
-        //     }
-        // }
     }
 }
 
