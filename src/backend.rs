@@ -102,7 +102,7 @@ impl Backend {
     /// A vector of `LocatedTerm`s, sorted by a relevance score that considers
     /// whether a term is a sub-component of a larger match, its length, and its position.
     pub fn _parse_text_terms(&mut self, text: &str, options: &ProfileOptions) -> Vec<LocatedTerm> {
-        const MODE: FindTermsMode = FindTermsMode::Simple;
+        const MODE: FindTermsMode = FindTermsMode::Group;
         let details = FindTermsDetails {
             match_type: Some(TermSourceMatchType::Exact),
             deinflect: Some(true),
@@ -196,203 +196,6 @@ impl Backend {
         // Map back to the original `LocatedTerm` struct for the final result.
         scored_terms.into_iter().map(|st| st.term).collect()
     }
-
-    // /// Finds all possible dictionary terms for every substring in the input text.
-    // ///
-    // /// This function iterates through the text, and for each starting position, it
-    // /// finds all matching dictionary terms and returns them with their position
-    // /// and full entry data. It does NOT attempt to create a single segmented path,
-    // /// but instead provides a comprehensive list of all possibilities.
-    // ///
-    // /// # Returns
-    // /// A vector of `LocatedTerm`s, sorted by start position, then by longest match,
-    // /// and finally by dictionary score. This provides a clean, ordered list of
-    // /// all terms found in the text.
-    // pub fn _parse_text_terms(&mut self, text: &str, options: &ProfileOptions) -> Vec<LocatedTerm> {
-    //     const MODE: FindTermsMode = FindTermsMode::Simple;
-    //     let details = FindTermsDetails {
-    //         match_type: Some(TermSourceMatchType::Exact),
-    //         deinflect: Some(true),
-    //         primary_reading: None,
-    //     };
-    //     let find_terms_options =
-    //         Backend::_get_translator_find_terms_options(MODE, &details, options);
-    //
-    //     let mut all_found_terms: Vec<LocatedTerm> = Vec::new();
-    //
-    //     // Iterate through each character's byte position as a potential starting point.
-    //     for (start_index, _) in text.char_indices() {
-    //         // *** FIX: Search the ENTIRE remaining slice of the string. ***
-    //         // This gives find_terms full context to find the longest possible words.
-    //         let search_slice = &text[start_index..];
-    //
-    //         if search_slice.is_empty() {
-    //             continue;
-    //         }
-    //
-    //         let find_result = self
-    //             .translator
-    //             .find_terms(MODE, search_slice, &find_terms_options);
-    //
-    //         // Iterate through every dictionary entry it found for this slice.
-    //         for entry in find_result.dictionary_entries {
-    //             if let Some(source) = entry.headwords.first().and_then(|hw| hw.sources.first()) {
-    //                 let matched_text = &source.original_text;
-    //                 // Ensure the match starts at the beginning of our search slice.
-    //                 if !matched_text.is_empty() && search_slice.starts_with(matched_text) {
-    //                     all_found_terms.push(LocatedTerm {
-    //                         start: start_index,
-    //                         length: matched_text.len(),
-    //                         text: matched_text.clone(),
-    //                         // Clone the entry to take ownership of the data.
-    //                         entry: entry.clone(),
-    //                     });
-    //                 }
-    //             }
-    //         }
-    //     }
-    //
-    //     // Sort the results into a "sane order":
-    //     // 1. Group by starting position (ascending).
-    //     // 2. Within each group, list longest matches first (descending length).
-    //     // 3. For matches with the same start/length, use dictionary score (lower is better).
-    //     all_found_terms.sort_unstable_by(|a, b| {
-    //         a.start
-    //             .cmp(&b.start)
-    //             .then_with(|| b.length.cmp(&a.length))
-    //             .then_with(|| a.entry.score.cmp(&b.entry.score))
-    //     });
-    //
-    //     // Remove duplicates, which can occur if the same term (e.g., same term/reading)
-    //     // is found in multiple dictionaries.
-    //     all_found_terms.dedup_by(|a, b| {
-    //         let headword_a = a.entry.headwords.first();
-    //         let headword_b = b.entry.headwords.first();
-    //
-    //         a.start == b.start
-    //             && a.text == b.text
-    //             && headword_a.map(|h| (&h.term, &h.reading))
-    //                 == headword_b.map(|h| (&h.term, &h.reading))
-    //     });
-    //
-    //     all_found_terms
-    // }
-    //
-    // /// Parses text by finding the longest possible dictionary term at each position.
-    // ///
-    // /// This function implements the "Maximal Match" (or "Longest Match") algorithm,
-    // /// a common and effective heuristic for tokenizing unspaced languages like Japanese.
-    // ///
-    // /// # Parameters
-    // /// * `text` - The input string to parse.
-    // /// * `scan_length` - The maximum length of the substring to search at each step.
-    // ///   This acts as a performance optimization to limit the search space. A value
-    // ///   like 32 is usually sufficient, as Japanese words rarely exceed this length.
-    // /// * `options` - Contextual options for parsing.
-    // ///
-    // /// # Returns
-    // /// A `Result` containing a vector of `ParseTextLine`s, where each `ParseTextLine`
-    // /// represents a found word or a series of ungrouped characters.
-    // pub fn _text_parse_maximal_match(
-    //     &mut self,
-    //     text: &str,
-    //     scan_length: usize,
-    //     options: &ProfileOptions,
-    // ) -> Vec<ParseTextLine> {
-    //     const MODE: FindTermsMode = FindTermsMode::Simple;
-    //     let details = FindTermsDetails {
-    //         match_type: Some(TermSourceMatchType::Exact),
-    //         deinflect: Some(true),
-    //         primary_reading: None,
-    //     };
-    //     let find_terms_options =
-    //         Backend::_get_translator_find_terms_options(MODE, &details, options);
-    //
-    //     let mut results: Vec<ParseTextLine> = Vec::new();
-    //     let mut i = 0; // Current byte position in the text
-    //     let text_len = text.len();
-    //
-    //     // Create a vector of character start indices to correctly handle multi-byte characters.
-    //     let char_indices: Vec<usize> = text.char_indices().map(|(i, _)| i).collect();
-    //
-    //     while i < text_len {
-    //         // Define the slice to search. Using scan_length prevents looking too far ahead.
-    //         let scan_end = (i + scan_length).min(text_len);
-    //         let search_slice = &text[i..scan_end];
-    //
-    //         let find_result = self
-    //             .translator
-    //             .find_terms(MODE, search_slice, &find_terms_options);
-    //
-    //         // Find the best match. The criteria are:
-    //         // 1. Longest matched text length (primary).
-    //         // 2. Best dictionary score (tie-breaker). Your scores seem to be lower-is-better.
-    //         let best_match = find_result
-    //             .dictionary_entries
-    //             .iter()
-    //             .filter_map(|entry| {
-    //                 // The actual matched text from the input is in the headword's source.
-    //                 entry
-    //                     .headwords
-    //                     .first()
-    //                     .and_then(|hw| hw.sources.first())
-    //                     .map(|source| (entry, source.original_text.len()))
-    //             })
-    //             .filter(|(_, len)| *len > 0) // Ensure we only consider actual matches.
-    //             .max_by(|(entry_a, len_a), (entry_b, len_b)| {
-    //                 // Compare by length first. If lengths are equal, compare by score.
-    //                 match len_a.cmp(len_b) {
-    //                     Ordering::Equal => entry_a.score.cmp(&entry_b.score).reverse(), // Lower score is better
-    //                     other => other,
-    //                 }
-    //             });
-    //
-    //         if let Some((entry, length)) = best_match {
-    //             // A dictionary word was found, so we use it.
-    //             let headword = entry.headwords.first().unwrap(); // Safe due to previous filters.
-    //             let source_text = &text[i..i + length];
-    //
-    //             let text_segments = distribute_furigana_inflected(
-    //                 headword.term.clone(),
-    //                 headword.reading.clone(),
-    //                 source_text.to_string(),
-    //             );
-    //             results.push(text_segments.into_iter().map(|fs| fs.into()).collect());
-    //
-    //             // Advance the cursor by the length of the matched word.
-    //             i += length;
-    //         } else {
-    //             // No dictionary entry found at this position.
-    //             // Treat the current character as an ungrouped segment and advance.
-    //             let current_char = text[i..].chars().next().unwrap_or('\u{FFFD}');
-    //             let char_len = current_char.len_utf8();
-    //
-    //             // Check if the previous segment was also ungrouped so we can merge them.
-    //             let mut merged = false;
-    //             if let Some(last_line) = results.last_mut() {
-    //                 // Heuristic for "is ungrouped": it has one segment and no reading.
-    //                 if last_line.len() == 1 && last_line[0].reading.is_empty() {
-    //                     last_line[0].text.push(current_char);
-    //                     merged = true;
-    //                 }
-    //             }
-    //
-    //             if !merged {
-    //                 // Otherwise, create a new line for the ungrouped character.
-    //                 let new_segment = ParseTextSegment {
-    //                     text: current_char.to_string(),
-    //                     reading: String::new(),
-    //                 };
-    //                 results.push(vec![new_segment]);
-    //             }
-    //
-    //             // Advance the cursor by the length of the single character.
-    //             i += char_len;
-    //         }
-    //     }
-    //
-    //     results
-    // }
 
     /// Parses text by scanning for dictionary terms.
     ///
@@ -680,7 +483,7 @@ mod ycd_tests {
     fn text_match() {
         let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
         ycd.set_language("ja");
-        let res = ycd.parse_text("出来て", 20);
+        let res = ycd.parse_text("自業自得", 20);
         //dbg!(res);
         let txt = std::fs::write(
             TEST_PATHS.tests_dir.join("output.json"),
