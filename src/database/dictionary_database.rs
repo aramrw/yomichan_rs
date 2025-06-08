@@ -4,6 +4,7 @@ use crate::dictionary_data::{
     TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPitch,
     TermMetaPitchData,
 };
+use crate::test_utils::TEST_PATHS;
 use crate::translator::TagTargetItem;
 use serde_with::{serde_as, NoneAsEmptyString};
 
@@ -288,7 +289,7 @@ pub trait DBMetaType {
 // /// A custom `Yomichan_rs`-unique, generic Database Meta model.
 // ///
 // /// May contain `any` or `all` of the values.
-// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DatabaseMetaMatchType {
     Frequency(DatabaseMetaFrequency),
     Pitch(DatabaseMetaPitch),
@@ -349,8 +350,6 @@ impl DatabaseMetaMatchType {
             None => return Err(DictionaryFileError::Empty(outpath)),
         };
 
-        //dbg!(&entries);
-
         let term_metas: Vec<DatabaseMetaMatchType> = entries
             // entries is TermMetaBank which is Vec<TermMetaData>
             .into_iter()
@@ -393,6 +392,13 @@ impl DatabaseMetaMatchType {
                 }
             })
             .collect();
+
+        let term_metas_json = serde_json::to_vec_pretty(&term_metas).unwrap();
+        std::fs::write(
+            TEST_PATHS.tests_dir.join("term_metas_rust.json"),
+            term_metas_json,
+        );
+
         Ok(term_metas)
     }
 }
@@ -1465,7 +1471,7 @@ mod ycd {
     fn find_term_meta_bulk_() {
         //let (_f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
-        let term_list = vec!["自得".to_string()];
+        let term_list = vec!["自業自得".to_string()];
         let mut dictionaries = IndexSet::new();
         dictionaries.insert("Anime & J-drama".to_string());
         let result = ycd.find_term_meta_bulk(&term_list, &dictionaries).unwrap();
