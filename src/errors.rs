@@ -31,9 +31,22 @@ impl ImportZipError {
 }
 
 #[derive(Error, Debug)]
+pub enum DictionaryFileError {
+    #[error("failed to deserialize file: `{outpath}`\nreason: {reason}")]
+    File { outpath: PathBuf, reason: String },
+    #[error(
+        "no data in term_bank stream, is the file empty?
+         file: {0}"
+    )]
+    Empty(PathBuf),
+    #[error("failed to open file: {outpath}\nreason: {reason}")]
+    FailedOpen { outpath: PathBuf, reason: String },
+}
+
+#[derive(Error, Debug)]
 pub enum ImportError {
-    #[error("failed to convert index file: `{outpath}`\nreason: {reason}")]
-    Index { outpath: PathBuf, reason: String },
+    #[error("dictionary file error: {0}")]
+    DictionaryFile(#[from] DictionaryFileError),
     #[error("{0}")]
     Zip(#[from] ImportZipError),
     #[error("db err: {0}")]
@@ -53,11 +66,6 @@ pub enum ImportError {
          reason: {e:#?}"
     )]
     InvalidJson { file: PathBuf, e: Option<String> },
-    #[error(
-        "no data in term_bank stream, is the file empty?
-         file: {file}"
-    )]
-    Empty { file: PathBuf },
     #[error("failed to create summary: {0}")]
     Summary(#[from] DictionarySummaryError),
 }
