@@ -3698,6 +3698,7 @@ dependencies = [
  "pprof",
  "pretty_assertions",
  "rayon",
+ "rmp-serde",
  "serde",
  "serde-untagged",
  "serde_json",
