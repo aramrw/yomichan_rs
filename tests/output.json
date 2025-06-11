@@ -1,1172 +1,8 @@
 [
   {
     "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -7,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "擂る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20b-7130-8bd2-40a3e758dba7",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -7,
-          "frequency_order": 0,
-          "sequences": [
-            8612300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "擦った揉んだ",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -5,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "磨る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20b-7130-8bd2-408396c63c52",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -5,
-          "frequency_order": 0,
-          "sequences": [
-            8612300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "擦った揉んだ",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -3,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "摩る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20a-7fa2-a31b-896a96647842",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -3,
-          "frequency_order": 0,
-          "sequences": [
-            8612300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "擦った揉んだ",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "為る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "vs"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20b-7130-8bd2-40d51596e873",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            8612400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "すまじきものは宮仕え",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出来る",
-          "reading": "できる",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "出来る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v1"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b8a9-7cf0-80d1-2e7b453c3870",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            10940300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "出来ない相談",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "摺る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20a-7fa2-a31b-892750ce4c73",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            8612200000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "す・る[1]【刷る・摺▼る】（動(ラ)五［四］）〔「する（擦・摩）」と同源〕①印刷する。《刷》「新聞を━・る」「輪転機で━・る」②版木などに墨や絵の具などをつけ、紙などに当て、こすって写し取る。「版画を━・る」③植物や染料を布にこすり付けて模様を染め出す。《摺》「月草に衣は━・らむ／古今和歌集（秋上）」すれる",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "擦る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20a-7fa2-a31b-8949567573bb",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            8612300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "擦った揉んだ",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出来る",
-          "reading": "できる",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "出来る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v1"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b8a9-7cf0-80d1-2dd7a7775d8e",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            10940300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "で・きる[2]【出来る】（動(カ)上一）〔カ変動詞「でく」の連体形「でくる」が上一段化したもの〕①自然に生じる。㋐それまでなかった物が生じる。「顔ににきびが━・きる」「海底火山の爆発で島が━・きる」㋑ある人にある事態が出現する。おこる。生じる。「急に用事が━・きたので失礼します」「暇が━・きたら行ってみよう」②新たに作られて完成する。「駅前に本屋が━・きるそうだ」「━・きたばかりのパン」③作物が成熟する。また、作物が生長する。「うちの畑で━・きたスイカ」「北海道ではミカンは━・きない」④課せられた作業・課題や準備が完成・完了する。仕上がる。「ご注文の写真は明日の夕方━・きます」「覚悟は━・きている」⑤材質・つくりが…である。「この机は頑丈に━・きている」⑥人が…するように生まれついている。教育されている。「いつも苦労するように━・きている」⑦能力・人柄がすぐれている。「クラスで一番━・きる子」「彼は人物が━・きている」⑧世間に知られないうちに、男女が情交を結ぶような親しい仲になる。「あの二人はどうも━・きてるようだ」⑨能力・可能性がある。近世以降の用法。㋐おこないうる。「そんなこと私には━・きません」「━・きる限りの援助をする」㋑それをうまく行える。「彼はスキーが━・きる」「この問題はむずかしくてだれにも━・きない」㋒動作性の名詞を受けて、…をすることが可能であるという意を表す。「泳ぎが━・きない」「車の運転が━・きる」㋓サ変動詞の語幹に付いて、…することが可能であるの意を表す。「よく理解━・きた」「八時にはスタート━・きる」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出来る",
-          "reading": "でける",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "出来る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v1"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b8aa-7ec1-9338-288471e42b82",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            10950800000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "で・ける【出来▽る】（動(カ)下一）〔「できる」の転。近世語〕できるに同じ。「いつごろ━・けませう／狂言記・仏師」〔現在も関西地方その他で用いる〕",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "為る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "vs"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20b-7130-8bd2-40c6faa638e9",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            8612400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "する[0]【為▽る】（動サ変）(サ変)す❶（「…（を）する」の形で）①（動作性の名詞を受けて）ある動作・行為を行う。多くの場合、その名詞を語幹とするサ変動詞も存在する。「勉強をする」「サインをする」「不審な動きをする」「電話をする」「こら、何をするんだ」「自分だけ楽をする」②ある一時期、ある職務・ポストにつく。「昔、高校の教師をしていたとき」③（「（…に）…をする」の形で）装身具などを身につける。「鉢巻をする」「いつもネクタイをしている」④人や物がある形・色・性質である。また、人がある服装・顔の形・表情である。「こわい顔をしてにらむ」「青い目をした女の子」「立派な体格をしている」「いい腕をしている職人」⑤（動詞の連用形の下に付いて）いったん名詞化されたものを再び動詞化する。多くは古語で打ち消し表現に用いられた。「恋する」「尽きせぬ思い」「絶えせず」❷（「…を…にする」 「…を…とする」の形で）①ある人をある身分にする。あるポストにつける。あるものに育て上げる。「息子を医者にする」「犬を友として暮らす」「孫を相手にして遊ぶ」②ある物をある用途に使う。「腕を枕にして寝る」「釣った鮎(あゆ)をさかなにして酒を飲む」③ある物を…に変化させる。「小切手を現金にする」「大豆を臼でひいて粉にする」④…を…と見なす、考える。…扱いする。「あの話はなかったことにして下さい」「ひとをばかにするにもほどがある」⑤自分で…を…と思う、感じる。「遠足を楽しみにしている」「僕は君を頼りにしているんだよ」❸（形容詞・形容動詞の連用形に付いて）その状態にならせる。その状態を出現させる。「髪を長くする」「これまでの経緯を明らかにする」「静かにしなさい」❹決める。①（「…ことにする」 「…こととする」の形で動詞・助動詞を受けて）…することを決意する。…することに決める。「私も一緒に行くことにした」「本契約の定めに従うこととする」②（「…にする」の形で名詞・代名詞を受けて）選び出して…と決める。「朝食はパンにするか御飯にするか決めて下さい」「どちらにしますか」③（動詞の終止形を「と」で受けて、また、名詞を「と」 「に」で受けて、「…とする」 「…にする」の形で）それまでの動作を打ち切って新たな動作にとりかかる。「そろそろ寝るとするか」「お昼だからご飯にしましょう」④（「…とする」の形で状態性の名詞を受けて）…であると判定する。決定する。「一審の判決では有罪とされた」「この法案を是(ぜ)とする者の割合は…」⑤（「…とする」の形で、文語形容詞の終止形を受けて）自分で…であると思う。「原案を良しとする者が多数を占めた」「職にとどまることを潔しとせず」「解散のおそれなしとしない」⑥（「…とすれば」 「…にしては」の形で）…であると仮定する。…と一応決める。「いま生きているとすれば三〇歳になる」「小学生にしては背が高い」⑦（多く「…ものとする」の形で動詞・助動詞を受けて）法律・規則の文章で、…と決める。定める。「月謝は月末までに納めるものとする」「委員の任期は二年とする」⑧（「…とすれば」 「…にしては」 「…としては」 「…としても」 「…としての」などの形で）その人の立場から考えると。「彼女とすればそう考えるのも無理はない」「私としても言い分はある」「彼の小説にしては短い方だ」「重役としての仕事」⑨（「…としたことが」の形で）あの有能な…が不覚にも。「おれとしたことが、こんな失敗をしでかすとは」⑩（「…うとする」 「…ようとする」の形で動詞・助動詞の未然形を受けて）㋐ある動作にとりかかる。「出かけようとしたら雨が降ってきた」㋑ある事柄が行われる所である。ある出来事が始まりかかっている。「夕陽がまさに沈もうとしていた」「船はまさに岸壁を離れようとしていた」❺（「…がする」の形で名詞を受けて）ある現象・感じが知覚されるとき、受け手の立場からではなく、そのもととなった現象を中心に表現する言い方。「玄関で人の声がする」「良い香りのする花」「変な味がする」「頭痛がする」「ほめられれば悪い気はしない」❻（事物の状態などを表す副詞を受けてそれを述語化する）そのような状態である。「あっさり（と）した味」「疲れてぐったり（と）する」「ゆっくりしていって下さい」「いつも堂々としている」「それを見てぞっとした」❼数量を表す語に付く。①（時間を表す語に付いて）ある時刻を起点にして、その時間が経過する。たつ。「雨は一時間（も）すればやむだろう」「買って一年（も）しないのにもう壊れた」②（価格を表す語に付いて）買い手の立場から、その値段である。あまり安くない場合にいうことが多い。「四〇万円もする高級カメラ」「これいくらしたの」③（人数を表す語に「…して」の形で付いて）その人数で一緒にある動作をすることを表す。「二人して出かける」「家族みんなして働く」❽「…（と）して」 「…（と）すると」 「…（と）すれば」 「…（と）したら」などの形で、副詞を述語化して用いる。「依然として」「もしかすると」「もしかしたら」「ひょっとして」「ひょっとすると」「ひょっとしたら」「ややもすると」「ともすると」「ともすれば」「頑として口を割らない」「鹿児島でも時として雪が降る」❾（補助動詞）①（動詞の連用形に助詞「は」 「も」 「でも」 「さえ」 「こそ」などを伴ったものに付いて）その動詞の意味、またはその動詞の打ち消しの意味を強める。「出かけはしたが」「見もしない」「知りもしないことを言うな」「笑いでもしたら」「乗りさえすれば」②（動詞の連用形を重ねたもの、あるいは動詞に並列を表す「なり」 「たり」 「も」 「か」 「し」 「つ」などを添えたものに付いて）叙述を助ける働きをする。「鉛筆の芯(しん)を削り削りして細字を書く」「見聞きしたこと」「ここで寝起きしている」「打つなりたたくなりしてくれ」「書いたり消したりする」「日によって静かだったりうるさかったりする」「逃げも隠れもしない」「材質が粗悪だか薄いかして穴があく」「腹はへるし風は冷たいしするから…」「抜きつ抜かれつする」③（上に「お」を添えた動詞の連用形、あるいは、上に「御」を添えた動作を表す漢語に付いて）謙譲の意を表す。「先生をお呼びする」「お荷物をお持ちしましょう」「のちほど係の者が御案内します」「お客様を御招待する」〔(1)「する」の活用は、口語では「し・せ・さ、し、する、する、すれ、しろ」、文語では「せ、し、す、する、すれ、せよ」。(2)各活用形のうち、口語の未然形は、「し」には助動詞「ない」「よう」が、「せ」には助動詞「ず」「ぬ」（打ち消し）が、「さ」には「れる」「せる」がそれぞれ接続する。→させる・される。(3)命令形は、古くから「せよ」が用いられ、現代でも文章語的な言い方としては用いられることがある。一方、中世後期から「せい」が用いられるようになり、近世江戸語以降は「しろ」が用いられるようになった。(4)文語の場合、過去の助動詞「き」の接続は変則的で、終止形「き」には連用形「し」から、連体形「し」および已然形「しか」には未然形「せ」から続く。すなわち、「しき」「せし」「せしか」となる。(5)「する」は、他の語と合して、いろいろの複合動詞をつくる。Тうわさする・びっくりする・おともする。У勉強する・運動する・練習する・研究する。Фリードする・スケッチする・ノックする。Х重んずる・軽んずる・先んずる。Ц察する・達する・決する。Ч感ずる・信ずる・論ずる・生ずる・通ずる。Ш愛する・熟する・服する・訳する・略する。これらのうち、ХとЧの諸動詞は、すべて「ずる」となるから、ザ行変格活用ということになる。文語の場合もほぼ同様である。(6)現代語では、(5)にあげたようなサ変の複合動詞のうちには、サ行（ザ行）変格以外の他の活用として用いられるものもある。すなわち、(5)のХЦЧの諸動詞は上一段活用としても用いられる。例えば、「重んじる・先んじる、察しる・達しる、感じる・信じる・論じる・生じる・通じる」など。また、Шの諸動詞は五段活用としても用いられる。例えば、「愛す・熟す・服す・訳す・略す」など〕",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "擦る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20a-7fa2-a31b-893390f3bf24",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            8612300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "す・る[1]【擦る・摩▽る・磨▽る・擂▼る】（動(ラ)五［四］）①物を他の物に触れさせたまま、力を入れて動かす。こする。《擦・摩》「マッチを━・る」「何かで━・った傷がついている」②物の面に他の物を押しつけて、くり返し動かす。こする。《磨・擦・擂》「やすりで━・る」「墨を━・る」「垢(あか)を━・る」「足━・り叫び伏し仰ぎ／万葉集（九〇四）」〔「手をする」などは、多く「摺る」と書く〕③鉢や臼の中で、つぶして細かくする。《擂》「ごまを━・る」「味噌を━・る」④賭け事などに金・財産を使い果たす。《擦・摩》「競馬で━・った」⑤貝などを漆で塗り込んで、磨き出す。「丸ぼや━・つたる鞍置いてぞ乗つたりける／平家物語（一一）」すれる（動(ラ)下二）⇨すれるする（擦・磨▽・擂▼・刷・摺▼）「擦る」は“こする”の意。「摩る」とも書く。「マッチを擦る」 「転倒して膝を擦る」「磨る」は“こする。みがく”の意。仮名書きが普通。「墨を磨る」 「やすりで磨る」「擂る」は“鉢(はち)や臼(うす)で細かく砕く”の意。仮名書きが普通。「ごまを擂る」 「味噌を擂る」「刷る」は“印刷する”の意。「新聞を刷る」 「輪転機で刷る」「摺る」は“押しつけて、こする”の意。「刷る」とも書く。「版画を摺る」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "掏る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20a-7fa2-a31b-89093a06e9e0",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            8612100000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "す・る[1]【掏▼る】（動(ラ)五［四］）人が身につけている金品を素早く盗み取る。「財布(さいふ)を━・られた」すれる",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "剃る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20a-7fa2-a31b-88f88f25f417",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            8612000000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "す・る[1]【剃▼る】（動(ラ)五［四］）「そる（剃）」の転。「顔を━・る」すれる",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 3,
-    "text": "出来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "potential",
-              "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる."
-            },
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 4,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 9,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "刷る",
-          "reading": "する",
-          "sources": [
-            {
-              "original_text": "出来て",
-              "transformed_text": "出来て",
-              "deinflected_text": "する",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c20a-7fa2-a31b-89181a2b9cf3",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 4,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            8612200000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "す・る[1]【刷る・摺▼る】（動(ラ)五［四］）〔「する（擦・摩）」と同源〕①印刷する。《刷》「新聞を━・る」「輪転機で━・る」②版木などに墨や絵の具などをつけ、紙などに当て、こすって写し取る。「版画を━・る」③植物や染料を布にこすり付けて模様を染め出す。《摺》「月草に衣は━・らむ／古今和歌集（秋上）」すれる",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
     "length": 2,
-    "text": "出来",
+    "text": "自得",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -1181,2827 +17,21 @@
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 6,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出来",
-          "reading": "でき",
-          "sources": [
-            {
-              "original_text": "出来",
-              "transformed_text": "出来",
-              "deinflected_text": "出来",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b8a5-79c1-8832-85ed6f8e0ba5",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 6,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            10920500000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "でき[0]【出来】①できること。できあがること。「今━の品」「━高」②できあがったもののようす。作られ方。でき具合。できばえ。「昔の物は━が違う」「いつもより━が悪い」「上━」③農作物の実り具合。収穫。「米は七分の━だ」④釣りで、魚が孵化(ふか)して一年以内であること。当歳。「━ハゼ」⑤よくできていること。「是も━でござる／狂言・角水聟」⑥接頭語的に用いて、一時的に生じたこと、急になり上がることの意を表す。「━心」「━分限」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 2,
-    "text": "出来",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 6,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出来",
-          "reading": "しゅったい",
-          "sources": [
-            {
-              "original_text": "出来",
-              "transformed_text": "出来",
-              "deinflected_text": "出来",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c1d0-7120-89e8-037191e6f1e6",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 6,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            7526700000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "しゅったい[0]【出来▽】（名）スル〔「しゅつらい」の転〕①物事が起こること。「大事件が━する」「要用の━したるにや、突然手紙を寄せて／福翁百話（諭吉）」②物事ができあがること。完成。→しゅつらい（出来）",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 2,
-    "text": "出来",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 6,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出来",
-          "reading": "しゅつらい",
-          "sources": [
-            {
-              "original_text": "出来",
-              "transformed_text": "出来",
-              "deinflected_text": "出来",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c1d1-79f0-b84b-e758a8280a95",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 6,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            7531500000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "しゅつらい[0]【出来】（名）スル〔「いできたる」の漢字表記「出来」を音読みした語。「しゅったい」とも〕①事件などが起こること。「大事件が━する」②物事ができ上がること。成就。「語彙と称する日本字引編集あるよし追々━すべしと／新聞雑誌（六）」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 2,
-    "text": "出来",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 6,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出来",
-          "reading": "でく",
-          "sources": [
-            {
-              "original_text": "出来",
-              "transformed_text": "出来",
-              "deinflected_text": "出来",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b8a9-7cf0-80d1-325ef5c7d624",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 6,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            10942500000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "で・く【出来】（動カ変）〔「いでく（出来）」の転〕①出て来る。生ずる。「父がなうてはどこから━・こうぞ／史記抄（六）」②仕上がる。作られる。できる。「明日の今比━・くるやうに頼みまらせう／狂言・仏師」〔中世以降、打ち消しに「できぬ」の形が生じたため、カ変か上二段か判断のつかないものが多い〕→出来(でき)る",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 2,
-    "text": "来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来る",
-          "reading": "きたる",
-          "sources": [
-            {
-              "original_text": "来て",
-              "transformed_text": "来て",
-              "deinflected_text": "来る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c7f8-7590-953b-ba0c1688a266",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            3714400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "来りなば",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 2,
-    "text": "来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来る",
-          "reading": "くる",
-          "sources": [
-            {
-              "original_text": "来て",
-              "transformed_text": "来て",
-              "deinflected_text": "来る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "vk"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c4a1-7961-9b98-d4fcfef1e27b",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            4594100000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "来と来",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 2,
-    "text": "来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来る",
-          "reading": "きたる",
-          "sources": [
-            {
-              "original_text": "来て",
-              "transformed_text": "来て",
-              "deinflected_text": "来る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c7f8-7590-953b-b9f17be888c8",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            3714400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "きた・る[2]【来る】（動(ラ)五［四］）〔「来(き)到(いた)る」の転か。「来たる」とも書く〕①くる。やってくる。「我が町へ首相━・る」「待ち人━・らず」「韓国を如何に言(ふ)ことそ目頰子(めずらこ)━・る／日本書紀（継体）」②古くなって役に立たなくなる。傷む。「少し━・つた小袖をうちかけ／洒落本・青楼昼之世界錦之裏」③異性に心を奪われる。ほれこむ。参る。「年増のお麦めは自己(おいら)に九分九厘━・つてゐて／滑稽本・七偏人」〔漢文訓読系の語。「きたす」に対する自動詞〕",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 2,
-    "text": "来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "continuative",
-              "description": "Used to indicate actions that are (being) carried out.\nRefers to 連用形, the part of the verb after conjugating with -ます and dropping ます."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 3,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来てる",
-          "reading": "きてる",
-          "sources": [
-            {
-              "original_text": "来て",
-              "transformed_text": "来て",
-              "deinflected_text": "来てる",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v1"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c7fc-7df1-9fc5-e8eb0744d14d",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 3,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            3743200000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "き◦てる【来てる】（連語）〔俗語。「来ている」の縮約した言い方〕①限界を超えている。「心も体も━◦てる」②勢いに乗っている。関心が高まっている。「━◦てる俳優」③言動が尋常ではなくなる。「大分━◦てますね」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 2,
-    "text": "来て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 6,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来る",
-          "reading": "くる",
-          "sources": [
-            {
-              "original_text": "来て",
-              "transformed_text": "来て",
-              "deinflected_text": "来る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "vk"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c4a1-7961-9b98-d4e10af3312d",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            4594100000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "くる[1]【来る】（動カ変）(カ変)く①話し手のいる方へ近づく。㋐（話し手と動作者とが別の場合）話し手が今いる場所、または話し手の領域にやってくる。自分のいる方に接近・到着する。「こっちへこい」「客がくる」「やっと電車がきた」㋑（話し手と動作者とが同一の場合）話し手の今いる地点を現在以外の時に訪れる。やってくる。「一〇年前に一度きたことがある」「この道はいつかきた道」「あしたまたくるよ」②動作者が、話し手とともに移動する。目的地に自分を置いた気持ちでいう場合には「行く」で表現することも可能。「映画を見にいく所なんだけど一緒にこないか」「あしたのハイキング、あの人もくるの」③物が運ばれて、話し手のもとに到達する。「ミロのビーナスが今度また日本にくるそうだ」「やっと返事がきた」「先月発注した品物がまだこない」④風・光などが話し手の方に到達・接近する。また、地震・雨などの自然現象が話し手のいる場所に起こる。「いい風がくる」「電波のくる方向にアンテナを向ける」「このへんで一雨きてくれるといいのだが」⑤時間が経過して、その季節・時期・順番になる。「春がきた」「もうすぐ返済の期限がくる」「やっと私の番がきた」⑥ある事態が出現する。㋐事態が進行して、ある段階にたち至る。「体力はもう限界にきている」「交渉は土壇場にきて難航している」㋑（「そこへきて」 「…の所へきて」の形で）ある悪い事態の上にさらによくない事態が積み重なる。そこへ持って来て。「毎晩残業でくたくただ。そこへきてこの暑さだから参った」「もともと二月は客の少ないところへきてこの大雪だ」⑦（「…からくる」の形で）…がその由来・原因となっている。…のために生ずる。「英語からきた外来語」「心のゆるみからくる事故」「風俗習慣の違いからくる誤解」⑧ある特定の位置を占める。「句読点が行の頭にこないようにする」「本の目次は普通最初にくる」⑨病気・故障・劣化などの異常が肉体や物のある部分にあらわれる。「しびれがくる」「今年の風邪は胃腸にくる」「体のあちこちにガタがくる」「飽きのこない色と柄」「かびがきた餅」⑩電気・電話・鉄道・水道などが話し手の方へ通じる。「村に電気がくる」⑪ある知覚・感覚が生じる。「鼻にツンとくるにおい」「ドアのノブに触ったとたん手にびりっときた」「この写真を見てぴんときた」「胸にじいんとくる」「かちんとくる物の言い方」「どうもしっくりこない」⑫（「よしきた」の形で）承知した。「よしきた、まかせておけ」⑬（「…ときたら」 「…ときた日には」 「…ときているから」などの形で）あるものを話題にとりあげて示す。「うちの亭主ときたら」「うまい上に安いときているから、いつも満席だ」「鯛の刺身に灘の生一本ときた日には、こたえられないね」⑭（「頭にくる」の形で）立腹することを俗にいう。「また遅れてきたので頭にきた」⑮（「…にくる」の形で）ある人を慕う気持ちがおこる。「是れ程我等にくる事、何とも合点がゆかぬ／浮世草子・好色一代女（一）」⑯（「腹がくる」の形で）空腹になる。「少し腹がきたわえ／洒落本・通言総籬」⑰（補助動詞）動詞の連用形またはこれに「て（で）」の付いた形に付いて、動作が進行し、また、事態が推移する意を表す。㋐話し手の方へ向かって動作が行われ、その話し手の方へ近づく意を表す。「少年がこっちへ走ってきた」「蜂が飛んできた」㋑（すぐに現在地に戻ることを前提にして）別の場所へ行って動作を行う意と、現在地に至る前に別の場所である動作を完了・実現した意を表す。「台所で変な音がしたからちょっと見てくるよ」「うちへ帰ってカバンを置いてきます」「出るとき玄関の鍵はきちんと掛けてきたはずです」「いけない、大事な書類をうちに忘れてきた」㋒ある事態が出現し、またある現象が現れる意を表す。「生まれてくる子供のために」「なくした本が出てきた」㋓動作が継続・反復されて現在に至るまで続く意を表す。「生まれてからずうっとこの村で暮らしてきた」「いつも、ひとに迷惑をかけるな、といってきたはずだ」㋔事態が進行してある段階に至る意を表す。「眠くなってきた」「沖へより潮満ちくらし／万葉集（三六四二）」⑱行く。目的地を基準にしていう。「富士の山びに我がきなばいづち向きてか妹が嘆かむ／万葉集（三三五七）」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "すい",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c1cf-75d1-97fb-fb104b4aece0",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            7514900000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【出】シュツスイ①でる。㋐内から外へ移動する。「出家・出獄・外出・退出・脱出」㋑ある場所へ行く。「出勤・出向・出仕・出征・出席・出動・出馬・出処進退」㋒人の見える所にあらわれる。「出現・出没・現出・再出・突出」㋓ぬきんでる。すぐれている。「出色・傑出」㋔おこる。「出火・出来(しゅったい（しゅつらい）)」②だす。㋐内から外へ移す。「出願・案出・移出・提出・摘出・派出」㋑金をしはらう。「出資・出費・出納(すいとう)・歳出・支出」㋒人に見えるようにする。あらわす。「出題・出版・演出・露出」㋓社会に送りだす。「輩出」③でどころ。「出自・出典・嫡出」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "いだし",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cceb-7de1-9fd6-6a84b93c09b8",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            822700000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "出衵",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "いで",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cbea-7441-b3ad-c1aaa22d90bd",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            918900000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "出隆",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "で",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b764-7873-9eb3-3755a9b88d85",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            10797200000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "で[0][1]【出】①内から外へ出ること。また、出る具合・程度。「人の━が少ない」「水の━が悪い」②勤め人・役者・芸者などが仕事の場に出ること。「午後からの━」「楽屋で━を待つ」「早━」③ほかの物や基準の線から突き出ていること。「日の━」「軒の━」④物事をする時のしはじめ。でだし。「━が一拍遅れる」⑤何らかの作用によって、物事が現れること。また、その具合。「色の━が悪い」⑥人や物の経てきたところ。出身・出自・素性・出所など。「この壺(つぼ)なら━は確かでございます」「高校━の選手」⑦予想以上に労力・時間を要すること。また、それによって得られる充実感・満足感。「歩いてみると歩き━がある」「読み━がない」「使い━がある」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "しゅつ",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c1cf-75d1-97fb-fafc8d5a41de",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            7514800000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "しゅつ[2]【出】（名）①出席すること。出勤すること。⇔欠。②そこから出ること。また、出るもの。③ある血族・土地の出身であること。「信卿の子、宇野氏の━／伊沢蘭軒（鷗外）」④そこをぬけ出ること。「━エジプト記」（名・形動ナリ）出しゃばること。さしでがましいこと。また、そのさま。「もとより楽阿弥は、━なる面差(つらざし)にて／狂言・楽阿弥」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "ず",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-ca98-7c22-a90b-cf800785a4d8",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            8284400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "ず(づ)【出▽】（動(ダ)下二）⇨でる",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "出",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-ca99-72e3-90f1-69dc045d3308",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            8287200000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【出】⇨しゅつ〔出〕",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "いで",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cbea-7441-b3ad-c19113c55c1b",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            918900000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "いで【出】姓氏の一。",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "出",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 7,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "出",
-          "reading": "いだし",
-          "sources": [
-            {
-              "original_text": "出",
-              "transformed_text": "出",
-              "deinflected_text": "出",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cceb-7de1-9fd6-6a78ec108963",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 7,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            822700000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "いだし【出▽】（動詞「出だす」の連用形）",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 1,
-    "text": "来",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 5,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来",
-          "reading": "け",
-          "sources": [
-            {
-              "original_text": "来",
-              "transformed_text": "来",
-              "deinflected_text": "来",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c5f0-7b60-a183-de1428876113",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 5,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            4709200000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "け【来▽】（動）カ変動詞「来(く)」の連用形「き」の上代東国方言。「父母にもの言はず━にて今ぞ悔しき／万葉集（四三三七）」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 1,
-    "text": "来",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 5,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来",
-          "reading": "らい",
-          "sources": [
-            {
-              "original_text": "来",
-              "transformed_text": "来",
-              "deinflected_text": "来",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c8db-74a0-8109-93fa47bc6042",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 5,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            16745400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "らい【来】①時などを表す名詞の上に付いて、次の、来たる、の意を表す。「━学期」「━年度」「━場所」②時などを表す名詞の下に付いて、その時から今まで、それ以来、の意を表す。「昨年━の懸案」「先週━、気分がすぐれない」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 1,
-    "text": "来",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 5,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来",
-          "reading": "こ",
-          "sources": [
-            {
-              "original_text": "来",
-              "transformed_text": "来",
-              "deinflected_text": "来",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-c9ad-7fb1-8918-c0facb03a3c3",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 5,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            5105100000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "こ【来】カ行変格活用動詞「く」の命令形の古形。こい。「旅にても喪なくはやこと我妹子が結びし紐はなれにけるかも／万葉集（三七一七）」「こちこ、と言ひて／大和物語（一〇三）」〔平安中期以降には、「かしこに物して整へむ、装束(そうずく)してこよ／蜻蛉日記（中）」「こちこよ、と呼びよせて／宇治拾遺物語（五）」のように間投助詞「よ」を添えた「こよ」の形も用いられるようになり、以後「こよ」が次第に優勢になってゆく〕→来る",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 1,
-    "length": 1,
-    "text": "来",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 5,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "来",
-          "reading": "く",
-          "sources": [
-            {
-              "original_text": "来",
-              "transformed_text": "来",
-              "deinflected_text": "来",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-d010-7422-9b91-d862a532ff52",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 5,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            4280200000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "く【来】（動カ変）⇨くる",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
-        }
-      ],
-      "score": -3,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "都",
-          "reading": "つ",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-bc7c-7793-9eb1-480be7e4af10",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -3,
-          "frequency_order": 0,
-          "sequences": [
-            11192500000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【都・（都）】トツ①人のたくさん集まっているところ。「都会・都市・都塵」②みやこ。中央政府のある都市。「都城・都心・都鄙(とひ)・都府・旧都・皇都・古都・首都・遷都・帝都・奠都(てんと)」③地方公共団体の一。東京都。「都営・都下・都議・都庁・都電・都内・都民・都立」④洗練されている。都会風。「都雅」⑤統率する。すべおさめる。「都護・都督」⑥すべて。「都合(つごう)・都度(つど)」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -3,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "樓",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-bae4-7a90-8626-4ce3dc7b73e4",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -3,
-          "frequency_order": 0,
-          "sequences": [
-            17310400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【楼・（樓）】ロウル①たかどの。「楼閣・楼上・楼台・楼門・玉楼・紅楼・高楼・鐘楼・蜃気楼(しんきろう)・八層楼・摩天楼」②やぐら。物見やぐら。「井楼・船楼・望楼」③茶屋。料理屋。遊女屋。「妓楼(ぎろう)・酒楼・青楼・登楼」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -2,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "楼",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-bae4-7a90-8626-4cd82a0a4805",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -2,
-          "frequency_order": 0,
-          "sequences": [
-            17310400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【楼・（樓）】ロウル①たかどの。「楼閣・楼上・楼台・楼門・玉楼・紅楼・高楼・鐘楼・蜃気楼(しんきろう)・八層楼・摩天楼」②やぐら。物見やぐら。「井楼・船楼・望楼」③茶屋。料理屋。遊女屋。「妓楼(ぎろう)・酒楼・青楼・登楼」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
-        }
-      ],
-      "score": -2,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "都",
-          "reading": "つ",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-bc7c-7793-9eb1-47f325306ba1",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -2,
-          "frequency_order": 0,
-          "sequences": [
-            11192500000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【都・（都）】トツ①人のたくさん集まっているところ。「都会・都市・都塵」②みやこ。中央政府のある都市。「都城・都心・都鄙(とひ)・都府・旧都・皇都・古都・首都・遷都・帝都・奠都(てんと)」③地方公共団体の一。東京都。「都営・都下・都議・都庁・都電・都内・都民・都立」④洗練されている。都会風。「都雅」⑤統率する。すべおさめる。「都護・都督」⑥すべて。「都合(つごう)・都度(つど)」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "屡",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b88f-7ea0-b585-20714f8f9fcc",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            17131900000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【屢▼】ルしばしば。たびたび。「屢次・屢述」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "流",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b74b-7373-af20-c657575395f7",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            16995900000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【流】(りう)リュウル①ながれる。ながす。㋐水などが動いて行く。「流域・流血・流出・流水・流涕(りゅうてい)・流動・流入・流氷・流木・逆流・合流」㋑世の中にひろまる。「流行・流説(るせつ（りゅうせつ）)・流俗・流通・流布(るふ)」㋒刑として遠方へ送る。「流刑(りゅうけい（るけい）)・流罪(るざい)・流人(るにん)・遠流(おんる)・配流(はいる)」㋓さすらう。「流亡・流民・流離・流浪(るろう)」㋔形をなさずにおわる。「流会・流産」㋕他の使途に転用する。「流用」㋖それる。目標からはずれる。「流弾」②ながれ。㋐水などの移動。「海流・急流・激流・細流・上流・支流・水流・濁流・暖流・潮流・電流・本流・奔流」㋑血筋。「嫡流・末流」㋒武術・芸術・技芸のグループおよびその系統。「流派・亜流・門流・一刀流・他流試合」③階級。等級。「一流・上流・中流・二流品」④固有のやり方。「流儀・我流・西欧流」⑤とどこおりがない。「流暢(りゅうちょう)・流麗」⑥根拠がない。「流言・流説(りゅうせつ（るせつ）)」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "通",
-          "reading": "つ",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cfc7-7ff3-86dd-df1f23b1e627",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            10588700000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【通】ツウツトウ①とおる。とおす。つきぬける。「通運・通気・通行・通風・通路・開通・交通・不通」②かよう。行き来する。「通学・通勤・通商・通帳」③意思を伝える。知らせる。交際する。「通好・通告・通事・通信・通達・通知・通牒・通弁・通報・通謀・通訳・通話・内通・文通」④男女がまじわる。「姦通(かんつう)・私通・密通」⑤よく知っている。理解している。「通暁・通人・暁通・精通」⑥始めから終わりまでつながっている。「通解・通算・通釈・通読・通夜(つや（つうや）)」⑦ひろくゆきわたっている。一般に広まっている。「通貨・通称・通常・通説・通俗・通念・通弊・通用・通例・普通・流通」⑧ふしぎな力。「通力・神通力(じんずうりき（じんつうりき）)」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 0,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "手",
-          "reading": "て",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "て",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b763-7da3-82c9-816e4ef6f9e4",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 0,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            10796500000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "手が上がる",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "唾",
-          "reading": "つ",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cfc5-7ae3-98d5-d2ed633fdbd4",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            10568300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "唾を引く",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "陋",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-bae3-7e01-9489-4629a38667c8",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            17309900000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【陋▼】ロウル①せまくてむさくるしい。「陋屋・陋宅」②心がせまい。いやしい。「陋見・陋劣・頑陋・固陋」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "硫",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b74b-7373-af20-c708f0b23814",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            16996400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【硫】(りう)リュウル①非金属元素の一。硫黄(いおう)。「硫化・硫酸・硫化銀・硫酸塩・硫化水素」②「硫酸」の略。「硫安」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "留",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b74b-7373-af20-c6796c39b270",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            16996000000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【留】(りう)リュウル①とめる。とどめる。つなぎとめる。「留意・留置・慰留・係留・繫留(けいりゅう)・拘留・抑留」②残す。そのままにしておく。「留保・遺留・保留」③とまる。とどまる。同じところに長くいる。「留学・留任・留守(るす)・居留・寄留・残留・駐留・逗留(とうりゅう)」④とどこおる。「滞留」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "漏",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-bae4-7a90-8626-4d03d578eba7",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            17310500000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【漏】ロウルロ①もれる。もらす。「漏水・漏電・漏斗・早漏」②秘密などが外部に知られる。「漏洩(ろうえい（ろうせつ）)・漏泄(ろうえい（ろうせつ）)」③手ぬかり。「遺漏・疎漏・脱漏」④水時計。「漏刻・刻漏」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "箇",
-          "reading": "つ",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cfc5-7ae3-98d5-d35655c1da97",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            10568800000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "つ【個▽・箇▽】（接尾）助数詞。和語の数詞に付いて、物の数を数えるのに用いる。年齢を表すこともある。「一━」「二━多い」「三━になった」〔現在では、「ひと（一）」から「ここの（九）」までの数詞に付くだけであるが、古くは、「もも（百）」「いお（五百）」などにも付いた〕",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "唾",
-          "reading": "つ",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cfc5-7ae3-98d5-d2da311173b3",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            10568300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "つ【唾▽】つば。つばき。唾液。「━ガ口ニタマル／日葡辞書」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
+      "dictionary_alias": "",
       "dictionary_index": 0,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
-      "max_original_text_length": 3,
+      "max_original_text_length": 6,
       "headwords": [
         {
           "index": 0,
-          "term": "て",
-          "reading": "て",
+          "term": "自得",
+          "reading": "じとく",
           "sources": [
             {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "て",
+              "original_text": "自得",
+              "transformed_text": "自得",
+              "deinflected_text": "自得",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -4013,7 +43,7 @@
       ],
       "definitions": [
         {
-          "id": "01974826-b764-7873-9eb3-371565114e65",
+          "id": "01975dcd-7657-7f41-8f2e-eafe9f2bc576",
           "index": 0,
           "headword_indices": [
             0
@@ -4024,13 +54,13 @@
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            10796800000
+            7039600000
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "て（格助）〔上代東国方言〕格助詞「と」に相当する語。引用してそれと示すのに用いる。「父母が頭(かしら)搔き撫で幸(さ)くあれ━言ひし言葉(けとば)ぜ忘れかねつる／万葉集（四三四六）」",
+              "term_glossary_string": "じとく[0]【自得】（名）スル①自分の力で会得すること。「操作のこつを━する」②自ら満足すること。「吾れ無為の境に優遊して、是非の外に━す／太平記（一）」③自分の身に報いを受けること。「自業━」",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -4039,13 +69,25 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": []
+      "frequencies": [
+        {
+          "index": 0,
+          "headword_index": 0,
+          "dictionary": "Anime & J-drama",
+          "dictionary_index": 1,
+          "dictionary_alias": "Anime & J-drama",
+          "has_reading": false,
+          "frequency": 82267,
+          "display_value": null,
+          "display_value_parsed": false
+        }
+      ]
     }
   },
   {
-    "start": 2,
+    "start": 0,
     "length": 1,
-    "text": "て",
+    "text": "自",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -4055,123 +97,38 @@
       "inflection_rule_chain_candidates": [
         {
           "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "continuative",
-              "description": "Used to indicate actions that are (being) carried out.\nRefers to 連用形, the part of the verb after conjugating with -ます and dropping ます."
-            }
-          ]
+          "inflection_rules": []
         }
       ],
-      "score": 0,
+      "score": -1,
       "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 3,
+      "dictionary_alias": "",
+      "dictionary_index": 1,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
       "max_original_text_length": 3,
       "headwords": [
         {
           "index": 0,
-          "term": "てる",
-          "reading": "てる",
+          "term": "自",
+          "reading": "し",
           "sources": [
             {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "てる",
+              "original_text": "自",
+              "transformed_text": "自",
+              "deinflected_text": "自",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
             }
           ],
           "tags": [],
-          "word_classes": [
-            "v1"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b9fd-7372-9a09-6e4c1d342191",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 3,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            11076400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "て◦る（連語）〔「ている」の転。話し言葉でのくだけた言い方。上に来る語によって「でる」ともなる〕動作・作用が継続・進行している意を表す。「君の言うことはよくわかっ━◦るよ」「いま、手紙を書い━◦るところです」「本を読んで◦る最中です」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "屢",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
           "word_classes": []
         }
       ],
       "definitions": [
         {
-          "id": "01974826-b88f-7ea0-b585-2067bd9df6e3",
+          "id": "01975dcd-706c-7e50-8209-f44233e779a7",
           "index": 0,
           "headword_indices": [
             0
@@ -4179,16 +136,16 @@
           "dictionary": "大辞林　第四版",
           "dictionary_index": 1,
           "dictionary_alias": "大辞林　第四版",
-          "score": 0,
+          "score": -1,
           "frequency_order": 0,
           "sequences": [
-            17131900000
+            6612000000
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "【屢▼】ルしばしば。たびたび。「屢次・屢述」",
+              "term_glossary_string": "【自】ジシ①じぶん。おのれ。「自我・自己・自身・自他・自宅・自伝・自費・自分・各自・独自」②みずから。じぶんで。「自愛・自慰・自営・自衛・自戒・自害・自覚・自活・自棄・自供・自決・自殺・自首・自習・自粛・自称・自信・自刃・自炊・自省・自責・自治・自慢・自滅・自立・自画自賛・自業自得」③ひとりでに。おのずから。「自然(しぜん（じねん）)・自転・自動・自明」④起点を示す。…から。「自今」",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -4197,247 +154,25 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
+      "frequencies": [
         {
           "index": 0,
-          "term": "流",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b88e-7330-9fed-c0ace0a53661",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
+          "headword_index": 0,
+          "dictionary": "Anime & J-drama",
           "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            17131400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "る[1]【流】律の五刑の一。辺地にながし、他に移ることを禁ずる刑。死よりは軽く徒(ず)より重い。遠流(おんる)（伊豆・安房(あわ)・佐渡・隠岐(おき)など）・中流（信濃・伊予など）・近流(こんる)（越前・安芸(あき)など）の三等に分かれる。流刑。流罪。",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
+          "dictionary_alias": "Anime & J-drama",
+          "has_reading": false,
+          "frequency": 3953,
+          "display_value": null,
+          "display_value_parsed": false
         }
-      ],
-      "pronunciations": [],
-      "frequencies": []
+      ]
     }
   },
   {
-    "start": 2,
+    "start": 0,
     "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "瑠",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b88f-7ea0-b585-2081e2c77d40",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            17132000000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【瑠】ルリュウ半透明で青色の宝石。また、ガラスの古名。「瑠璃」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "縷",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b88f-7ea0-b585-20aa31b1ca5f",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            17132100000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【縷▼】ル①糸。細く長いもの。「縷縷・一縷・金縷」②こまかい。くわしい。「縷言・縷述・縷説・縷縷」③ぼろ。「褸」に同じ。「襤縷(らんる)」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
+    "text": "自",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -4452,23 +187,23 @@
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 0,
-      "source_term_exact_match_count": 0,
+      "dictionary_alias": "",
+      "dictionary_index": 1,
+      "source_term_exact_match_count": 1,
       "match_primary_reading": false,
       "max_original_text_length": 3,
       "headwords": [
         {
           "index": 0,
-          "term": "手",
-          "reading": "て",
+          "term": "自",
+          "reading": "じ",
           "sources": [
             {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "て",
+              "original_text": "自",
+              "transformed_text": "自",
+              "deinflected_text": "自",
               "match_type": "exact",
-              "match_source": "reading",
+              "match_source": "term",
               "is_primary": true
             }
           ],
@@ -4478,24 +213,24 @@
       ],
       "definitions": [
         {
-          "id": "01974826-b763-7da3-82c9-815aa793f042",
+          "id": "01975dcd-706c-7e50-8209-f431a7f406d6",
           "index": 0,
           "headword_indices": [
             0
           ],
           "dictionary": "大辞林　第四版",
-          "dictionary_index": 0,
+          "dictionary_index": 1,
           "dictionary_alias": "大辞林　第四版",
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            10796500000
+            6612000000
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "て【手】[1]（名）①人体の肩から先の部分。手首・てのひら・指先などをさすこともある。また、動物の前足をいうこともある。「━を上げる」「━が触れる」「おたまじゃくしに━が生える」②形状や機能が、ヒトの①に似ているもの。㋐器物の取っ手。「急須の━」㋑植物の蔓などをからませるための竹など。㋒本体から突き出たもの。几帳(きちょう)の横木・幕を棹に付けるための緒など。「鍵の━」③①を働かせて様々な事をすること。㋐事を行なったり、物を作り出したりすること。また、その時の手の使い方。「巨匠の━になる作品」「司直の━にゆだねる」「追及の━がゆるい」㋑働く人・力。「━が足りない」「━を貸す」㋒事を処理する能力。「━に余る」㋓手間。手数。「━がこんだ細工」「━ばかり掛かる」㋔人との結びつき・つながり。「━を切る」④事を行うための方法・技術など。㋐方法。手段。また、策略。「その━には乗らない」「━の付けようがない」㋑技量。腕前。「━が上がる」⑤技芸などの一定の型。㋐囲碁・将棋・相撲などで、攻め方・受け方。「━のない将棋は負け将棋」「四十八━」㋑舞や踊りの手振り。「さす━引く━」⑥日本音楽で、（節(ふし)に対して）楽器の演奏。また、その旋律や音型。定型化されて慣用される。「古い三味線曲に箏の━を付ける」「大薩摩の━」⑦字を書くこと。また、筆跡・書風。「一つには御━を習ひ給へ／枕草子（二三）」⑧（手①に握ることから）㋐所有。保持。「大金を━にする」㋑支配下にあって思い通りに使える人や軍勢。「━の者」㋒トランプや花札で、持っている札。手札。⑨方向。方面。「山の━」「行く━」⑩いくつかに分けたうちのある種類。また、ある手法・技法によるもの。「この━の品」「高麗━」⑪一方面の部隊。「此の━の大将軍は何ものぞ／平治物語（中）」⑫ものが現れ出ること。また、その勢い。「火の━」「水の━」⑬代金。代償。「酒━」⑭受けた傷。「━を負う」⑮種々の語と複合して名詞をつくり、手と関係する様々の意味を加える。㋐機械に頼らずに人の力によること、また他人の力を借りずに自分の力によることを表す。「━料理」「━づくり」㋑小型で手の内に入る、または手で持って使えることを表す。「━帳」「━斧(おの)」㋒手②が付いていることを表す。「━鏡」㋓身近であることを表す。「━道具」㋔そのことをする人。また、特にそのことに秀でた人を表す。「語り━」「小太刀(こだち)の使い━」⑯形容詞・形容動詞の上に付いて、接頭語的に用いられ、物事の処理の仕方にかかわることを表す。また、転じて、下の語の意味を強めるのにも用いられる。「━厚い」「━ごわい」「━ぬるい」「━広い」「━短に話す」（接尾）助数詞。①囲碁や将棋で石や駒を動かす回数を数えるのに用いる。「三━で詰む」②甲矢(はや)・乙矢(おとや)二本を一組として、矢の数を数えるのに用いる。「的矢一━」",
+              "term_glossary_string": "【自】ジシ①じぶん。おのれ。「自我・自己・自身・自他・自宅・自伝・自費・自分・各自・独自」②みずから。じぶんで。「自愛・自慰・自営・自衛・自戒・自害・自覚・自活・自棄・自供・自決・自殺・自首・自習・自粛・自称・自信・自刃・自炊・自省・自責・自治・自慢・自滅・自立・自画自賛・自業自得」③ひとりでに。おのずから。「自然(しぜん（じねん）)・自転・自動・自明」④起点を示す。…から。「自今」",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -4504,13 +239,25 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": []
+      "frequencies": [
+        {
+          "index": 0,
+          "headword_index": 0,
+          "dictionary": "Anime & J-drama",
+          "dictionary_index": 1,
+          "dictionary_alias": "Anime & J-drama",
+          "has_reading": false,
+          "frequency": 3953,
+          "display_value": null,
+          "display_value_parsed": false
+        }
+      ]
     }
   },
   {
-    "start": 2,
+    "start": 0,
     "length": 1,
-    "text": "て",
+    "text": "自",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -4525,23 +272,23 @@
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 0,
-      "source_term_exact_match_count": 0,
+      "dictionary_alias": "",
+      "dictionary_index": 1,
+      "source_term_exact_match_count": 1,
       "match_primary_reading": false,
       "max_original_text_length": 3,
       "headwords": [
         {
           "index": 0,
-          "term": "風",
-          "reading": "て",
+          "term": "自",
+          "reading": "ころ",
           "sources": [
             {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "て",
+              "original_text": "自",
+              "transformed_text": "自",
+              "deinflected_text": "自",
               "match_type": "exact",
-              "match_source": "reading",
+              "match_source": "term",
               "is_primary": true
             }
           ],
@@ -4551,24 +298,24 @@
       ],
       "definitions": [
         {
-          "id": "01974826-b764-7873-9eb3-36fd92be39e0",
+          "id": "01975dcd-8671-7d20-8582-2bcfdecec04d",
           "index": 0,
           "headword_indices": [
             0
           ],
           "dictionary": "大辞林　第四版",
-          "dictionary_index": 0,
+          "dictionary_index": 1,
           "dictionary_alias": "大辞林　第四版",
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            10796600000
+            5924100000
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "て【風▽】〔「風(ち)」の転〕かぜ。他の語と複合して用いられる。「疾(はや)━」「追い━」",
+              "term_glossary_string": "ころ【自▽】「それ自身」の意。みずから。他の語に付いて「ころだつ」 「ころふす」などの形で用いられた。",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -4577,93 +324,25 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": []
+      "frequencies": [
+        {
+          "index": 0,
+          "headword_index": 0,
+          "dictionary": "Anime & J-drama",
+          "dictionary_index": 1,
+          "dictionary_alias": "Anime & J-drama",
+          "has_reading": false,
+          "frequency": 3953,
+          "display_value": null,
+          "display_value_parsed": false
+        }
+      ]
     }
   },
   {
-    "start": 2,
+    "start": 1,
     "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "continuative",
-              "description": "Used to indicate actions that are (being) carried out.\nRefers to 連用形, the part of the verb after conjugating with -ます and dropping ます."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 3,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "照る",
-          "reading": "てる",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "てる",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": [
-            "v5"
-          ]
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b9fd-7372-9a09-6e3b2b359d16",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 3,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            11076300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "て・る[1]【照る】（動(ラ)五［四］）①太陽や月が光を放つ。「月が皓々(こうこう)と━・っている」②晴天になる。「━・っても降っても決行します」「━・る日、曇る日」③美しく輝く。「島山に━・れる橘／万葉集（四二七六）」「━・りて立てるは愛(は)しき誰が妻／万葉集（四三九七）」④〔「面(おもて)照る」の略〕能で、顔をやや仰向(あおむ)けにして、喜びの感情を表現する型をいう。⇔曇る。〔「照らす」に対する自動詞〕",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
+    "text": "得",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -4678,7 +357,7 @@
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
+      "dictionary_alias": "",
       "dictionary_index": 0,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
@@ -4686,13 +365,13 @@
       "headwords": [
         {
           "index": 0,
-          "term": "て",
-          "reading": "て",
+          "term": "得",
+          "reading": "とく",
           "sources": [
             {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "て",
+              "original_text": "得",
+              "transformed_text": "得",
+              "deinflected_text": "得",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -4704,7 +383,7 @@
       ],
       "definitions": [
         {
-          "id": "01974826-b764-7873-9eb3-3733a74fd151",
+          "id": "01975dcd-75be-7c53-8d10-3809d25bc081",
           "index": 0,
           "headword_indices": [
             0
@@ -4715,91 +394,63 @@
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            10797000000
+            11429300000
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "て〔完了の助動詞「つ」の連用形からでたものといわれる。ガ・ナ・バ・マ行五段活用の動詞に付く場合には「で」となる。形容詞型活用の語の後では「って」の形をとることもある〕（接助）動詞型および形容詞型の活用語の連用形に接続する。前後の句を単に接続するのが本来の用法である。①動作・作用・状態が継続し、または引き続いて起こる意を表す。…てそれから。「冬がすぎ━、春がくる」「顔をあげ━じっと見つめる」「薬を飲んで寝る」②原因・理由などを表す。ので。「人にすすめられ━、本を読む」「金が欲しく━、盗みをした」③方法・手段を表す。「無理をし━、学校に行く」「塩を入れ━、味を調える」「直接会っ━、渡す」④並列・添加・対比などを表す。「つよく━、やさしく━、ほんとにすてきよ」「重要にし━、かつ緊急を要する議案」⑤（「…て…て」の形で）強意を表す。「買っ━買っ━買いまくる」⑥逆接的に用いる。…のに。「よく知ってい━、知らせてくれないとはいじわるな人だ」「手は、生先き見え━、まだ、よくも続けたまはぬ程なり／源氏物語（橋姫）」⑦〔「について」「において」「に関して」などの形をとって〕事態・状況や関連する物事などを示す。「本案件につい━、質疑はありませんか」「予想に反し━、大敗した」⑧あとに補助動詞が続く形で、動作・作用の様態をさまざまに表現するのに用いる。「見上げ━いる」「書い━しまう」「行っ━みる」「し━やる」「読んであげる」「木を切っ━くる」⑨動作・作用の内容を表す。…していると。「間遠に聞きならひ給へる御耳にさしあてたるやうに鳴き乱るるを、なかなかさまかへ━おぼさるるも／源氏物語（夕顔）」⑩「ては」 「ても」の形で条件句を作る。→ては・ても（接助）（終助）〔の用法から派生したもの〕①接続のしかたはと同じ。多く、女性や子供の話し言葉に用いられる。㋐質問を表す。上昇のイントネーションを伴う。「あなた、よく聞こえ━」㋑命令・依頼を表す。「はやく起き━」「遊びにいらし━」→って・てね・てよ②動詞・助動詞の終止形に接続する。近世以降の用法。みずからうなずく気持ちで軽く添える。「油断がならぬ━」「おれが行くこともあるまい━」「女の子は意地の悪いものでございます━／滑稽本・浮世風呂（二）」",
+              "term_glossary_string": "とく[0]【得】（名）①利益を得ること。もうけること。また、その利益。もうけ。⇔損。「損して━とれ」「何の━にもならない」②手に入れること。得ること。⇔失。「自他のために失多く━少なし／徒然草（一六四）」③〘仏〙真宗で、浄土に往生し、涅槃に入ること。（形動）(ナリ)有利である・こと（さま）。⇔損。「そっちを買うほうが━だ」「百円お━な商品です」「憎めない━な性格」",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
             }
           ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
+        },
         {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "個",
-          "reading": "つ",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cfc5-7ae3-98d5-d348ca0cde7d",
-          "index": 0,
+          "id": "01975dcd-75be-7c53-8d10-398b3f9e1c13",
+          "index": 2,
           "headword_indices": [
             0
           ],
           "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
+          "dictionary_index": 0,
           "dictionary_alias": "大辞林　第四版",
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            10568800000
+            11430400000
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "つ【個▽・箇▽】（接尾）助数詞。和語の数詞に付いて、物の数を数えるのに用いる。年齢を表すこともある。「一━」「二━多い」「三━になった」〔現在では、「ひと（一）」から「ここの（九）」までの数詞に付くだけであるが、古くは、「もも（百）」「いお（五百）」などにも付いた〕",
+              "term_glossary_string": "【得】トク①手に入れる。「得意・得点・得票・獲得・収得・拾得・取得・所得」②知識や能力を身につける。さとる。「得心・得度・会得(えとく)・生得・体得・納得」③利益をえる。もうけ。「得策・得失・得分・損得・利得・一挙両得」",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01975dcd-75be-7c53-8d10-381044506d4d",
+          "index": 1,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "大辞林　第四版",
+          "dictionary_index": 0,
+          "dictionary_alias": "大辞林　第四版",
+          "score": -1,
+          "frequency_order": 0,
+          "sequences": [
+            11429300000
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "得を取るより名を取れ",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -4808,247 +459,25 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
+      "frequencies": [
         {
           "index": 0,
-          "term": "る",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b88e-7330-9fed-c0cd47fdb406",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
+          "headword_index": 0,
+          "dictionary": "Anime & J-drama",
           "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            17131600000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "る（助動）〔完了の助動詞「り」の連体形〕⇨り（助動）",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
+          "dictionary_alias": "Anime & J-drama",
+          "has_reading": false,
+          "frequency": 5291,
+          "display_value": null,
+          "display_value_parsed": false
         }
-      ],
-      "pronunciations": [],
-      "frequencies": []
+      ]
     }
   },
   {
-    "start": 2,
+    "start": 1,
     "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
-      "source_term_exact_match_count": 0,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "津",
-          "reading": "つ",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
-              "match_type": "exact",
-              "match_source": "reading",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-cfc5-7ae3-98d5-d2b5fcab06f6",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            10568100000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "つ[1]【津】①海岸・河岸の船舶が来着する所。船つき場。渡し場。港。②特に、船つき場や渡し場に対して、物資が集散し、集落が形成された所。港町。",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "る",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b88e-7330-9fed-c0b344bf1a24",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            17131500000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "る（助動）れ・れ・る・るる・るれ・れよ自発・受け身・可能・尊敬の助動詞。下二段型活用。ただし、自発・可能の意を表す場合には、命令形は用いられない。四段・ナ行変格・ラ行変格活用の動詞の未然形に付く。①自発の意。ある動作が自然に、また無意識的に実現してしまう意を表す。「相模道(さがむじ)の余綾(よろぎ)の浜の砂(まさご)なす児らはかなしく思はるるかも／万葉集（三三七二）」「けふは京のみぞ思ひやらるる／土左日記」「筆をとればもの書かれ、楽器をとれば音をたてんと思ふ／徒然草（一五七）」②受け身の意。他から何らかの動作・作用の影響を受ける意を表す。「勅旨(おおみこと)戴き持ちて唐(もろこし)の遠き境に遣はされ罷りいませ／万葉集（八九四）」「このあひだに使はれむとてつきてくる童あり／土左日記」「あまりに水が速うて、馬は押し流され候ひぬ／平家物語（九）」③可能の意。ある動作をすることができる意を表す。古くは、打ち消しの語を伴って、不可能の意を表すのに多く用いられた。「我が妻はいたく恋ひらし飲む水に影(かご)さへ見えてよに忘られず／万葉集（四三二二）」「知らぬ人の中にうち臥して、つゆまどろまれず／更級日記」「悔ゆれども取りかへさるるよはひならねば、走りて坂をくだる輪のごとくに衰へゆく／徒然草（一八八）」④尊敬の意。他人の動作を表す語に付いて、動作者に対する敬意を表す。もともと敬意を含んでいる動作に付くことが多い。「御門なほめでたくおぼしめさるることせきとめがたし／竹取物語」「人ひとり参られよかし／源氏物語（若紫）」「庭に控へたまへる人々みな鎧の袖をぞ濡されける／平家物語（七）」〔(1)「らる」と意味・用法は同じであるが、未然形がア段となる動詞には「る」が付き、それ以外の場合は「らる」が付くというように、接続のしかたに分担がある。(2)上代では、「ゆ」の語が用いられることが多く、「る」はまだほんのわずかしか用いられていない。「る」は中古以降に多く用いられるようになる。(3)中世には、連体形「るる」が終止法として用いられるようになり、命令形には「れい」が現れるが、やがて一段活用化して「れる」となり、現代にまで及ぶ〕→れる（助動）・ゆ（助動）・らる（助動）",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
+    "text": "得",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -5063,7 +492,7 @@
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
+      "dictionary_alias": "",
       "dictionary_index": 0,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
@@ -5071,13 +500,13 @@
       "headwords": [
         {
           "index": 0,
-          "term": "て",
-          "reading": "て",
+          "term": "得",
+          "reading": "う",
           "sources": [
             {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "て",
+              "original_text": "得",
+              "transformed_text": "得",
+              "deinflected_text": "得",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -5089,7 +518,7 @@
       ],
       "definitions": [
         {
-          "id": "01974826-b764-7873-9eb3-37270e1209ba",
+          "id": "01975dcd-6c4f-7173-b94c-1b3aca90f2a9",
           "index": 0,
           "headword_indices": [
             0
@@ -5100,13 +529,13 @@
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            10796900000
+            1170700000
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "て〔助詞「って」が撥音「ん」で終わる語に付く場合に用いられる〕（格助）「って」（格助）に同じ。「これはなん━いうのだろう」「ぼくは知らん━答えておいた」（係助）「って」（係助）に同じ。「ポンかん━みかんの一種かしら」（終助）「って」（終助）に同じ。「もう絶対に書いてもらわん━」",
+              "term_glossary_string": "う【得】（動(ア)下二）①下一段活用の動詞「える（得）」の文語形。②（「…する（こと）をう」の形で）…することができる、…することが許されるという意を表す。文語調のごくかたい表現として用いられる。「改悛の情あるときは…出獄を許すことをう」「許可なき者は入室するをえず」→える（得）・うる（得）",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -5115,91 +544,25 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 2,
-    "length": 1,
-    "text": "て",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "-て",
-              "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
+      "frequencies": [
         {
           "index": 0,
-          "term": "る",
-          "reading": "る",
-          "sources": [
-            {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "る",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01974826-b88e-7330-9fed-c090e890dc1c",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
+          "headword_index": 0,
+          "dictionary": "Anime & J-drama",
           "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            17131300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "る①五十音図ラ行第三段の仮名。歯茎弾き音の有声子音と後舌の狭母音とから成る音節。②平仮名「る」は「留」の草体。片仮名「ル」は「流」の末二画。",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
+          "dictionary_alias": "Anime & J-drama",
+          "has_reading": false,
+          "frequency": 5291,
+          "display_value": null,
+          "display_value_parsed": false
         }
-      ],
-      "pronunciations": [],
-      "frequencies": []
+      ]
     }
   },
   {
-    "start": 2,
+    "start": 1,
     "length": 1,
-    "text": "て",
+    "text": "得",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -5209,31 +572,26 @@
       "inflection_rule_chain_candidates": [
         {
           "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
-            }
-          ]
+          "inflection_rules": []
         }
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "大辞林　第四版",
-      "dictionary_index": 2,
+      "dictionary_alias": "",
+      "dictionary_index": 0,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
       "max_original_text_length": 3,
       "headwords": [
         {
           "index": 0,
-          "term": "つ",
-          "reading": "つ",
+          "term": "得",
+          "reading": "え",
           "sources": [
             {
-              "original_text": "て",
-              "transformed_text": "て",
-              "deinflected_text": "つ",
+              "original_text": "得",
+              "transformed_text": "得",
+              "deinflected_text": "得",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -5245,24 +603,24 @@
       ],
       "definitions": [
         {
-          "id": "01974826-cfc5-7ae3-98d5-d3132755074a",
+          "id": "01975dcd-7560-7940-8260-2a081db488ae",
           "index": 0,
           "headword_indices": [
             0
           ],
           "dictionary": "大辞林　第四版",
-          "dictionary_index": 2,
+          "dictionary_index": 0,
           "dictionary_alias": "大辞林　第四版",
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            10568500000
+            1512200000
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "つ（格助）体言または体言に準ずるものに付いて、連体修飾語をつくる。の。「沖━鳥／古事記（上）」「上━瀬／万葉集（三九〇七）」「遠━神祖(かむおや)／万葉集（四〇九六）」〔上代の語。ただし、上代でも用法はやや固定化しており、中古以降は「夕つ方」「まつげ」など、複合語中に残存形をとどめるだけになる〕",
+              "term_glossary_string": "え【得・能▽】（副）〔動詞「う（得）」の連用形から〕①下に否定の表現を伴って、不可能の意を表す。…できない。全く…しない。「帝、はた、まして━忍びあへ給はず／源氏物語（桐壺）」②下に肯定の表現を伴って可能の意を表す。できる。「其の暴浪(あらなみ)自(おのずか)らなぎて、御船━進みき／古事記（中訓）」",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -5271,7 +629,19 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": []
+      "frequencies": [
+        {
+          "index": 0,
+          "headword_index": 0,
+          "dictionary": "Anime & J-drama",
+          "dictionary_index": 1,
+          "dictionary_alias": "Anime & J-drama",
+          "has_reading": false,
+          "frequency": 5291,
+          "display_value": null,
+          "display_value_parsed": false
+        }
+      ]
     }
   }
 ]

@@ -390,17 +390,17 @@ pub struct FrequencyInfo {
     pub display_value_parsed: bool,
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+//#[serde(untagged)]
 pub enum TermMetaFreqDataMatchType {
-    Generic(GenericFreqData),
     WithReading(TermMetaFreqDataWithReading),
+    Generic(GenericFreqData),
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+//#[serde(untagged)]
 pub enum GenericFreqData {
+    Object(FreqObjectData),
     Integer(i128),
     String(String),
-    Object(FreqObjectData),
 }
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct FreqObjectData {
@@ -408,7 +408,6 @@ pub struct FreqObjectData {
     #[serde(rename = "displayValue")]
     pub display_value: Option<String>,
 }
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermMetaFreqDataWithReading {
     pub reading: String,

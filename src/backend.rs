@@ -466,7 +466,12 @@ impl From<FuriganaSegment> for ParseTextSegment {
 type ParseTextLine = Vec<ParseTextSegment>;
 
 mod ycd_tests {
-    use crate::{test_utils::TEST_PATHS, Yomichan};
+    use crate::{
+        database::dictionary_database::DatabaseMetaFrequency,
+        dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
+        test_utils::TEST_PATHS,
+        Yomichan,
+    };
 
     use super::{Backend, FindTermsDetails};
 
@@ -483,11 +488,40 @@ mod ycd_tests {
     fn text_match() {
         let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
         ycd.set_language("ja");
-        let res = ycd.parse_text("自業自得", 20);
+        let res = ycd.parse_text("自得", 20);
         //dbg!(res);
         let txt = std::fs::write(
             TEST_PATHS.tests_dir.join("output.json"),
             serde_json::to_vec_pretty(&res).unwrap(),
         );
+    }
+
+    #[test]
+    fn rmp_serde() {
+        use rmp_serde::{Deserializer, Serializer};
+        use serde::{Deserialize, Serialize};
+
+        let db_meta_frequency = DatabaseMetaFrequency {
+            id: "01974e4d-fced-7e10-8a42-831546fbde45".to_string(),
+            freq_expression: "自業自得".to_string(),
+            mode: TermMetaModeType::Freq,
+            data: TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(8455)),
+            dictionary: "Anime & J-drama".to_string(),
+        };
+
+        // Serialize to MessagePack
+        let mut buf = Vec::new();
+        db_meta_frequency
+            .serialize(&mut Serializer::new(&mut buf))
+            .unwrap();
+
+        // Deserialize from MessagePack
+        let mut deserializer = Deserializer::new(&buf[..]);
+        let deserialized: DatabaseMetaFrequency =
+            Deserialize::deserialize(&mut deserializer).unwrap();
+
+        assert_eq!(db_meta_frequency, deserialized);
+        println!("Original: {db_meta_frequency:?}");
+        println!("Deserialized: {deserialized:?}");
     }
 }
