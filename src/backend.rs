@@ -488,7 +488,7 @@ mod ycd_tests {
     fn text_match() {
         let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
         ycd.set_language("ja");
-        let res = ycd.parse_text("自得", 20);
+        let res = ycd.parse_text("日本語", 20);
         //dbg!(res);
         let txt = std::fs::write(
             TEST_PATHS.tests_dir.join("output.json"),

@@ -392,13 +392,6 @@ impl DatabaseMetaMatchType {
                 }
             })
             .collect();
-
-        let term_metas_json = serde_json::to_vec_pretty(&term_metas).unwrap();
-        std::fs::write(
-            TEST_PATHS.tests_dir.join("term_metas_rust.json"),
-            term_metas_json,
-        );
-
         Ok(term_metas)
     }
 }
@@ -1508,7 +1501,11 @@ mod init_db {
         }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
-        let paths = [tdcs.join("daijirin"), tdcs.join("ajdfreq")];
+        let paths = [
+            tdcs.join("daijirin"),
+            tdcs.join("ajdfreq"),
+            tdcs.join("pitch_accent"),
+        ];
         match ycd.import_dictionaries(&paths) {
             Ok(_) => {}
             Err(e) => {
