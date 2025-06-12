@@ -12,9 +12,12 @@ use crate::dictionary_data::{
 use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
 };
-use crate::structured_content::{ContentMatchType, Element, LinkElement};
+use crate::structured_content::{
+    ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
+};
 
 use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
+use crate::structured_content::EntryItemMatchType;
 use crate::Yomichan;
 
 use color_eyre::owo_colors::OwoColorize;
@@ -327,9 +330,10 @@ pub struct MetaCounts {
 
 impl MetaCounts {
     fn count_kanji_metas(kanji_metas: &[DatabaseMetaFrequency]) -> Self {
-        let mut metas = MetaCounts::default();
-        metas.freq = kanji_metas.len() as u32;
-        metas
+        MetaCounts {
+            freq: kanji_metas.len() as u32,
+            ..Default::default()
+        }
     }
     fn count_term_metas(metas: &[DatabaseMetaMatchType]) -> Self {
         let mut meta_counts = MetaCounts::default();
@@ -376,19 +380,6 @@ pub struct ImportRequirementContext {
     media: IndexMap<String, MediaDataArrayBufferContent>,
 }
 
-/// An `untagged` match type to generically match
-/// the `header`, `reading`, and `structured-content`
-/// of a `term_bank_$i.json` entry item.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(untagged)]
-enum EntryItemMatchType {
-    String(String),
-    Integer(i128),
-    /// The array holding the main `structured-content` object.
-    /// There is only 1 per entry.
-    StructuredContentVec(Vec<StructuredContent>),
-}
-
 impl<'de> Deserialize<'de> for EntryItemMatchType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -409,37 +400,6 @@ impl<'de> Deserialize<'de> for EntryItemMatchType {
 pub type TermBank = Vec<TermEntryItem>;
 pub type TermMetaBank = Vec<TermMeta>;
 pub type KanjiBank = Vec<DatabaseKanjiEntry>;
-
-/// The 'header', and `structured-content`
-/// of a `term_bank_${i}.json` entry item.
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TermEntryItem {
-    pub expression: String,
-    pub reading: String,
-    pub def_tags: Option<String>,
-    pub rules: String,
-    pub score: i128,
-    pub structured_content: Vec<StructuredContent>,
-    pub sequence: i128,
-    pub term_tags: String,
-}
-
-/// The object holding all html & information about an entry.
-/// _There is only 1 per entry_.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct StructuredContent {
-    /// Identifier to mark the start of each entry's content.
-    ///
-    /// This should _always_ be `"type": "structured-content"` in the file.
-    /// If not, the dictionary is not valid.
-    #[serde(rename = "type")]
-    content_type: String,
-    /// Contains the main content of the entry.
-    /// _(see: [`ContentMatchType`] )_.
-    ///
-    /// Will _always_ be either an `Element (obj)` or a `Content (array)` _(ie: Never a String)_.
-    content: ContentMatchType,
-}
 
 fn extract_dict_zip<P: AsRef<std::path::Path>>(
     zip_path: P,

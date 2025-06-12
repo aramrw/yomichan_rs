@@ -4,6 +4,67 @@ use indexmap::IndexMap;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_untagged::UntaggedEnumVisitor;
 
+/// An `untagged` match type to generically match
+/// the `header`, `reading`, and `structured-content`
+/// of a `term_bank_$i.json` entry item.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum EntryItemMatchType {
+    String(String),
+    Integer(i128),
+    /// The array holding the main `structured-content` object.
+    /// There is only 1 per entry.
+    StructuredContentVec(Vec<StructuredContent>),
+}
+
+/// The object holding all html & information about an entry.
+/// _There is only 1 per entry_.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StructuredContent {
+    /// Identifier to mark the start of each entry's content.
+    ///
+    /// This should _always_ be `"type": "structured-content"` in the file.
+    /// If not, the dictionary is not valid.
+    #[serde(rename = "type")]
+    pub content_type: String,
+    /// Contains the main content of the entry.
+    /// _(see: [`ContentMatchType`] )_.
+    ///
+    /// Will _always_ be either an `Element (obj)` or a `Content (array)` _(ie: Never a String)_.
+    pub content: ContentMatchType,
+}
+
+/// A match type to deserialize any `Content` type.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ContentMatchType {
+    String(String),
+    /// A single html element.
+    /// See: [`HtmlTag`].
+    ///
+    /// Most likely a [`HtmlTag::Anchor`] element.
+    /// If so, the definition contains a reference to another entry.
+    Element(Box<Element>),
+    /// An array of html elements.
+    /// See: [`HtmlTag`].
+    ///
+    Content(Vec<Element>),
+}
+
+/// The 'header', and `structured-content`
+/// of a `term_bank_${i}.json` entry item.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TermEntryItem {
+    pub expression: String,
+    pub reading: String,
+    pub def_tags: Option<String>,
+    pub rules: String,
+    pub score: i128,
+    pub structured_content: Vec<StructuredContent>,
+    pub sequence: i128,
+    pub term_tags: String,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageRendering {
@@ -166,23 +227,6 @@ pub struct StructuredContentStyle {
     white_space: Option<String>,
     cursor: Option<String>,
     list_style_type: Option<String>,
-}
-
-/// A match type to deserialize any `Content` type.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ContentMatchType {
-    String(String),
-    /// A single html element.
-    /// See: [`HtmlTag`].
-    ///
-    /// Most likely a [`HtmlTag::Anchor`] element.
-    /// If so, the definition contains a reference to another entry.
-    Element(Box<Element>),
-    /// An array of html elements.
-    /// See: [`HtmlTag`].
-    ///
-    Content(Vec<Element>),
 }
 
 // daijisen: ~6.35s WITHOUT custom deserialization.

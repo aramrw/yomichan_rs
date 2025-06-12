@@ -754,15 +754,6 @@ trait DBReadWrite {
     fn rw_insert(&self, db: Database) -> Result<(), DBError>;
 }
 
-/// Vec<[TermEntry]>
-pub type VecTermEntry = Vec<TermEntry>;
-/// Vec<[DatabaseTermEntry]>
-pub type VecDBTermEntry = Vec<DatabaseTermEntry>;
-/// Vec<[DatabaseMeta]>
-pub type VecDBTermMeta = Vec<DatabaseTermMeta>;
-/// Vec<[DatabaseMetaFrequency]>
-pub type VecDBMetaFreq = Vec<DatabaseMetaFrequency>;
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct DictionaryDataDetails {
     pub summary: DictionarySummary,
