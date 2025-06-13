@@ -36,6 +36,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+// public exports:
+pub use database::dictionary_importer::DictionarySummary;
+
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
     pub backend: Backend,
