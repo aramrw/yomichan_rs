@@ -2140,6 +2140,7 @@ impl Translator {
             reading.to_string()
         }
     }
+
     fn _create_grouped_dictionary_entry(
         &self,
         language: &str,
@@ -2191,6 +2192,11 @@ impl Translator {
             } = definition_entry;
             score = score.max(dictionary_entry.score);
             dictionary_index = dictionary_index.min(dictionary_entry.dictionary_index);
+
+            // yomitan actually doesn't add the alias, this diverges from js,
+            // the rest is the same after this line
+            dictionary_alias = dictionary_entry.dictionary_alias.clone();
+
             if dictionary_entry.is_primary {
                 is_primary = true;
                 max_original_text_length =
@@ -2259,6 +2265,7 @@ impl Translator {
             definitions,
         )
     }
+
     fn _add_term_definitions_fast(
         definitions: &mut Vec<TermDefinition>,
         new_definitions: &[TermDefinition],
