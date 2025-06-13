@@ -782,7 +782,9 @@ use native_db::{
 };
 // std::marker::PhantomData is unused
 // use std::marker::PhantomData;
-use std::ops::{Bound, Deref, RangeBounds}; // RangeBounds unused
+use std::ops::{Bound, Deref, RangeBounds};
+
+use super::dictionary_importer::DictionarySummaryKey; // RangeBounds unused
 
 /// Describes the kind of secondary key to query.
 /// This enum IS `Clone` and `Copy`.
@@ -854,6 +856,17 @@ impl DictionaryDatabase {
             db: DBBuilder::new().create(&DB_MODELS, path).unwrap(),
             db_name: "dict",
         }
+    }
+
+    pub fn get_dictionary_summaries(
+        &self,
+    ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
+        let rtx = self.db.r_transaction()?;
+        let summaries: Result<Vec<DictionarySummary>, native_db::db_type::Error> =
+            rtx.scan().primary()?.all()?.collect();
+        let mut summaries = summaries?;
+        summaries.sort_by_key(|s| s.import_date);
+        Ok(summaries)
     }
 
     // Translates the JavaScript `findTermsBulk` function.

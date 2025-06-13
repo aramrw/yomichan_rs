@@ -10,6 +10,9 @@ use language_transformer::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    database::{
+        dictionary_database::DictionaryDatabaseError, dictionary_importer::DictionarySummary,
+    },
     dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
     environment::{EnvironmentInfo, CACHED_ENVIRONMENT_INFO},
     settings::{
@@ -41,6 +44,11 @@ impl Yomichan {
         let current_profile = self.options.get_current_profile();
         self.backend
             ._parse_text_terms(text, &current_profile.options)
+    }
+    pub fn dictionary_summaries(
+        &self,
+    ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
+        self.backend.translator.db.get_dictionary_summaries()
     }
     pub fn find_terms(&mut self, text: &str, details: FindTermsDetails) -> FindTermsResult {
         let current_profile = self.options.get_current_profile();

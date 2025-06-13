@@ -447,7 +447,6 @@ impl Yomichan {
 pub fn import_dictionary<P: AsRef<Path>>(
     zip_path: P,
     settings: &Options,
-    //db_path: &OsString,
     db: &DictionaryDatabase,
 ) -> Result<DictionaryOptions, ImportError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
