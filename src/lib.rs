@@ -37,7 +37,7 @@ use std::{
 };
 
 // public exports:
-pub use database::dictionary_importer::DictionarySummary;
+pub use crate::database::dictionary_importer::DictionarySummary;
 
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
