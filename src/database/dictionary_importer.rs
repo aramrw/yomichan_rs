@@ -428,16 +428,12 @@ impl Yomichan {
         let db = &self.backend.translator.db;
         ImportZipError::check_zip_paths(zip_paths)?;
 
-        let mut data: Vec<DatabaseDictData> = zip_paths
+        let mut options: Vec<DictionaryOptions> = zip_paths
             .par_iter()
             .map(|path| import_dictionary(path, settings, db))
-            .collect::<Result<Vec<DatabaseDictData>, ImportError>>()?;
+            .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
 
         let current_profile = settings.get_current_profile_mut();
-        let mut options: Vec<DictionaryOptions> = data
-            .iter()
-            .map(|data| data.dictionary_options.clone())
-            .collect();
         current_profile.options.general.main_dictionary = options[0].name.clone();
         current_profile.options.dictionaries.append(&mut options);
         let rwtx = db.rw_transaction()?;
@@ -453,25 +449,26 @@ pub fn import_dictionary<P: AsRef<Path>>(
     settings: &Options,
     //db_path: &OsString,
     db: &DictionaryDatabase,
-) -> Result<DatabaseDictData, ImportError> {
+) -> Result<DictionaryOptions, ImportError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
     let rwtx = db.rw_transaction()?;
-    db_rwriter(&rwtx, data.term_list.clone())?;
-    db_rwriter(&rwtx, data.kanji_list.clone())?;
-    db_rwriter(&rwtx, data.tag_list.clone())?;
-    db_rwriter(&rwtx, data.kanji_meta_list.clone())?;
+    db_rwriter(&rwtx, data.term_list)?;
+    db_rwriter(&rwtx, data.kanji_list)?;
+    db_rwriter(&rwtx, data.tag_list)?;
+    db_rwriter(&rwtx, data.kanji_meta_list)?;
     {
-        for item in &data.term_meta_list {
+        for item in data.term_meta_list {
             match item {
-                DatabaseMetaMatchType::Frequency(freq) => rwtx.insert(freq.clone())?,
-                DatabaseMetaMatchType::Pitch(pitch) => rwtx.insert(pitch.clone())?,
-                DatabaseMetaMatchType::Phonetic(ipa) => rwtx.insert(ipa.clone())?,
+                DatabaseMetaMatchType::Frequency(freq) => rwtx.insert(freq)?,
+                DatabaseMetaMatchType::Pitch(pitch) => rwtx.insert(pitch)?,
+                DatabaseMetaMatchType::Phonetic(ipa) => rwtx.insert(ipa)?,
             }
         }
     }
+    db_rwriter(&rwtx, vec![data.summary])?;
 
     rwtx.commit()?;
-    Ok(data)
+    Ok(data.dictionary_options)
 }
 
 fn db_rwriter<L: ToInput>(
