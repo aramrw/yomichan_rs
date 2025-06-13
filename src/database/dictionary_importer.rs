@@ -323,9 +323,9 @@ pub struct SummaryMetaCount {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct MetaCounts {
-    freq: u32,
-    pitch: u32,
-    ipa: u32,
+    pub freq: u32,
+    pub pitch: u32,
+    pub ipa: u32,
 }
 
 impl MetaCounts {
