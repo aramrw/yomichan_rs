@@ -37,6 +37,7 @@ use std::{
 };
 
 // public exports:
+pub use crate::backend::LocatedTerm;
 pub use crate::database::dictionary_importer;
 
 /// A Yomichan Dictionary instance.
