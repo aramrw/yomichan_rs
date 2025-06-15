@@ -39,6 +39,7 @@ use std::{
 // public exports:
 pub use crate::backend::LocatedTerm;
 pub use crate::database::dictionary_importer;
+pub use crate::dictionary::{TermDefinition, TermFrequency, TermPronunciation};
 
 /// A Yomichan Dictionary instance.
 pub struct Yomichan {
