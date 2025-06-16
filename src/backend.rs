@@ -46,6 +46,32 @@ impl Yomichan {
         rwtx.insert(self.options.clone());
         Ok(())
     }
+
+    pub fn delete_dictionary(&mut self, name: &str) -> Result<(), Box<native_db::db_type::Error>> {
+        let current_profile = self.options.get_current_profile_mut();
+        current_profile
+            .options
+            .dictionaries
+            .retain(|d| d.name != name);
+        self.update_options()?;
+
+        Ok(())
+    }
+
+    pub fn delete_dictionary_from_index(
+        &mut self,
+        index: usize,
+    ) -> Result<(), Box<native_db::db_type::Error>> {
+        let current_profile = self.options.get_current_profile_mut();
+        let dictionaries = &mut current_profile.options.dictionaries;
+        if index < dictionaries.len() {
+            dictionaries.remove(index);
+            self.update_options()?;
+        }
+
+        Ok(())
+    }
+
     pub fn parse_text(&mut self, text: &str, scan_length: usize) -> Vec<LocatedTerm> {
         let current_profile = self.options.get_current_profile();
         let is_spaced = matches!(
