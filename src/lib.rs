@@ -7,7 +7,7 @@ mod environment;
 mod errors;
 mod freq;
 mod regex_util;
-mod settings;
+pub mod settings;
 mod structured_content;
 mod test_utils;
 mod translation;
