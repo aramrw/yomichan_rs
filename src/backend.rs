@@ -196,7 +196,7 @@ impl Backend {
                                     .any(|source| source.original_text == trimmed_word)
                             })
                         })
-                        .take(20); // Then, take the first 5 *valid* entries.
+                        .take(10); // Then, take the first 5 *valid* entries.
 
                     for entry in valid_entries {
                         found_terms.push(LocatedTerm {
@@ -615,7 +615,7 @@ mod ycd_tests {
     fn text_match() {
         let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
         ycd.set_language("es");
-        let res = ycd.parse_text("espanol", 20);
+        let res = ycd.parse_text("espanola", 20);
         //dbg!(res);
         let txt = std::fs::write(
             TEST_PATHS.tests_dir.join("output.json"),
