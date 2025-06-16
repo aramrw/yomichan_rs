@@ -1,0 +1,101 @@
+/*
+ * This targets the container for a group of examples OR synonyms.
+ */
+details[data-sc-content="details-entry-examples"],
+details[data-sc-content="details-entry-synonyms"] {
+  /* Add a little space above the entire block */
+  margin-top: 0.3em;
+  padding-left: 0.5em;
+}
+
+/*
+ * This styles the summary line (e.g., "▼ 6 examples" or "▼ 類語").
+ */
+summary[data-sc-content="summary-entry"] {
+  cursor: pointer; /* Shows a hand cursor on hover */
+  user-select: none; /* Prevents text selection when clicking */
+  width: max-content; /* Keeps the clickable area tight to the text */
+  padding: 0.1em 0.4em;
+  border-radius: 0.4em;
+  transition: all 0.1s ease-in-out; /* Smooth transition for hover and color changes */
+}
+
+/*
+ * Style for a CLOSED summary: make it dimmed.
+ */
+details:not([open]) > summary[data-sc-content="summary-entry"] {
+  color: var(--text-color-light4); /* Use a lighter, less prominent theme color */
+  opacity: 0.8;
+}
+details:not([open]) > summary[data-sc-content="summary-entry"]::marker {
+  color: var(--text-color-light4); /* Dims the arrow icon to match */
+}
+
+/*
+ * Style for a summary on HOVER: make it pop to show it's interactive.
+ */
+summary[data-sc-content="summary-entry"]:hover {
+  background-color: var(--notification-background-color-lighter);
+  color: var(--text-color); /* Bring to full color on hover */
+  opacity: 1;
+}
+summary[data-sc-content="summary-entry"]:hover::marker {
+  color: var(--text-color);
+}
+
+/*
+ * The container for all the items inside the dropdown.
+ * The `extra-info` class gives us a hook to indent them all.
+ */
+div[data-sc-content="extra-info"] {
+  margin-left: 0.8em; /* Indent the items slightly from the summary arrow */
+  margin-top: 0.6em;  /* Space between summary and first item */
+}
+
+/*
+ * Style for an INDIVIDUAL example or synonym block.
+ * Notice both selectors are grouped here.
+ */
+div[data-sc-content="example-sentence"],
+div[data-sc-content="synonym-pair"] {
+  background-color: color-mix(in srgb, var(--text-color, var(--fg, #333)) 5%, transparent);
+  border-color: var(--text-color, var(--fg, #333));
+  border-style: none none none solid;
+  border-radius: 0.4rem;
+  border-width: calc(3em / var(--font-size-no-units, 14));
+  transition: background-color 0.1s ease-in-out;
+
+  padding: 0.1rem 0.4rem;
+
+  /* Adds vertical spacing BETWEEN items in a list */
+  margin-bottom: 0.5rem;
+}
+
+/*
+ * Hover effect for an INDIVIDUAL example or synonym block.
+ */
+div[data-sc-content="example-sentence"]:hover,
+div[data-sc-content="synonym-pair"]:hover {
+  background-color: color-mix(in srgb, var(--text-color, var(--fg, #333)) 9%, transparent);
+}
+
+/* Styles for the parts of an EXAMPLE sentence */
+div[data-sc-content="example-sentence-a"] {
+  font-size: 1.1em;
+  font-style: italic;
+}
+div[data-sc-content="example-sentence-b"] {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+/* NEW: Styles for the parts of a SYNONYM pair */
+div[data-sc-content="synonym-spanish"] {
+  font-size: 1.1em;
+  font-style: italic;
+  font-weight: bold;
+}
+div[data-sc-content="synonym-japanese"] {
+  font-size: 0.9em;
+  opacity: 0.85;
+}

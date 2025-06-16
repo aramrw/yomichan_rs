@@ -1,0 +1,9 @@
+{
+  "title": "小学館 西和中辞典 第2版",
+  "revision": "1",
+  "sequenced": false,
+  "format": 3,
+  "author": "aramrw",
+  "description": "A Spanish to Japanese dictionary scraped from kotobank.jp's 小学館 西和中辞典 第2版",
+  "attribution": "https://github.com/aramrw"
+}

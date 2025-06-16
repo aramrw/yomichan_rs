@@ -17,7 +17,8 @@ use crate::{
     environment::{EnvironmentInfo, CACHED_ENVIRONMENT_INFO},
     settings::{
         DictionaryOptions, GeneralOptions, Options, ProfileOptions, ScanningOptions,
-        TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
+        SearchResolution, TranslationOptions, TranslationTextReplacementGroup,
+        TranslationTextReplacementOptions,
     },
     translation::{
         FindTermDictionary, FindTermsMatchType, FindTermsOptions, TermEnabledDictionaryMap,
@@ -74,11 +75,11 @@ impl Yomichan {
 
     pub fn parse_text(&mut self, text: &str, scan_length: usize) -> Vec<LocatedTerm> {
         let current_profile = self.options.get_current_profile();
-        let is_spaced = matches!(
+        let is_spaced = !matches!(
             current_profile.options.general.language.as_str(),
             "ja" | "zh" | "kr"
         );
-        if is_spaced {
+        if !is_spaced {
             self.backend
                 ._parse_spaceless_text_terms(text, &current_profile.options)
         } else {
@@ -86,6 +87,7 @@ impl Yomichan {
                 ._parse_spaced_text_terms(text, &current_profile.options)
         }
     }
+
     pub fn dictionary_summaries(
         &self,
     ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
@@ -159,41 +161,58 @@ impl Backend {
             deinflect: Some(true),
             primary_reading: None,
         };
-        let find_terms_options =
+        let mut find_terms_options: FindTermsOptions =
             Backend::_get_translator_find_terms_options(MODE, &details, options);
+        find_terms_options.search_resolution = SearchResolution::Word;
 
         let mut found_terms: Vec<LocatedTerm> = Vec::new();
-        let mut byte_offset = 0;
 
-        // Iterate over words, keeping track of the character position.
         for word in text.split_whitespace() {
-            // Find the byte position of the word in the unprocessed part of the text.
-            if let Some(word_byte_pos) = text[byte_offset..].find(word) {
-                let absolute_byte_pos = byte_offset + word_byte_pos;
-                // Calculate the character start index from the byte start index.
-                let char_start_index = text[..absolute_byte_pos].chars().count();
+            let byte_start = word.as_ptr() as usize - text.as_ptr() as usize;
+            let trimmed_word = word.trim_matches(|c: char| c.is_ascii_punctuation());
 
-                let find_result = self.translator.find_terms(MODE, word, &find_terms_options);
+            if !trimmed_word.is_empty() {
+                let find_result =
+                    self.translator
+                        .find_terms(MODE, trimmed_word, &find_terms_options);
 
-                for entry in find_result.dictionary_entries {
-                    found_terms.push(LocatedTerm {
-                        start: char_start_index,
-                        length: word.chars().count(),
-                        text: word.to_string(),
-                        entry: entry.clone(),
-                    });
+                if !find_result.dictionary_entries.is_empty() {
+                    let char_start_index = text[..byte_start].chars().count();
+                    let original_word_char_len = word.chars().count();
+
+                    // This is a more advanced but highly efficient and readable way to do this.
+                    // We create a chain of iterators to filter and limit the results.
+                    let valid_entries = find_result
+                        .dictionary_entries
+                        .into_iter()
+                        .filter(|entry| {
+                            // THE CORRECT FILTER:
+                            // The entry is valid ONLY IF one of its sources was derived
+                            // directly from the word we searched for.
+                            entry.headwords.iter().any(|headword| {
+                                headword
+                                    .sources
+                                    .iter()
+                                    .any(|source| source.original_text == trimmed_word)
+                            })
+                        })
+                        .take(20); // Then, take the first 5 *valid* entries.
+
+                    for entry in valid_entries {
+                        found_terms.push(LocatedTerm {
+                            start: char_start_index,
+                            length: original_word_char_len,
+                            text: word.to_string(),
+                            entry,
+                        });
+                    }
                 }
-
-                // Move the offset to the position after the current word.
-                byte_offset = absolute_byte_pos + word.len();
             }
         }
 
-        // Sort terms by their starting position, as the discovery order is not guaranteed.
         found_terms.sort_unstable_by_key(|term| term.start);
         found_terms
     }
-
     /// Finds all possible dictionary terms and ranks them by relevance.
     ///
     /// This function finds all matching dictionary terms and then performs a

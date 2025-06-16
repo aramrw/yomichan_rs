@@ -1515,9 +1515,10 @@ mod init_db {
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [
-            tdcs.join("daijirin"),
-            tdcs.join("ajdfreq"),
-            tdcs.join("pitch_accent"),
+            // tdcs.join("daijirin"),
+            // tdcs.join("ajdfreq"),
+            // tdcs.join("pitch_accent"),
+            tdcs.join("kotobankesjp"),
         ];
         match ycd.import_dictionaries(&paths) {
             Ok(_) => {}
