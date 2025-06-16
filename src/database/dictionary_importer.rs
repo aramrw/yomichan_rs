@@ -434,7 +434,10 @@ impl Yomichan {
             .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
 
         let current_profile = settings.get_current_profile_mut();
-        current_profile.options.general.main_dictionary = options[0].name.clone();
+        let mut main_dictionary = &mut current_profile.options.general.main_dictionary;
+        if main_dictionary.is_empty() {
+            *main_dictionary = options[0].name.clone();
+        }
         current_profile.options.dictionaries.append(&mut options);
         let rwtx = db.rw_transaction()?;
         db_rwriter(&rwtx, vec![settings.clone()]);

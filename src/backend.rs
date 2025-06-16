@@ -40,6 +40,12 @@ impl Yomichan {
             .general
             .language = language_iso.to_string();
     }
+    /// you would call this function after you mutate your profile via `get_current_profile_mut()`
+    pub fn update_options(&self) -> Result<(), Box<native_db::db_type::Error>> {
+        let rwtx = self.backend.translator.db.rw_transaction()?;
+        rwtx.insert(self.options.clone());
+        Ok(())
+    }
     pub fn parse_text(&mut self, text: &str, scan_length: usize) -> Vec<LocatedTerm> {
         let current_profile = self.options.get_current_profile();
         let is_spaced = matches!(
