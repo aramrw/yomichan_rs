@@ -3046,7 +3046,7 @@ impl Translator {
         let mut source_cache = IndexMap::new();
         let mut raw_source = text.to_string();
         while !raw_source.is_empty() {
-            let text_replacements = Translator::_get_text_replacement_variants(&opts);
+            let text_replacements = Translator::_get_text_replacement_variants(opts);
             let pre_processed_text_variants = Translator::_get_text_variants(
                 &raw_source,
                 pre,

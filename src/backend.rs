@@ -42,14 +42,24 @@ impl Yomichan {
     }
     pub fn parse_text(&mut self, text: &str, scan_length: usize) -> Vec<LocatedTerm> {
         let current_profile = self.options.get_current_profile();
-        self.backend
-            ._parse_text_terms(text, &current_profile.options)
+        let is_spaced = matches!(
+            current_profile.options.general.language.as_str(),
+            "ja" | "zh" | "kr"
+        );
+        if is_spaced {
+            self.backend
+                ._parse_spaceless_text_terms(text, &current_profile.options)
+        } else {
+            self.backend
+                ._parse_spaced_text_terms(text, &current_profile.options)
+        }
     }
     pub fn dictionary_summaries(
         &self,
     ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
         self.backend.translator.db.get_dictionary_summaries()
     }
+
     pub fn find_terms(&mut self, text: &str, details: FindTermsDetails) -> FindTermsResult {
         let current_profile = self.options.get_current_profile();
         let ProfileOptions {
@@ -99,6 +109,59 @@ impl Backend {
         }
     }
 
+    /// Finds dictionary terms in text for spaced languages (e.g., English, Spanish).
+    ///
+    /// This function tokenizes the text by whitespace and finds all dictionary
+    /// entries for each resulting word.
+    ///
+    /// # Returns
+    /// A vector of `LocatedTerm`s, sorted by their position in the text.
+    pub fn _parse_spaced_text_terms(
+        &mut self,
+        text: &str,
+        options: &ProfileOptions,
+    ) -> Vec<LocatedTerm> {
+        const MODE: FindTermsMode = FindTermsMode::Group;
+        let details = FindTermsDetails {
+            match_type: Some(TermSourceMatchType::Exact),
+            deinflect: Some(true),
+            primary_reading: None,
+        };
+        let find_terms_options =
+            Backend::_get_translator_find_terms_options(MODE, &details, options);
+
+        let mut found_terms: Vec<LocatedTerm> = Vec::new();
+        let mut byte_offset = 0;
+
+        // Iterate over words, keeping track of the character position.
+        for word in text.split_whitespace() {
+            // Find the byte position of the word in the unprocessed part of the text.
+            if let Some(word_byte_pos) = text[byte_offset..].find(word) {
+                let absolute_byte_pos = byte_offset + word_byte_pos;
+                // Calculate the character start index from the byte start index.
+                let char_start_index = text[..absolute_byte_pos].chars().count();
+
+                let find_result = self.translator.find_terms(MODE, word, &find_terms_options);
+
+                for entry in find_result.dictionary_entries {
+                    found_terms.push(LocatedTerm {
+                        start: char_start_index,
+                        length: word.chars().count(),
+                        text: word.to_string(),
+                        entry: entry.clone(),
+                    });
+                }
+
+                // Move the offset to the position after the current word.
+                byte_offset = absolute_byte_pos + word.len();
+            }
+        }
+
+        // Sort terms by their starting position, as the discovery order is not guaranteed.
+        found_terms.sort_unstable_by_key(|term| term.start);
+        found_terms
+    }
+
     /// Finds all possible dictionary terms and ranks them by relevance.
     ///
     /// This function finds all matching dictionary terms and then performs a
@@ -109,7 +172,11 @@ impl Backend {
     /// # Returns
     /// A vector of `LocatedTerm`s, sorted by a relevance score that considers
     /// whether a term is a sub-component of a larger match, its length, and its position.
-    pub fn _parse_text_terms(&mut self, text: &str, options: &ProfileOptions) -> Vec<LocatedTerm> {
+    pub fn _parse_spaceless_text_terms(
+        &mut self,
+        text: &str,
+        options: &ProfileOptions,
+    ) -> Vec<LocatedTerm> {
         const MODE: FindTermsMode = FindTermsMode::Group;
         let details = FindTermsDetails {
             match_type: Some(TermSourceMatchType::Exact),
@@ -173,7 +240,8 @@ impl Backend {
                     continue;
                 }
 
-                // A term is "covered" if its character span is a proper subset of another, longer term's span.
+                // A term is "covered"
+                // if its character span is a proper subset of another, longer term's span.
                 let a_end = term_a.start + term_a.length;
                 let b_end = term_b.start + term_b.length;
 
