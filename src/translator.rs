@@ -33,6 +33,7 @@ use crate::{
 };
 use derive_more::From;
 use fancy_regex::Regex;
+use firestorm::{profile_fn, profile_method, profile_section};
 use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
     datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
@@ -161,6 +162,7 @@ impl Translator {
             primary_reading,
             ..
         } = opts;
+
         let mut tag_aggregator = TranslatorTagAggregator::default();
         let FindInternalTermsResult {
             mut dictionary_entries,
@@ -3824,7 +3826,5 @@ mod translator_tests {
 
     // #[test]
     // fn find_terms() {
-    //     let translator = Translator::new(&TEST_PATHS.tests_yomichan_db_path);
-    //     translator.find_terms(FindTermsMode::Simple, "日本語", opts);
     // }
 }

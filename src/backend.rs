@@ -13,7 +13,7 @@ use crate::{
     database::{
         dictionary_database::DictionaryDatabaseError, dictionary_importer::DictionarySummary,
     },
-    dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
+    dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchSource, TermSourceMatchType},
     environment::{EnvironmentInfo, CACHED_ENVIRONMENT_INFO},
     settings::{
         DictionaryOptions, GeneralOptions, Options, ProfileOptions, ScanningOptions,
@@ -164,14 +164,16 @@ impl Backend {
         let mut find_terms_options: FindTermsOptions =
             Backend::_get_translator_find_terms_options(MODE, &details, options);
         find_terms_options.search_resolution = SearchResolution::Word;
+        find_terms_options.match_type = TermSourceMatchType::Exact;
 
         let mut found_terms: Vec<LocatedTerm> = Vec::new();
 
         for word in text.split_whitespace() {
             let byte_start = word.as_ptr() as usize - text.as_ptr() as usize;
-            let trimmed_word = word.trim_matches(|c: char| c.is_ascii_punctuation());
+            // let trimmed_word = word.trim_matches(|c: char| c.is_ascii_punctuation());
+            let trimmed_word = word.trim();
 
-            if !trimmed_word.is_empty() {
+            if !word.is_empty() {
                 let find_result =
                     self.translator
                         .find_terms(MODE, trimmed_word, &find_terms_options);
@@ -188,15 +190,15 @@ impl Backend {
                         .filter(|entry| {
                             // THE CORRECT FILTER:
                             // The entry is valid ONLY IF one of its sources was derived
-                            // directly from the word we searched for.
+                            // from the term text, not from its reading/pronunciation.
                             entry.headwords.iter().any(|headword| {
-                                headword
-                                    .sources
-                                    .iter()
-                                    .any(|source| source.original_text == trimmed_word)
+                                headword.sources.iter().any(|source| {
+                                    source.original_text == trimmed_word
+                                        && source.match_source == TermSourceMatchSource::Term
+                                })
                             })
                         })
-                        .take(10); // Then, take the first 5 *valid* entries.
+                        .take(10); // Then, take the first 10 *valid* entries.
 
                     for entry in valid_entries {
                         found_terms.push(LocatedTerm {
@@ -593,6 +595,8 @@ impl From<FuriganaSegment> for ParseTextSegment {
 type ParseTextLine = Vec<ParseTextSegment>;
 
 mod ycd_tests {
+    use std::cell::RefCell;
+
     use crate::{
         database::dictionary_database::DatabaseMetaFrequency,
         dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
@@ -613,14 +617,23 @@ mod ycd_tests {
 
     #[test]
     fn text_match() {
-        let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
-        ycd.set_language("es");
-        let res = ycd.parse_text("espanola", 20);
-        //dbg!(res);
-        let txt = std::fs::write(
-            TEST_PATHS.tests_dir.join("output.json"),
-            serde_json::to_vec_pretty(&res).unwrap(),
-        );
+        // Wrap ycd in RefCell to allow mutable borrowing within a closure captured immutably (Fn)
+        let ycd = RefCell::new(Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap());
+        ycd.borrow_mut().set_language("es");
+
+        if firestorm::enabled() {
+            firestorm::bench("./flames/", move || {
+                ycd.borrow_mut().parse_text("es", 20);
+            })
+            .unwrap();
+        } else {
+            ycd.borrow_mut().parse_text("es", 20);
+        };
+        // //dbg!(res);
+        // let txt = std::fs::write(
+        //     TEST_PATHS.tests_dir.join("output.json"),
+        //     serde_json::to_vec_pretty(&res).unwrap(),
+        // );
     }
 
     #[test]
