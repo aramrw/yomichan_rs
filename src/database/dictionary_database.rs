@@ -869,14 +869,32 @@ impl DictionaryDatabase {
         Ok(summaries)
     }
 
-    // Translates the JavaScript `findTermsBulk` function.
+    fn get_field_from_entry<'a>(
+        entry: &'a DatabaseTermEntry,
+        kind: SecondaryKeyQueryKind,
+    ) -> &'a str {
+        match kind {
+            SecondaryKeyQueryKind::Expression => &entry.expression,
+            SecondaryKeyQueryKind::Reading => &entry.reading,
+            SecondaryKeyQueryKind::ExpressionReverse => &entry.expression_reverse,
+            SecondaryKeyQueryKind::ReadingReverse => &entry.reading_reverse,
+            SecondaryKeyQueryKind::Sequence => {
+                eprintln!("Unexpected SecondaryKeyQueryKind::Sequence in helper");
+                // The &'static str literal "" can be safely coerced to the shorter lifetime 'a.
+                ""
+            }
+        }
+    }
+
+    /// Translates the JavaScript `findTermsBulk` function by implementing the query and filtering logic directly.
     ///
     /// Queries for a list of terms, matching against expression or reading fields,
     /// with support for exact, prefix, or suffix matching.
     /// Handles deduplication of results based on term ID.
+    /// This version implements the query and filtering loop directly to ensure correct filtering.
     pub fn find_terms_bulk(
         &self,
-        term_list_input: &[impl AsRef<str>], // Renamed to avoid conflict
+        term_list_input: &[impl AsRef<str>],
         dictionaries: &impl DictionarySet,
         match_type: TermSourceMatchType,
     ) -> Result<Vec<TermEntry>, Box<DictionaryDatabaseError>> {
@@ -889,7 +907,7 @@ impl DictionaryDatabase {
                     .iter()
                     .map(|s| s.chars().rev().collect::<String>())
                     .collect::<Vec<String>>(),
-                TermSourceMatchType::Prefix, // Suffix searches become prefix searches on reversed strings
+                TermSourceMatchType::Prefix,
             ),
             _ => (
                 term_list_refs.iter().map(|s| s.to_string()).collect(),
@@ -897,91 +915,209 @@ impl DictionaryDatabase {
             ),
         };
 
-        let index_names: [IndexQueryIdentifier; 2] = match match_type {
+        // 2. Define which indexes to query
+        let index_kinds_to_query: [(SecondaryKeyQueryKind, usize); 2] = match match_type {
             TermSourceMatchType::Suffix => [
-                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ExpressionReverse),
-                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ReadingReverse),
+                (SecondaryKeyQueryKind::ExpressionReverse, 0),
+                (SecondaryKeyQueryKind::ReadingReverse, 1),
             ],
             _ => [
-                // Exact, Prefix
-                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Expression),
-                IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Reading),
+                (SecondaryKeyQueryKind::Expression, 0),
+                (SecondaryKeyQueryKind::Reading, 1),
             ],
         };
 
-        let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| -> DatabaseTermEntryKey {
-            match kind {
-                SecondaryKeyQueryKind::Expression => DatabaseTermEntryKey::expression,
-                SecondaryKeyQueryKind::Reading => DatabaseTermEntryKey::reading,
-                SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence,
-                SecondaryKeyQueryKind::ExpressionReverse => {
-                    DatabaseTermEntryKey::expression_reverse
-                }
-                SecondaryKeyQueryKind::ReadingReverse => DatabaseTermEntryKey::reading_reverse,
-            }
-        };
-
-        let create_query_fn_closure = Box::new(
-            move |item_from_list: &String, _idx_identifier: IndexQueryIdentifier| {
-                match actual_match_type_for_query {
-                    // Use the adjusted match type
-                    TermSourceMatchType::Exact => {
-                        to_variant!(item_from_list.clone(), NativeDbQueryInfo::Exact)
-                    }
-                    TermSourceMatchType::Prefix => {
-                        to_variant!(item_from_list.clone(), NativeDbQueryInfo::Prefix)
-                    }
-                    TermSourceMatchType::Suffix => {
-                        // This case should not be hit if
-                        // actual_match_type_for_query is Prefix for suffix searches
-                        // but as a safeguard, treat it as prefix on the (already reversed) string.
-                        to_variant!(item_from_list.clone(), NativeDbQueryInfo::Prefix)
-                    }
-                }
-            },
-        );
-
-        let find_multi_bulk_predicate =
-            |row: &DatabaseTermEntry, _item_to_query: &String| dictionaries.has(&row.dictionary);
-
-        let create_result_fn = |db_entry: DatabaseTermEntry,
-                                item_from_list: &String,
-                                item_idx: usize,
-                                index_kind_idx: usize|
-         -> TermEntry {
-            let mut current_match_type_for_result = match_type; // Original match_type from function args
-
-            let find_data = FindMulitBulkData {
-                item: FindMultiBulkDataItemType::String(item_from_list.clone()),
-                item_index: item_idx,
-                index_index: index_kind_idx,
-            };
-            db_entry.into_term_generic(&mut current_match_type_for_result, find_data)
-        };
-
-        let mut potential_term_entries = self.find_multi_bulk::<
-            String, // ItemQueryType (type of elements in processed_term_list)
-            DatabaseTermEntry, // M (Model)
-            String, // ModelKeyType (type for query values like exact term, prefix)
-            DatabaseTermEntryKey, // SecondaryKeyEnumType
-            TermEntry, // QueryResultType
-            _, // ResolveSecondaryKeyFnParamType (inferred)
-            _, // PredicateFnParamType (inferred)
-            _  // CreateResultFnParamType (inferred)
-        >(
-            &index_names,
-            &processed_term_list,
-            create_query_fn_closure, // Pass the boxed closure
-            resolve_secondary_key_fn,
-            find_multi_bulk_predicate,
-            create_result_fn,
-        )?;
-
+        let r_txn = self.db.r_transaction()?;
+        let mut all_final_results: Vec<TermEntry> = Vec::new();
         let mut visited_ids: IndexSet<String> = IndexSet::new();
-        potential_term_entries.retain(|term_entry| visited_ids.insert(term_entry.id.clone()));
 
-        Ok(potential_term_entries)
+        for (item_idx, item_to_query) in processed_term_list.iter().enumerate() {
+            let item_string = item_to_query.as_str();
+
+            for (index_kind, index_kind_idx) in index_kinds_to_query.iter().copied() {
+                let db_key_for_query = match index_kind {
+                    SecondaryKeyQueryKind::Expression => DatabaseTermEntryKey::expression,
+                    SecondaryKeyQueryKind::Reading => DatabaseTermEntryKey::reading,
+                    SecondaryKeyQueryKind::ExpressionReverse => {
+                        DatabaseTermEntryKey::expression_reverse
+                    }
+                    SecondaryKeyQueryKind::ReadingReverse => DatabaseTermEntryKey::reading_reverse,
+                    SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence,
+                };
+
+                let query_info = match actual_match_type_for_query {
+                    TermSourceMatchType::Exact => NativeDbQueryInfo::Exact(item_to_query.clone()),
+                    _ => NativeDbQueryInfo::Prefix(item_to_query.clone()),
+                };
+
+                let scan_result = match query_info {
+                    NativeDbQueryInfo::Exact(key_val) => r_txn
+                        .scan()
+                        .secondary::<DatabaseTermEntry>(db_key_for_query)?
+                        .range(key_val.clone()..=key_val.clone())?
+                        .collect::<Result<Vec<_>, _>>(),
+                    NativeDbQueryInfo::Prefix(prefix_key) => r_txn
+                        .scan()
+                        .secondary::<DatabaseTermEntry>(db_key_for_query)?
+                        .start_with(prefix_key)?
+                        .collect::<Result<Vec<_>, _>>(),
+                    NativeDbQueryInfo::Range { .. } => {
+                        eprintln!("Unexpected Range query in find_terms_bulk_direct_query");
+                        Ok(Vec::new())
+                    }
+                };
+
+                let current_batch_models =
+                    scan_result.map_err(|e| Box::new(DictionaryDatabaseError::from(e)))?;
+
+                for db_model in current_batch_models {
+                    if !dictionaries.has(&db_model.dictionary) {
+                        continue;
+                    }
+
+                    // FIX: Call the new helper function
+                    let field_to_check = Self::get_field_from_entry(&db_model, index_kind);
+
+                    let is_match = match actual_match_type_for_query {
+                        TermSourceMatchType::Exact => field_to_check == item_string,
+                        _ => field_to_check.starts_with(item_string),
+                    };
+
+                    if is_match {
+                        let mut current_match_type_for_result = match_type;
+                        let find_data = FindMulitBulkData {
+                            item: FindMultiBulkDataItemType::String(item_to_query.clone()),
+                            item_index: item_idx,
+                            index_index: index_kind_idx,
+                        };
+                        let term_entry = db_model
+                            .into_term_generic(&mut current_match_type_for_result, find_data);
+
+                        if visited_ids.insert(term_entry.id.clone()) {
+                            all_final_results.push(term_entry);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(all_final_results)
     }
+    // Translates the JavaScript `findTermsBulk` function.
+    ///
+    /// Queries for a list of terms, matching against expression or reading fields,
+    /// with support for exact, prefix, or suffix matching.
+    /// Handles deduplication of results based on term ID.
+    // pub fn find_terms_bulk(
+    //     &self,
+    //     term_list_input: &[impl AsRef<str>], // Renamed to avoid conflict
+    //     dictionaries: &impl DictionarySet,
+    //     match_type: TermSourceMatchType,
+    // ) -> Result<Vec<TermEntry>, Box<DictionaryDatabaseError>> {
+    //     let term_list_refs: Vec<&str> = term_list_input.iter().map(|s| s.as_ref()).collect();
+    //
+    //     // 1. Handle term list pre-processing for suffix searches
+    //     let (processed_term_list, actual_match_type_for_query) = match match_type {
+    //         TermSourceMatchType::Suffix => (
+    //             term_list_refs
+    //                 .iter()
+    //                 .map(|s| s.chars().rev().collect::<String>())
+    //                 .collect::<Vec<String>>(),
+    //             TermSourceMatchType::Prefix, // Suffix searches become prefix searches on reversed strings
+    //         ),
+    //         _ => (
+    //             term_list_refs.iter().map(|s| s.to_string()).collect(),
+    //             match_type,
+    //         ),
+    //     };
+    //
+    //     let index_names: [IndexQueryIdentifier; 2] = match match_type {
+    //         TermSourceMatchType::Suffix => [
+    //             IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ExpressionReverse),
+    //             IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::ReadingReverse),
+    //         ],
+    //         _ => [
+    //             // Exact, Prefix
+    //             IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Expression),
+    //             IndexQueryIdentifier::SecondaryKey(SecondaryKeyQueryKind::Reading),
+    //         ],
+    //     };
+    //
+    //     let resolve_secondary_key_fn = |kind: SecondaryKeyQueryKind| -> DatabaseTermEntryKey {
+    //         match kind {
+    //             SecondaryKeyQueryKind::Expression => DatabaseTermEntryKey::expression,
+    //             SecondaryKeyQueryKind::Reading => DatabaseTermEntryKey::reading,
+    //             SecondaryKeyQueryKind::Sequence => DatabaseTermEntryKey::sequence,
+    //             SecondaryKeyQueryKind::ExpressionReverse => {
+    //                 DatabaseTermEntryKey::expression_reverse
+    //             }
+    //             SecondaryKeyQueryKind::ReadingReverse => DatabaseTermEntryKey::reading_reverse,
+    //         }
+    //     };
+    //
+    //     let create_query_fn_closure = Box::new(
+    //         move |item_from_list: &String, _idx_identifier: IndexQueryIdentifier| {
+    //             match actual_match_type_for_query {
+    //                 // Use the adjusted match type
+    //                 TermSourceMatchType::Exact => {
+    //                     to_variant!(item_from_list.clone(), NativeDbQueryInfo::Exact)
+    //                 }
+    //                 TermSourceMatchType::Prefix => {
+    //                     to_variant!(item_from_list.clone(), NativeDbQueryInfo::Prefix)
+    //                 }
+    //                 TermSourceMatchType::Suffix => {
+    //                     // This case should not be hit if
+    //                     // actual_match_type_for_query is Prefix for suffix searches
+    //                     // but as a safeguard, treat it as prefix on the (already reversed) string.
+    //                     to_variant!(item_from_list.clone(), NativeDbQueryInfo::Prefix)
+    //                 }
+    //             }
+    //         },
+    //     );
+    //
+    //     // --- OLD CODE ---
+    //     let find_multi_bulk_predicate =
+    //         |row: &DatabaseTermEntry, _item_to_query: &String| dictionaries.has(&row.dictionary);
+    //
+    //     let create_result_fn = |db_entry: DatabaseTermEntry,
+    //                             item_from_list: &String,
+    //                             item_idx: usize,
+    //                             index_kind_idx: usize|
+    //      -> TermEntry {
+    //         let mut current_match_type_for_result = match_type; // Original match_type from function args
+    //
+    //         let find_data = FindMulitBulkData {
+    //             item: FindMultiBulkDataItemType::String(item_from_list.clone()),
+    //             item_index: item_idx,
+    //             index_index: index_kind_idx,
+    //         };
+    //         db_entry.into_term_generic(&mut current_match_type_for_result, find_data)
+    //     };
+    //     // --- OLD CODE ---
+    //
+    //     let mut potential_term_entries = self.find_multi_bulk::<
+    //         String, // ItemQueryType (type of elements in processed_term_list)
+    //         DatabaseTermEntry, // M (Model)
+    //         String, // ModelKeyType (type for query values like exact term, prefix)
+    //         DatabaseTermEntryKey, // SecondaryKeyEnumType
+    //         TermEntry, // QueryResultType
+    //         _, // ResolveSecondaryKeyFnParamType (inferred)
+    //         _, // PredicateFnParamType (inferred)
+    //         _  // CreateResultFnParamType (inferred)
+    //     >(
+    //         &index_names,
+    //         &processed_term_list,
+    //         create_query_fn_closure, // Pass the boxed closure
+    //         resolve_secondary_key_fn,
+    //         find_multi_bulk_predicate,
+    //         create_result_fn,
+    //     )?;
+    //
+    //     let mut visited_ids: IndexSet<String> = IndexSet::new();
+    //     potential_term_entries.retain(|term_entry| visited_ids.insert(term_entry.id.clone()));
+    //
+    //     Ok(potential_term_entries)
+    // }
 
     pub fn find_terms_exact_bulk(
         &self,
@@ -1050,7 +1186,7 @@ impl DictionaryDatabase {
 
     pub fn find_term_meta_bulk(
         &self,
-        term_list_input: &[impl AsRef<str> + Sync],
+        term_list_input: &IndexSet<impl AsRef<str> + Sync>,
         dictionaries: &(impl DictionarySet),
     ) -> Result<Vec<DatabaseTermMeta>, Box<DictionaryDatabaseError>> {
         let terms_as_strings: Vec<String> = term_list_input
@@ -1468,7 +1604,7 @@ mod ycd {
     fn find_term_meta_bulk_() {
         //let (_f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
-        let term_list = vec!["自業自得".to_string()];
+        let term_list = IndexSet::from(["自業自得".to_string()]);
         let mut dictionaries = IndexSet::new();
         dictionaries.insert("Anime & J-drama".to_string());
         let result = ycd.find_term_meta_bulk(&term_list, &dictionaries).unwrap();

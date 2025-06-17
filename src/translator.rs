@@ -1014,6 +1014,7 @@ impl Translator {
         };
         name[..pos].to_string()
     }
+
     fn _add_term_meta(
         &self,
         dictionary_entries: &mut [InternalTermDictionaryEntry],
@@ -1022,7 +1023,7 @@ impl Translator {
     ) {
         let mut headword_map: IndexMap<String, IndexMap<String, Vec<TermMetaHeadword>>> =
             IndexMap::new();
-        let mut headword_map_keys: Vec<String> = Vec::new();
+        let mut headword_map_keys: IndexSet<String> = IndexSet::new();
         // In JS, headwordReadingMaps is an array of the inner maps.
         // We will populate this after the first loop to correctly capture all data.
         let mut headword_reading_maps: Vec<IndexMap<String, Vec<TermMetaHeadword>>> = Vec::new();
@@ -1033,15 +1034,7 @@ impl Translator {
                 let term = &headword.term;
                 let reading = &headword.reading;
                 let reading_map_for_term = headword_map.entry(term.clone()).or_insert_with(|| {
-                    // This is when a new term is encountered.
-                    // In JS, headwordMapKeys.push(term)
-                    // and headwordReadingMaps.push(new Map()) happens here.
-                    // We'll add to headword_map_keys now.
-                    // headword_reading_maps will be built later.
-                    if !headword_map_keys.contains(term) {
-                        // Ensure key is added only once if multiple headwords have same term
-                        headword_map_keys.push(term.clone());
-                    }
+                    headword_map_keys.insert(term.clone());
                     IndexMap::new()
                 });
                 let targets_for_reading = reading_map_for_term.entry(reading.clone()).or_default();
@@ -1078,6 +1071,7 @@ impl Translator {
                 return;
             }
         };
+        dbg!("metas result len: {}", metas.len());
         for meta_entry in metas {
             let DatabaseTermMeta {
                 // This is the index for headword_map_keys and headword_reading_maps
@@ -1087,14 +1081,18 @@ impl Translator {
                 dictionary,
                 ..
             } = meta_entry;
+
             let dictionary_index_val = Translator::_get_dictionary_order(
                 &dictionary,
                 &EnabledDictionaryMapType::Term(enabled_dictionary_map),
             );
+
             let dictionary_alias_val = Translator::_get_dictionary_alias(
                 dictionary.clone(),
                 &EnabledDictionaryMapType::Term(enabled_dictionary_map),
             );
+
+            /// --- OLD CODE ---
             // JS: const map2 = headwordReadingMaps[index];
             if index >= headword_reading_maps.len() {
                 eprintln!(
@@ -1104,7 +1102,9 @@ impl Translator {
                 );
                 continue;
             }
+
             let map2 = &headword_reading_maps[index];
+            /// --- END OLD CODE ---
             for (reading_key_str, targets_vec) in map2.iter() {
                 match &data {
                     MetaDataMatchType::Frequency(ref freq_match_type) => {
@@ -1268,6 +1268,7 @@ impl Translator {
             }
         }
     }
+
     fn _vec_num_or_num_to_vec_u8(opt_vnon: Option<&VecNumOrNum>) -> Vec<u8> {
         match opt_vnon {
             Some(VecNumOrNum::Vec(vec)) => vec.clone(),
@@ -3200,6 +3201,9 @@ impl Translator {
         let mut unique_deinflections_map: IndexMap<String, Vec<&mut DatabaseDeinflection>> =
             IndexMap::new();
         for deinflection in deinflections.iter_mut() {
+            if deinflection.deinflected_text.is_empty() {
+                continue;
+            }
             unique_deinflections_map
                 .entry(deinflection.deinflected_text.clone())
                 .or_default()
@@ -3207,8 +3211,9 @@ impl Translator {
         }
 
         // 2. Get the unique terms for the DB query and the arrays of mutable references.
-        let unique_deinflection_terms: Vec<String> =
+        let mut unique_deinflection_terms: Vec<String> =
             unique_deinflections_map.keys().cloned().collect();
+        //unique_deinflection_terms.retain(|term| !term.is_empty());
         let mut unique_deinflection_arrays: Vec<Vec<&mut DatabaseDeinflection>> =
             unique_deinflections_map.into_values().collect();
 
@@ -3224,6 +3229,7 @@ impl Translator {
                 vec![]
             }
         };
+        dbg!("term entries len: {}", database_entries.len());
 
         // 4. Match the results back to the original deinflections via the grouped mutable references.
         self._match_entries_to_deinflections(

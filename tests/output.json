@@ -2,7 +2,7 @@
   {
     "start": 0,
     "length": 2,
-    "text": "自得",
+    "text": "es",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -17,21 +17,21 @@
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "",
+      "dictionary_alias": "小学館 西和中辞典 第2版",
       "dictionary_index": 0,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
-      "max_original_text_length": 6,
+      "max_original_text_length": 2,
       "headwords": [
         {
           "index": 0,
-          "term": "自得",
-          "reading": "じとく",
+          "term": "es",
+          "reading": "es",
           "sources": [
             {
-              "original_text": "自得",
-              "transformed_text": "自得",
-              "deinflected_text": "自得",
+              "original_text": "es",
+              "transformed_text": "es",
+              "deinflected_text": "es",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -43,364 +43,24 @@
       ],
       "definitions": [
         {
-          "id": "01975dcd-7657-7f41-8f2e-eafe9f2bc576",
+          "id": "01977b0f-8fd3-7cb1-897b-24146b7c6d3e",
           "index": 0,
           "headword_indices": [
             0
           ],
-          "dictionary": "大辞林　第四版",
+          "dictionary": "小学館 西和中辞典 第2版",
           "dictionary_index": 0,
-          "dictionary_alias": "大辞林　第四版",
+          "dictionary_alias": "小学館 西和中辞典 第2版",
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            7039600000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "じとく[0]【自得】（名）スル①自分の力で会得すること。「操作のこつを━する」②自ら満足すること。「吾れ無為の境に優遊して、是非の外に━す／太平記（一）」③自分の身に報いを受けること。「自業━」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": [
-        {
-          "index": 0,
-          "headword_index": 0,
-          "dictionary": "Anime & J-drama",
-          "dictionary_index": 1,
-          "dictionary_alias": "Anime & J-drama",
-          "has_reading": false,
-          "frequency": 82267,
-          "display_value": null,
-          "display_value_parsed": false
-        }
-      ]
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "自",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": -1,
-      "frequency_order": 0,
-      "dictionary_alias": "",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "自",
-          "reading": "し",
-          "sources": [
-            {
-              "original_text": "自",
-              "transformed_text": "自",
-              "deinflected_text": "自",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01975dcd-706c-7e50-8209-f44233e779a7",
-          "index": 0,
-          "headword_indices": [
             0
           ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
-          "frequency_order": 0,
-          "sequences": [
-            6612000000
-          ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "【自】ジシ①じぶん。おのれ。「自我・自己・自身・自他・自宅・自伝・自費・自分・各自・独自」②みずから。じぶんで。「自愛・自慰・自営・自衛・自戒・自害・自覚・自活・自棄・自供・自決・自殺・自首・自習・自粛・自称・自信・自刃・自炊・自省・自責・自治・自慢・自滅・自立・自画自賛・自業自得」③ひとりでに。おのずから。「自然(しぜん（じねん）)・自転・自動・自明」④起点を示す。…から。「自今」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": [
-        {
-          "index": 0,
-          "headword_index": 0,
-          "dictionary": "Anime & J-drama",
-          "dictionary_index": 1,
-          "dictionary_alias": "Anime & J-drama",
-          "has_reading": false,
-          "frequency": 3953,
-          "display_value": null,
-          "display_value_parsed": false
-        }
-      ]
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "自",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "自",
-          "reading": "じ",
-          "sources": [
-            {
-              "original_text": "自",
-              "transformed_text": "自",
-              "deinflected_text": "自",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01975dcd-706c-7e50-8209-f431a7f406d6",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            6612000000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【自】ジシ①じぶん。おのれ。「自我・自己・自身・自他・自宅・自伝・自費・自分・各自・独自」②みずから。じぶんで。「自愛・自慰・自営・自衛・自戒・自害・自覚・自活・自棄・自供・自決・自殺・自首・自習・自粛・自称・自信・自刃・自炊・自省・自責・自治・自慢・自滅・自立・自画自賛・自業自得」③ひとりでに。おのずから。「自然(しぜん（じねん）)・自転・自動・自明」④起点を示す。…から。「自今」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": [
-        {
-          "index": 0,
-          "headword_index": 0,
-          "dictionary": "Anime & J-drama",
-          "dictionary_index": 1,
-          "dictionary_alias": "Anime & J-drama",
-          "has_reading": false,
-          "frequency": 3953,
-          "display_value": null,
-          "display_value_parsed": false
-        }
-      ]
-    }
-  },
-  {
-    "start": 0,
-    "length": 1,
-    "text": "自",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "自",
-          "reading": "ころ",
-          "sources": [
-            {
-              "original_text": "自",
-              "transformed_text": "自",
-              "deinflected_text": "自",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01975dcd-8671-7d20-8582-2bcfdecec04d",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 1,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            5924100000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "ころ【自▽】「それ自身」の意。みずから。他の語に付いて「ころだつ」 「ころふす」などの形で用いられた。",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": [
-        {
-          "index": 0,
-          "headword_index": 0,
-          "dictionary": "Anime & J-drama",
-          "dictionary_index": 1,
-          "dictionary_alias": "Anime & J-drama",
-          "has_reading": false,
-          "frequency": 3953,
-          "display_value": null,
-          "display_value_parsed": false
-        }
-      ]
-    }
-  },
-  {
-    "start": 1,
-    "length": 1,
-    "text": "得",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": []
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "",
-      "dictionary_index": 0,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 3,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "得",
-          "reading": "とく",
-          "sources": [
-            {
-              "original_text": "得",
-              "transformed_text": "得",
-              "deinflected_text": "得",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01975dcd-75be-7c53-8d10-3809d25bc081",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 0,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            11429300000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "とく[0]【得】（名）①利益を得ること。もうけること。また、その利益。もうけ。⇔損。「損して━とれ」「何の━にもならない」②手に入れること。得ること。⇔失。「自他のために失多く━少なし／徒然草（一六四）」③〘仏〙真宗で、浄土に往生し、涅槃に入ること。（形動）(ナリ)有利である・こと（さま）。⇔損。「そっちを買うほうが━だ」「百円お━な商品です」「憎めない━な性格」",
+              "term_glossary_string": "〘接頭〙 「分離，除去」の意．⇒escapar,escoger.▲しばしば des-と混同される．⇒escampar (descampar),espabilar (despabilar)．",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -408,49 +68,74 @@
           ]
         },
         {
-          "id": "01975dcd-75be-7c53-8d10-398b3f9e1c13",
-          "index": 2,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 0,
-          "dictionary_alias": "大辞林　第四版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            11430400000
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "【得】トク①手に入れる。「得意・得点・得票・獲得・収得・拾得・取得・所得」②知識や能力を身につける。さとる。「得心・得度・会得(えとく)・生得・体得・納得」③利益をえる。もうけ。「得策・得失・得分・損得・利得・一挙両得」",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01975dcd-75be-7c53-8d10-381044506d4d",
+          "id": "01977b0f-8fd3-7cb1-897b-242b52c91f7b",
           "index": 1,
           "headword_indices": [
             0
           ],
-          "dictionary": "大辞林　第四版",
+          "dictionary": "小学館 西和中辞典 第2版",
           "dictionary_index": 0,
-          "dictionary_alias": "大辞林　第四版",
-          "score": -1,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
           "frequency_order": 0,
           "sequences": [
-            11429300000
+            0
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "得を取るより名を取れ",
+              "term_glossary_string": "[活] →ser.",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9013-76c2-897b-10111c891e0f",
+          "index": 2,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 0,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〘接尾〙 国名，地方［都市］名などに付いて「…の，…に属する，…の人［もの］」の意を表す名詞・形容詞語尾．▲男性形は言語名も表す．⇒aragonés, francés.",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9016-7800-83f8-2879c6c35689",
+          "index": 3,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 0,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〖化〗 einstenio アインスタイニウム．",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -459,25 +144,13 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": [
-        {
-          "index": 0,
-          "headword_index": 0,
-          "dictionary": "Anime & J-drama",
-          "dictionary_index": 1,
-          "dictionary_alias": "Anime & J-drama",
-          "has_reading": false,
-          "frequency": 5291,
-          "display_value": null,
-          "display_value_parsed": false
-        }
-      ]
+      "frequencies": []
     }
   },
   {
-    "start": 1,
-    "length": 1,
-    "text": "得",
+    "start": 0,
+    "length": 2,
+    "text": "es",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -487,26 +160,31 @@
       "inflection_rule_chain_candidates": [
         {
           "source": "algorithm",
-          "inflection_rules": []
+          "inflection_rules": [
+            {
+              "name": "plural",
+              "description": "Plural form of a noun"
+            }
+          ]
         }
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "",
-      "dictionary_index": 0,
+      "dictionary_alias": "小学館 西和中辞典 第2版",
+      "dictionary_index": 1,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
-      "max_original_text_length": 3,
+      "max_original_text_length": 2,
       "headwords": [
         {
           "index": 0,
-          "term": "得",
-          "reading": "う",
+          "term": "e",
+          "reading": "e",
           "sources": [
             {
-              "original_text": "得",
-              "transformed_text": "得",
-              "deinflected_text": "得",
+              "original_text": "es",
+              "transformed_text": "es",
+              "deinflected_text": "e",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -518,24 +196,99 @@
       ],
       "definitions": [
         {
-          "id": "01975dcd-6c4f-7173-b94c-1b3aca90f2a9",
+          "id": "01977b0f-8bd3-73a3-9865-a6c3c39f4285",
           "index": 0,
           "headword_indices": [
             0
           ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 0,
-          "dictionary_alias": "大辞林　第四版",
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 1,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            1170700000
+            0
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "う【得】（動(ア)下二）①下一段活用の動詞「える（得）」の文語形。②（「…する（こと）をう」の形で）…することができる、…することが許されるという意を表す。文語調のごくかたい表現として用いられる。「改悛の情あるときは…出獄を許すことをう」「許可なき者は入室するをえず」→える（得）・うる（得）",
+              "term_glossary_string": "〘接頭〙 「外に，外へ」および「拡散，分離，除去」などの意．⇒emanar,emigrar,enumerar.［←〔ラ〕］",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9013-76c2-897b-0d64f2289365",
+          "index": 1,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 1,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〘接尾〙 「行為，結果」の意を表す名詞語尾．⇒debate, embarque.",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9016-7800-83f8-2408473cc306",
+          "index": 2,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 1,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "[女]1スペイン語字母の第5字；ｅの名称．2〖音楽〗 ミ mi.",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9016-7800-83f8-2516aca6e082",
+          "index": 3,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 1,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "[接続] ［ｙの異形］…と…（▲i-, hi-で始まる語の前で y に代わって使われる）．3 examplesespañol e inglésスペイン語と英語．literatura e historia文学と歴史．José e [y] Ignacioホセとイグナシオ．▲hie-や固有名詞の前，疑問文・感嘆文の冒頭では y のまま．2 examplespiedra y hierro石と鉄．¿Y Irene?で，イレーネは．",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -544,25 +297,13 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": [
-        {
-          "index": 0,
-          "headword_index": 0,
-          "dictionary": "Anime & J-drama",
-          "dictionary_index": 1,
-          "dictionary_alias": "Anime & J-drama",
-          "has_reading": false,
-          "frequency": 5291,
-          "display_value": null,
-          "display_value_parsed": false
-        }
-      ]
+      "frequencies": []
     }
   },
   {
-    "start": 1,
-    "length": 1,
-    "text": "得",
+    "start": 0,
+    "length": 2,
+    "text": "es",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -572,26 +313,31 @@
       "inflection_rule_chain_candidates": [
         {
           "source": "algorithm",
-          "inflection_rules": []
+          "inflection_rules": [
+            {
+              "name": "present indicative",
+              "description": "Present indicative form of a verb"
+            }
+          ]
         }
       ],
       "score": 0,
       "frequency_order": 0,
-      "dictionary_alias": "",
-      "dictionary_index": 0,
+      "dictionary_alias": "小学館 西和中辞典 第2版",
+      "dictionary_index": 2,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
-      "max_original_text_length": 3,
+      "max_original_text_length": 2,
       "headwords": [
         {
           "index": 0,
-          "term": "得",
-          "reading": "え",
+          "term": "er",
+          "reading": "er",
           "sources": [
             {
-              "original_text": "得",
-              "transformed_text": "得",
-              "deinflected_text": "得",
+              "original_text": "es",
+              "transformed_text": "es",
+              "deinflected_text": "er",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -603,24 +349,24 @@
       ],
       "definitions": [
         {
-          "id": "01975dcd-7560-7940-8260-2a081db488ae",
+          "id": "01977b0f-9016-7800-83f8-27cbc5a32e63",
           "index": 0,
           "headword_indices": [
             0
           ],
-          "dictionary": "大辞林　第四版",
-          "dictionary_index": 0,
-          "dictionary_alias": "大辞林　第四版",
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 2,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
           "score": 0,
           "frequency_order": 0,
           "sequences": [
-            1512200000
+            0
           ],
           "is_primary": true,
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "え【得・能▽】（副）〔動詞「う（得）」の連用形から〕①下に否定の表現を伴って、不可能の意を表す。…できない。全く…しない。「帝、はた、まして━忍びあへ給はず／源氏物語（桐壺）」②下に肯定の表現を伴って可能の意を表す。できる。「其の暴浪(あらなみ)自(おのずか)らなぎて、御船━進みき／古事記（中訓）」",
+              "term_glossary_string": "〖化〗 erbio エルビウム．",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -629,19 +375,366 @@
         }
       ],
       "pronunciations": [],
-      "frequencies": [
+      "frequencies": []
+    }
+  },
+  {
+    "start": 0,
+    "length": 2,
+    "text": "es",
+    "entry": {
+      "entry_type": "term",
+      "is_primary": true,
+      "text_processor_rule_chain_candidates": [
+        []
+      ],
+      "inflection_rule_chain_candidates": [
+        {
+          "source": "algorithm",
+          "inflection_rules": [
+            {
+              "name": "present indicative",
+              "description": "Present indicative form of a verb"
+            }
+          ]
+        }
+      ],
+      "score": 0,
+      "frequency_order": 0,
+      "dictionary_alias": "小学館 西和中辞典 第2版",
+      "dictionary_index": 3,
+      "source_term_exact_match_count": 1,
+      "match_primary_reading": false,
+      "max_original_text_length": 2,
+      "headwords": [
         {
           "index": 0,
-          "headword_index": 0,
-          "dictionary": "Anime & J-drama",
-          "dictionary_index": 1,
-          "dictionary_alias": "Anime & J-drama",
-          "has_reading": false,
-          "frequency": 5291,
-          "display_value": null,
-          "display_value_parsed": false
+          "term": "ir",
+          "reading": "ir",
+          "sources": [
+            {
+              "original_text": "es",
+              "transformed_text": "es",
+              "deinflected_text": "ir",
+              "match_type": "exact",
+              "match_source": "term",
+              "is_primary": true
+            }
+          ],
+          "tags": [],
+          "word_classes": []
         }
-      ]
+      ],
+      "definitions": [
+        {
+          "id": "01977b0f-8de5-71b2-9242-6412a6752206",
+          "index": 0,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 3,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〘接頭〙 （r の前に来るときの）in-の異形．",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-8de5-71b2-9242-642ed266ba9b",
+          "index": 1,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 3,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "[66][自] ［[現分] は yendo］1(1)⸨a... / para... / hacia...〈特定の地点・方向〉へ⸩行く，向かう，移動する．7 examples¿A dónde vas?どこへ行くの．Carmen iba hacia la estación.カルメンは駅の方へ向かって行った．Desde el aeropuerto hasta el hotel iremos con un guía local.空港からホテルまでは現地ガイドと一緒に行こう．Susana decidió ir por un atajo para evitar el atasco.スサナは渋滞を避けるために近道を通って行くことにした．ir en coche [avión, bicicleta, taxi, tren]車［飛行機，自転車，タクシー，電車］で行く．ir andando [a pie]歩いて行く．ir de compras [viaje, visita, excursión]買い物［旅行，訪問，遠足］に行く．(2)⸨a...〈特定の場所・施設など〉に⸩ 通う．1 exampleEn aquella época íbamos todavía a la universidad.あのころ僕らはまだ大学に通っていた［大学生だった］．(3)⸨a...〈特定の場所〉に⸩ ⸨a＋不定詞…しに，…するために⸩ 行く．1 exampleTengo que ir al hospital a recoger los resultados del análisis.病院に検査の結果を取りに行かねばならない．(4)⸨por... / a por...…を⸩ 取りに行く，呼びに［迎えに，探しに］行く．2 examplesVe (a) por unos tornillos.ねじを取ってきてくれ．Si no vuelves antes de las cinco, voy a por ti.5時までに帰らなければ迎えに行くからね．2⸨a... / hacia...〈特定の地点・方向〉に⸩ 〈道・区域などが〉至る；向かう，導く；（起点から終点までを）結ぶ，カバーする．2 examplesEste sendero va al refugio.この小道は山小屋へとつながっている．Esta autopista va de Madrid a Valencia.この高速道路はマドリードとバレンシアを結んでいる．3⸨por...〈ある段階〉まで⸩ 〈作業・学業などが〉進んでいる．1 example¿Por dónde vais? ―Vamos por el uso del subjuntivo.君たちどのあたりまで進んでるの．―接続法の使い方を見ているところです．4⸨a...〈ある状態〉に⸩ 向かう．1 exampleSi sigues así, nuestra relación irá a la ruina.君が態度を改めないなら，僕らの関係は破綻(はたん)に向かうだけだ．5⸨＋形容詞・副詞およびその相当語句⸩(1)⸨…の状態に⸩ある；⸨…⸩である．2 examplesÚltimamente va muy guapa.彼女はこのごろとてもきれいだ．¿Qué tal vas? / Cómo vas?調子はどう；元気?(2)…に進む，機能する；進行状況・機能が…である．2 examplesLa reforma va retrasada.改革［改築］の進行は遅れ気味だ．Este ordenador va muy bien.このコンピュータはとてもよく機能している．▲形容詞は主語と性数一致する．(3)〘3人称単数形で〙 ⸨irle（a＋人）〈人〉にとって⸩ （ものごとが）進む．3 examplesNo me va demasiado bien en el trabajo.職場であまりうまくいってないの．¿Cómo te va?調子はどう．順調にいってる?¡Que les vaya muy bien!あなたたちにとって全てうまく行きますように；〘別れのあいさつ〙 ごきげんよう．6〘話〙 ⸨de...…を⸩ 気取る．2 examplesÉl no va de caballero；es que lo es realmente.彼は紳士ぶってるんじゃない，実際に紳士なんだよ．¿De qué vas?おまえは何様のつもりなんだ．7(1)⸨con...…と，…に⸩ 合う，調和する，適当である．1 example¿Crees que este pantalón va con esta camisa?このズボン，このシャツに合うと思う．(2)⸨irle (a...)…に⸩似合う；適する；気に入る．3 examplesA Antonia no le van los uniformes.アントニアには制服は似合わない．A mí no me van los chicos presumidos.私は気取った男の人は苦手なの．Este vino le va muy bien al pescado.このワインは魚料理にとてもよく合う．(3)⸨con...⸩ ⸨…に⸩賛同する，味方する；⸨…を⸩応援する．1 exampleVoy con el equipo italiano.僕はイタリアチームを応援する．8⸨a＋不定詞⸩ 〘未来〙 ⸨…する⸩ところである，つもりである，予定である，はずである．3 examplesIba a llamarle ahora mismo.ちょうどお電話差し上げるところでした．Voy a perder cinco kilos antes del verano.夏までに5キロやせるつもりです．Aurora y Ramón van a casarse el año que viene.アウロラとラモンは来年結婚する予定です．9⸨＋現在分詞⸩ ⸨…⸩しつつある；（だんだん・少しずつ）⸨…⸩する，してくる［いく］．2 examplesPoco a poco fue calmándose.彼［彼女］は少しずつ落ち着きを取り戻していった．Voy acostumbrándome al clima de este país.私はだんだんこの国の気候に慣れてきた．10⸨para...⸩(1)⸨〈年齢〉に⸩ なろうとしている，（じきに）なる．2 examplesMi sobrino va para siete años.甥(おい)はもうすぐ7歳になる．ir para viejo年を取る．(2)⸨〈職業・地位〉を⸩ めざす，めざして当然の条件を備えている．1 exampleSu novio va para abogado.彼女の恋人は弁護士を目指している．11⸨de... a...…と…の間に⸩ 〈差・違い・開きが〉ある．1 example¡Lo que va de ayer a hoy!昔と今では大違いだ．12⸨de... / sobre...⸩ 〈本・記事・番組・会話などが〉⸨…を⸩話題にする，扱う．2 examples¿De qué va ese artículo?それは何についての記事ですか．La película iba sobre la amistad entre los dos sexos.その映画は異性間の友情をテーマにしていた．13⸨por...⸩ 〈発言などが〉⸨…のことを⸩指す．1 example¿Eso va por mí?それは私のことを指しておっしゃっているのですか．14⸨contra... / en contra de...…に⸩ 反する，反対する，敵対する．1 exampleTus actuaciones van contra los principios de la democracia.君の行いは民主主義の原則に反している．15⸨tras... / detrás de... / tras de...…を⸩ 追いかける，しつこく追い回す；熱中する．2 examplesir tras un sueño夢を追いかける．Sé que vas detrás de mi hija.君が私の娘を追い回しているのは知っているんだ．16⸨irle(a＋人)⸩ ⸨en...…に⸩ ⸨〈人〉の⸩ 〈名誉・信用・命などが〉かかっている．2 examplesMe va en ello la vida.そのことに私の命がかかっているんです．En este proyecto nos va el éxito en el mercado europeo.この企画に我々のヨーロッパ市場における成功がかかっている．17(1)〈金額・ものが〉賭(か)けられる．1 exampleVan veinte euros a que apruebas.僕は君の合格に20ユーロ賭ける．▲主に賭ける当人の宣言，または相手が何を賭けるかの質問で使われる．(2)（トランプなどで）ゲームに加わる，勝負する，順番が回ってくる．1 example¿Quién va ahora?誰の番かな．━～・se[再]Paula, ¡date prisa, que nos vamos ya!パウラ，急いで．もう出かけますよ．A eso voy [iba, vamos, íbamos]．そう言おうと思っていたところだ，そのとおりだ．Ahí va [van]...(1)ほら…だよ，ここに…を置くよ．Allá va.(1)〘ものを投げて〙 ほら行くよ，受け取って．a lo que íbamos [iba]先ほどの話に戻りますが．el no va más〘話〙 右に出るものがないもの，最高［最良］のもの．Ésta es el no va más de las planchas de vapor.スチームアイロンではこれに勝るものはない．en lo que va de...〈特定の期間〉に入ってから現時点までにおいては．El precio de la gasolina ha subido un cinco por ciento en lo que va del año.ガソリンの価格は今年に入ってから今までで5パーセント上昇した．ir a loSUYO自分勝手にする，好き勝手なことをする．Estoy harto de que siempre vayas a lo tuyo.君の身勝手な振る舞いにはもう我慢できない．ir a más先に進む；増える；（傾向などが）ますます強まる．ir en [de] broma(1)（発言・行いなどを）冗談でする．Supongo que va en [de] broma.彼［彼女］は冗談のつもりだったんだろう．ir por...〈演奏・勝利・乾杯などが〉…に捧げられる．La siguiente canción va por usted, Antonio.次の歌は，アントニオ，あなたに捧げます．irse abajo〘話〙 崩壊する．ir y...〘話〙 〘強調〙 思いっきり…する．Fui y lo tiré todo a la basura.思いっきり全部ごみ箱に捨ててやった．ir y venir〘話〙 絶え間ない行き来．el ir y venir de los aviones飛行機の往来．no irle ni venirle (a＋人)〘話〙 〈人〉にとってどうでもよい，関わりがない．Eso que me cuentas no me va ni me viene.そんなこと僕にはどうでもいいことだ．no vaya a＋不定詞 / no vaya a ser que＋接続法…するといけないから．Apúntalo en la agenda, no vaya a ser que se te olvide.忘れるといけないから手帳に書きとめておきなさい．¡Qué va!〘話〙 とんでもない，そんなことはない．¿Estás enfadada? ―¡Qué va!君，怒ってるの．―まさか．sin ir más lejos身近［手近］な例では．vamos〘話〙Diego, recoge los juguetes, ¡vamos!ディエゴ，おもちゃを片づけなさい．さあ早く．vamos a＋不定詞さあ…しよう．Bueno, vamos a empezar.さあ，始めましょう．vaya〘話〙¡Vaya! ¿Ya lo sabías?なあんだ，もう知ってたの．¡Vaya por... !…に乾杯！Ya voy. / Voy.〘呼ばれて〙 今行きます．［←〔ラ〕īre; voy, vas, ... の語形 ←〔ラ〕vādere「進む；急いで行く」；fui, fuiste, ... の語形 ←〔ラ〕esse「いる，ある」の完了形（fuī,fuistī, ...）など］",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9017-76a0-87ae-d529944ca757",
+          "index": 2,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 3,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〖化〗 iridio イリジウム．",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        }
+      ],
+      "pronunciations": [],
+      "frequencies": []
+    }
+  },
+  {
+    "start": 0,
+    "length": 2,
+    "text": "es",
+    "entry": {
+      "entry_type": "term",
+      "is_primary": true,
+      "text_processor_rule_chain_candidates": [
+        []
+      ],
+      "inflection_rule_chain_candidates": [
+        {
+          "source": "algorithm",
+          "inflection_rules": [
+            {
+              "name": "present indicative",
+              "description": "Present indicative form of a verb"
+            }
+          ]
+        }
+      ],
+      "score": 0,
+      "frequency_order": 0,
+      "dictionary_alias": "小学館 西和中辞典 第2版",
+      "dictionary_index": 4,
+      "source_term_exact_match_count": 1,
+      "match_primary_reading": false,
+      "max_original_text_length": 2,
+      "headwords": [
+        {
+          "index": 0,
+          "term": "ser",
+          "reading": "ser",
+          "sources": [
+            {
+              "original_text": "es",
+              "transformed_text": "es",
+              "deinflected_text": "ser",
+              "match_type": "exact",
+              "match_source": "term",
+              "is_primary": true
+            }
+          ],
+          "tags": [],
+          "word_classes": []
+        }
+      ],
+      "definitions": [
+        {
+          "id": "01977b0f-8ed7-7c23-a658-53299d9ad0e4",
+          "index": 0,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 4,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "[女] 〘略〙SociedadEspañola deRadiodifusión スペインラジオ放送．",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        }
+      ],
+      "pronunciations": [],
+      "frequencies": []
+    }
+  },
+  {
+    "start": 0,
+    "length": 2,
+    "text": "es",
+    "entry": {
+      "entry_type": "term",
+      "is_primary": true,
+      "text_processor_rule_chain_candidates": [
+        []
+      ],
+      "inflection_rule_chain_candidates": [
+        {
+          "source": "algorithm",
+          "inflection_rules": [
+            {
+              "name": "imperative",
+              "description": "Imperative form of a verb"
+            }
+          ]
+        }
+      ],
+      "score": 0,
+      "frequency_order": 0,
+      "dictionary_alias": "小学館 西和中辞典 第2版",
+      "dictionary_index": 5,
+      "source_term_exact_match_count": 1,
+      "match_primary_reading": false,
+      "max_original_text_length": 2,
+      "headwords": [
+        {
+          "index": 0,
+          "term": "ar",
+          "reading": "ar",
+          "sources": [
+            {
+              "original_text": "es",
+              "transformed_text": "es",
+              "deinflected_text": "ar",
+              "match_type": "exact",
+              "match_source": "term",
+              "is_primary": true
+            }
+          ],
+          "tags": [],
+          "word_classes": []
+        }
+      ],
+      "definitions": [
+        {
+          "id": "01977b0f-8b28-76f3-b95a-162a7c3be7b9",
+          "index": 0,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 5,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "[間投] 〖軍〗 〘命令などで〙 直ちに，さあ．",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9013-76c2-897b-0a94186da476",
+          "index": 1,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 5,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〘接尾〙1動詞語尾．⇒charlar, ensuciar.2形容詞語尾．⇒familiar, solar.3「場所，生息地」の意を表す男性名詞語尾．⇒pinar, tejar.",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9013-76c2-897b-1afdcfe9c5dd",
+          "index": 2,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 5,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〘略〙1AltezaReal 殿下．2annoregni〔ラ〕治世第…年に（＝año del reinado）.",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9014-7850-96eb-bc211c3683c7",
+          "index": 3,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 5,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〖化〗 argón アルゴン．",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        }
+      ],
+      "pronunciations": [],
+      "frequencies": []
     }
   }
 ]

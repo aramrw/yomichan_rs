@@ -182,25 +182,25 @@ impl Backend {
                     let char_start_index = text[..byte_start].chars().count();
                     let original_word_char_len = word.chars().count();
 
-                    // This is a more advanced but highly efficient and readable way to do this.
-                    // We create a chain of iterators to filter and limit the results.
-                    let valid_entries = find_result
-                        .dictionary_entries
-                        .into_iter()
-                        .filter(|entry| {
-                            // THE CORRECT FILTER:
-                            // The entry is valid ONLY IF one of its sources was derived
-                            // from the term text, not from its reading/pronunciation.
-                            entry.headwords.iter().any(|headword| {
-                                headword.sources.iter().any(|source| {
-                                    source.original_text == trimmed_word
-                                        && source.match_source == TermSourceMatchSource::Term
-                                })
-                            })
-                        })
-                        .take(10); // Then, take the first 10 *valid* entries.
+                    // // This is a more advanced but highly efficient and readable way to do this.
+                    // // We create a chain of iterators to filter and limit the results.
+                    // let valid_entries = find_result
+                    //     .dictionary_entries
+                    //     .into_iter()
+                    //     .filter(|entry| {
+                    //         // THE CORRECT FILTER:
+                    //         // The entry is valid ONLY IF one of its sources was derived
+                    //         // from the term text, not from its reading/pronunciation.
+                    //         entry.headwords.iter().any(|headword| {
+                    //             headword.sources.iter().any(|source| {
+                    //                 source.original_text == trimmed_word
+                    //                     && source.match_source == TermSourceMatchSource::Term
+                    //             })
+                    //         })
+                    //     })
+                    //     .take(10); // Then, take the first 10 *valid* entries.
 
-                    for entry in valid_entries {
+                    for entry in find_result.dictionary_entries {
                         found_terms.push(LocatedTerm {
                             start: char_start_index,
                             length: original_word_char_len,
@@ -621,19 +621,29 @@ mod ycd_tests {
         let ycd = RefCell::new(Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap());
         ycd.borrow_mut().set_language("es");
 
-        if firestorm::enabled() {
-            firestorm::bench("./flames/", move || {
-                ycd.borrow_mut().parse_text("es", 20);
-            })
-            .unwrap();
-        } else {
-            ycd.borrow_mut().parse_text("es", 20);
+        #[cfg(target_os = "linux")]
+        let res = {
+            // let guard = pprof::ProfilerGuardBuilder::default()
+            //     .frequency(1000)
+            //     .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+            //     .build()
+            //     .unwrap();
+            ycd.borrow_mut().parse_text("es", 20)
+
+            // if let Ok(report) = guard.report().build() {
+            //     let file = std::fs::File::create("flamegraph.svg").unwrap();
+            //     report.flamegraph(file).unwrap();
+            // };
         };
+
+        #[cfg(target_os = "windows")]
+        ycd.borrow_mut().parse_text("es", 20);
+
         // //dbg!(res);
-        // let txt = std::fs::write(
-        //     TEST_PATHS.tests_dir.join("output.json"),
-        //     serde_json::to_vec_pretty(&res).unwrap(),
-        // );
+        let txt = std::fs::write(
+            TEST_PATHS.tests_dir.join("output.json"),
+            serde_json::to_vec_pretty(&res).unwrap(),
+        );
     }
 
     #[test]
