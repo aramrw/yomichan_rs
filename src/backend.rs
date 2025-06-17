@@ -612,7 +612,7 @@ mod ycd_tests {
         ycd.set_language("ja");
         let details = FindTermsDetails::default();
         let res = ycd.find_terms("お前", details);
-        dbg!(res);
+        //dbg!(res);
     }
 
     #[test]

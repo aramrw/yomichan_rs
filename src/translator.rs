@@ -1071,7 +1071,7 @@ impl Translator {
                 return;
             }
         };
-        dbg!("metas result len: {}", metas.len());
+        //dbg!("metas result len: {}", metas.len());
         for meta_entry in metas {
             let DatabaseTermMeta {
                 // This is the index for headword_map_keys and headword_reading_maps
@@ -3229,7 +3229,7 @@ impl Translator {
                 vec![]
             }
         };
-        dbg!("term entries len: {}", database_entries.len());
+        //dbg!("term entries len: {}", database_entries.len());
 
         // 4. Match the results back to the original deinflections via the grouped mutable references.
         self._match_entries_to_deinflections(

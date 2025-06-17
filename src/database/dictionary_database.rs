@@ -1629,7 +1629,7 @@ mod ycd {
         let match_type = TermSourceMatchType::Exact;
         // Pass term_list directly as it implements AsRef<str> for String
         let result = ycd.find_terms_bulk(&term_list, &dictionaries, match_type);
-        dbg!(result);
+        //dbg!(result);
     }
 }
 
