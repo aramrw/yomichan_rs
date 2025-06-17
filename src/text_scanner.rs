@@ -306,8 +306,6 @@ mod textscanner {
     #[test]
     fn search() {
         let ycd = YCD.read().unwrap();
-        let binding = ycd.dictionary_options();
-        let res = binding.get_all();
-        dbg!(res);
+        //dbg!(res);
     }
 }

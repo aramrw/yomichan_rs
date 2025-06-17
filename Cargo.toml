@@ -35,9 +35,10 @@ serde_with = "3.12.0"
 url = "2.5.4"
 anki_direct = { git = "https://github.com/aramrw/anki_direct", branch = "master" }
 rmp-serde = "1.3.0"
-firestorm = { version="0.5", features=["enable_system_time"] }
+module_macros = { path = "crates/module_macros" }
+
 [workspace]
-members = ["crates/kanji_processor"]
+members = ["crates/kanji_processor", "crates/module_macros"]
 
 # https://www.reddit.com/r/rust/comments/gaeiwm/how_to_optionally_run_certain_tests/
 [features]

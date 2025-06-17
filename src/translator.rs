@@ -38,7 +38,6 @@ use crate::{
 };
 use derive_more::From;
 use fancy_regex::Regex;
-use firestorm::{profile_fn, profile_method, profile_section};
 use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
     datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
