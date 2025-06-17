@@ -2,7 +2,7 @@
   {
     "start": 0,
     "length": 2,
-    "text": "es",
+    "text": "me",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -25,13 +25,13 @@
       "headwords": [
         {
           "index": 0,
-          "term": "es",
-          "reading": "es",
+          "term": "me",
+          "reading": "me",
           "sources": [
             {
-              "original_text": "es",
-              "transformed_text": "es",
-              "deinflected_text": "es",
+              "original_text": "me",
+              "transformed_text": "me",
+              "deinflected_text": "me",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -43,7 +43,7 @@
       ],
       "definitions": [
         {
-          "id": "01977b0f-8fd3-7cb1-897b-24146b7c6d3e",
+          "id": "01977b0f-913d-7161-b31c-be30486f1334",
           "index": 0,
           "headword_indices": [
             0
@@ -60,82 +60,7 @@
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "〘接頭〙 「分離，除去」の意．⇒escapar,escoger.▲しばしば des-と混同される．⇒escampar (descampar),espabilar (despabilar)．",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-8fd3-7cb1-897b-242b52c91f7b",
-          "index": 1,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 0,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "[活] →ser.",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9013-76c2-897b-10111c891e0f",
-          "index": 2,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 0,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "〘接尾〙 国名，地方［都市］名などに付いて「…の，…に属する，…の人［もの］」の意を表す名詞・形容詞語尾．▲男性形は言語名も表す．⇒aragonés, francés.",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9016-7800-83f8-2879c6c35689",
-          "index": 3,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 0,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "〖化〗 einstenio アインスタイニウム．",
+              "term_glossary_string": "[代名] 〘人称〙 ［1人称単数］▲ふつう動詞のすぐ前に置かれるが，不定詞・現在分詞・肯定命令形とともに用いる場合はその後に付ける．1〘直接目的語〙私を．2 examples¿Me esperas aquí?ここで私を待っていてくれるかい．¿Me oyes?私の声が聞こえますか．2〘間接目的語〙私に，私にとって，私から．3 examplesA mí me regalaron un libro.私には1冊の本がプレゼントされた．No me gusta nada el café.私はコーヒーはぜんぜん好きじゃない．El médico me ha quitado el alcohol.医者は私にアルコールを禁じた．▲直接目的語の代名詞とともに用いる場合には，その前に置かれる．1 example⇒Laura me lo ha dicho.ラウラはそれを私に言った．3〘再帰代名詞〙 →se2 1，2，4．［←〔ラ〕mē（ego「私は」の対格・奪格）；[関連]〔仏〕〔英〕me］",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -150,160 +75,7 @@
   {
     "start": 0,
     "length": 2,
-    "text": "es",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "plural",
-              "description": "Plural form of a noun"
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "小学館 西和中辞典 第2版",
-      "dictionary_index": 1,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 2,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "e",
-          "reading": "e",
-          "sources": [
-            {
-              "original_text": "es",
-              "transformed_text": "es",
-              "deinflected_text": "e",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01977b0f-8bd3-73a3-9865-a6c3c39f4285",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 1,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "〘接頭〙 「外に，外へ」および「拡散，分離，除去」などの意．⇒emanar,emigrar,enumerar.［←〔ラ〕］",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9013-76c2-897b-0d64f2289365",
-          "index": 1,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 1,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "〘接尾〙 「行為，結果」の意を表す名詞語尾．⇒debate, embarque.",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9016-7800-83f8-2408473cc306",
-          "index": 2,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 1,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "[女]1スペイン語字母の第5字；ｅの名称．2〖音楽〗 ミ mi.",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9016-7800-83f8-2516aca6e082",
-          "index": 3,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 1,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "[接続] ［ｙの異形］…と…（▲i-, hi-で始まる語の前で y に代わって使われる）．3 examplesespañol e inglésスペイン語と英語．literatura e historia文学と歴史．José e [y] Ignacioホセとイグナシオ．▲hie-や固有名詞の前，疑問文・感嘆文の冒頭では y のまま．2 examplespiedra y hierro石と鉄．¿Y Irene?で，イレーネは．",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 2,
-    "text": "es",
+    "text": "me",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -331,13 +103,13 @@
       "headwords": [
         {
           "index": 0,
-          "term": "er",
-          "reading": "er",
+          "term": "mir",
+          "reading": "mir",
           "sources": [
             {
-              "original_text": "es",
-              "transformed_text": "es",
-              "deinflected_text": "er",
+              "original_text": "me",
+              "transformed_text": "me",
+              "deinflected_text": "mir",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -349,7 +121,7 @@
       ],
       "definitions": [
         {
-          "id": "01977b0f-9016-7800-83f8-27cbc5a32e63",
+          "id": "01977b0f-9018-7e92-bf9e-16c79c0110f9",
           "index": 0,
           "headword_indices": [
             0
@@ -366,7 +138,32 @@
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "〖化〗 erbio エルビウム．",
+              "term_glossary_string": "[男] [女] 〘単複同形〙 〘略〙MédicoInternoResidente インターン．━[男] MIR（インターン）になるための試験．",
+              "term_glossary_text": null,
+              "term_glossary_image": null,
+              "term_glossary_structured_content": null
+            }
+          ]
+        },
+        {
+          "id": "01977b0f-9144-7f72-8aca-f7972c607357",
+          "index": 1,
+          "headword_indices": [
+            0
+          ],
+          "dictionary": "小学館 西和中辞典 第2版",
+          "dictionary_index": 2,
+          "dictionary_alias": "小学館 西和中辞典 第2版",
+          "score": 0,
+          "frequency_order": 0,
+          "sequences": [
+            0
+          ],
+          "is_primary": true,
+          "tags": [],
+          "entries": [
+            {
+              "term_glossary_string": "〔ロシア〕[男] ミール：革命前のロシアの農村共同体．",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -381,7 +178,7 @@
   {
     "start": 0,
     "length": 2,
-    "text": "es",
+    "text": "me",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -393,8 +190,8 @@
           "source": "algorithm",
           "inflection_rules": [
             {
-              "name": "present indicative",
-              "description": "Present indicative form of a verb"
+              "name": "present subjunctive",
+              "description": "Present subjunctive form of a verb"
             }
           ]
         }
@@ -409,13 +206,13 @@
       "headwords": [
         {
           "index": 0,
-          "term": "ir",
-          "reading": "ir",
+          "term": "mar",
+          "reading": "mar",
           "sources": [
             {
-              "original_text": "es",
-              "transformed_text": "es",
-              "deinflected_text": "ir",
+              "original_text": "me",
+              "transformed_text": "me",
+              "deinflected_text": "mar",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -427,7 +224,7 @@
       ],
       "definitions": [
         {
-          "id": "01977b0f-8de5-71b2-9242-6412a6752206",
+          "id": "01977b0f-9139-7af2-8233-d65dfe17bd8b",
           "index": 0,
           "headword_indices": [
             0
@@ -444,57 +241,7 @@
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "〘接頭〙 （r の前に来るときの）in-の異形．",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-8de5-71b2-9242-642ed266ba9b",
-          "index": 1,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 3,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "[66][自] ［[現分] は yendo］1(1)⸨a... / para... / hacia...〈特定の地点・方向〉へ⸩行く，向かう，移動する．7 examples¿A dónde vas?どこへ行くの．Carmen iba hacia la estación.カルメンは駅の方へ向かって行った．Desde el aeropuerto hasta el hotel iremos con un guía local.空港からホテルまでは現地ガイドと一緒に行こう．Susana decidió ir por un atajo para evitar el atasco.スサナは渋滞を避けるために近道を通って行くことにした．ir en coche [avión, bicicleta, taxi, tren]車［飛行機，自転車，タクシー，電車］で行く．ir andando [a pie]歩いて行く．ir de compras [viaje, visita, excursión]買い物［旅行，訪問，遠足］に行く．(2)⸨a...〈特定の場所・施設など〉に⸩ 通う．1 exampleEn aquella época íbamos todavía a la universidad.あのころ僕らはまだ大学に通っていた［大学生だった］．(3)⸨a...〈特定の場所〉に⸩ ⸨a＋不定詞…しに，…するために⸩ 行く．1 exampleTengo que ir al hospital a recoger los resultados del análisis.病院に検査の結果を取りに行かねばならない．(4)⸨por... / a por...…を⸩ 取りに行く，呼びに［迎えに，探しに］行く．2 examplesVe (a) por unos tornillos.ねじを取ってきてくれ．Si no vuelves antes de las cinco, voy a por ti.5時までに帰らなければ迎えに行くからね．2⸨a... / hacia...〈特定の地点・方向〉に⸩ 〈道・区域などが〉至る；向かう，導く；（起点から終点までを）結ぶ，カバーする．2 examplesEste sendero va al refugio.この小道は山小屋へとつながっている．Esta autopista va de Madrid a Valencia.この高速道路はマドリードとバレンシアを結んでいる．3⸨por...〈ある段階〉まで⸩ 〈作業・学業などが〉進んでいる．1 example¿Por dónde vais? ―Vamos por el uso del subjuntivo.君たちどのあたりまで進んでるの．―接続法の使い方を見ているところです．4⸨a...〈ある状態〉に⸩ 向かう．1 exampleSi sigues así, nuestra relación irá a la ruina.君が態度を改めないなら，僕らの関係は破綻(はたん)に向かうだけだ．5⸨＋形容詞・副詞およびその相当語句⸩(1)⸨…の状態に⸩ある；⸨…⸩である．2 examplesÚltimamente va muy guapa.彼女はこのごろとてもきれいだ．¿Qué tal vas? / Cómo vas?調子はどう；元気?(2)…に進む，機能する；進行状況・機能が…である．2 examplesLa reforma va retrasada.改革［改築］の進行は遅れ気味だ．Este ordenador va muy bien.このコンピュータはとてもよく機能している．▲形容詞は主語と性数一致する．(3)〘3人称単数形で〙 ⸨irle（a＋人）〈人〉にとって⸩ （ものごとが）進む．3 examplesNo me va demasiado bien en el trabajo.職場であまりうまくいってないの．¿Cómo te va?調子はどう．順調にいってる?¡Que les vaya muy bien!あなたたちにとって全てうまく行きますように；〘別れのあいさつ〙 ごきげんよう．6〘話〙 ⸨de...…を⸩ 気取る．2 examplesÉl no va de caballero；es que lo es realmente.彼は紳士ぶってるんじゃない，実際に紳士なんだよ．¿De qué vas?おまえは何様のつもりなんだ．7(1)⸨con...…と，…に⸩ 合う，調和する，適当である．1 example¿Crees que este pantalón va con esta camisa?このズボン，このシャツに合うと思う．(2)⸨irle (a...)…に⸩似合う；適する；気に入る．3 examplesA Antonia no le van los uniformes.アントニアには制服は似合わない．A mí no me van los chicos presumidos.私は気取った男の人は苦手なの．Este vino le va muy bien al pescado.このワインは魚料理にとてもよく合う．(3)⸨con...⸩ ⸨…に⸩賛同する，味方する；⸨…を⸩応援する．1 exampleVoy con el equipo italiano.僕はイタリアチームを応援する．8⸨a＋不定詞⸩ 〘未来〙 ⸨…する⸩ところである，つもりである，予定である，はずである．3 examplesIba a llamarle ahora mismo.ちょうどお電話差し上げるところでした．Voy a perder cinco kilos antes del verano.夏までに5キロやせるつもりです．Aurora y Ramón van a casarse el año que viene.アウロラとラモンは来年結婚する予定です．9⸨＋現在分詞⸩ ⸨…⸩しつつある；（だんだん・少しずつ）⸨…⸩する，してくる［いく］．2 examplesPoco a poco fue calmándose.彼［彼女］は少しずつ落ち着きを取り戻していった．Voy acostumbrándome al clima de este país.私はだんだんこの国の気候に慣れてきた．10⸨para...⸩(1)⸨〈年齢〉に⸩ なろうとしている，（じきに）なる．2 examplesMi sobrino va para siete años.甥(おい)はもうすぐ7歳になる．ir para viejo年を取る．(2)⸨〈職業・地位〉を⸩ めざす，めざして当然の条件を備えている．1 exampleSu novio va para abogado.彼女の恋人は弁護士を目指している．11⸨de... a...…と…の間に⸩ 〈差・違い・開きが〉ある．1 example¡Lo que va de ayer a hoy!昔と今では大違いだ．12⸨de... / sobre...⸩ 〈本・記事・番組・会話などが〉⸨…を⸩話題にする，扱う．2 examples¿De qué va ese artículo?それは何についての記事ですか．La película iba sobre la amistad entre los dos sexos.その映画は異性間の友情をテーマにしていた．13⸨por...⸩ 〈発言などが〉⸨…のことを⸩指す．1 example¿Eso va por mí?それは私のことを指しておっしゃっているのですか．14⸨contra... / en contra de...…に⸩ 反する，反対する，敵対する．1 exampleTus actuaciones van contra los principios de la democracia.君の行いは民主主義の原則に反している．15⸨tras... / detrás de... / tras de...…を⸩ 追いかける，しつこく追い回す；熱中する．2 examplesir tras un sueño夢を追いかける．Sé que vas detrás de mi hija.君が私の娘を追い回しているのは知っているんだ．16⸨irle(a＋人)⸩ ⸨en...…に⸩ ⸨〈人〉の⸩ 〈名誉・信用・命などが〉かかっている．2 examplesMe va en ello la vida.そのことに私の命がかかっているんです．En este proyecto nos va el éxito en el mercado europeo.この企画に我々のヨーロッパ市場における成功がかかっている．17(1)〈金額・ものが〉賭(か)けられる．1 exampleVan veinte euros a que apruebas.僕は君の合格に20ユーロ賭ける．▲主に賭ける当人の宣言，または相手が何を賭けるかの質問で使われる．(2)（トランプなどで）ゲームに加わる，勝負する，順番が回ってくる．1 example¿Quién va ahora?誰の番かな．━～・se[再]Paula, ¡date prisa, que nos vamos ya!パウラ，急いで．もう出かけますよ．A eso voy [iba, vamos, íbamos]．そう言おうと思っていたところだ，そのとおりだ．Ahí va [van]...(1)ほら…だよ，ここに…を置くよ．Allá va.(1)〘ものを投げて〙 ほら行くよ，受け取って．a lo que íbamos [iba]先ほどの話に戻りますが．el no va más〘話〙 右に出るものがないもの，最高［最良］のもの．Ésta es el no va más de las planchas de vapor.スチームアイロンではこれに勝るものはない．en lo que va de...〈特定の期間〉に入ってから現時点までにおいては．El precio de la gasolina ha subido un cinco por ciento en lo que va del año.ガソリンの価格は今年に入ってから今までで5パーセント上昇した．ir a loSUYO自分勝手にする，好き勝手なことをする．Estoy harto de que siempre vayas a lo tuyo.君の身勝手な振る舞いにはもう我慢できない．ir a más先に進む；増える；（傾向などが）ますます強まる．ir en [de] broma(1)（発言・行いなどを）冗談でする．Supongo que va en [de] broma.彼［彼女］は冗談のつもりだったんだろう．ir por...〈演奏・勝利・乾杯などが〉…に捧げられる．La siguiente canción va por usted, Antonio.次の歌は，アントニオ，あなたに捧げます．irse abajo〘話〙 崩壊する．ir y...〘話〙 〘強調〙 思いっきり…する．Fui y lo tiré todo a la basura.思いっきり全部ごみ箱に捨ててやった．ir y venir〘話〙 絶え間ない行き来．el ir y venir de los aviones飛行機の往来．no irle ni venirle (a＋人)〘話〙 〈人〉にとってどうでもよい，関わりがない．Eso que me cuentas no me va ni me viene.そんなこと僕にはどうでもいいことだ．no vaya a＋不定詞 / no vaya a ser que＋接続法…するといけないから．Apúntalo en la agenda, no vaya a ser que se te olvide.忘れるといけないから手帳に書きとめておきなさい．¡Qué va!〘話〙 とんでもない，そんなことはない．¿Estás enfadada? ―¡Qué va!君，怒ってるの．―まさか．sin ir más lejos身近［手近］な例では．vamos〘話〙Diego, recoge los juguetes, ¡vamos!ディエゴ，おもちゃを片づけなさい．さあ早く．vamos a＋不定詞さあ…しよう．Bueno, vamos a empezar.さあ，始めましょう．vaya〘話〙¡Vaya! ¿Ya lo sabías?なあんだ，もう知ってたの．¡Vaya por... !…に乾杯！Ya voy. / Voy.〘呼ばれて〙 今行きます．［←〔ラ〕īre; voy, vas, ... の語形 ←〔ラ〕vādere「進む；急いで行く」；fui, fuiste, ... の語形 ←〔ラ〕esse「いる，ある」の完了形（fuī,fuistī, ...）など］",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9017-76a0-87ae-d529944ca757",
-          "index": 2,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 3,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "〖化〗 iridio イリジウム．",
+              "term_glossary_string": "[男] （文学・海事用語では[女]）1海，海洋．10 examplesmar interior内海．mar territorial領海．alta mar沖合い，外洋．pesca de alta mar沖合漁業．mar adentro沖（合い）で．hombre de mar海の男，船乗り．al otro lado del mar海の向こうに，海外に．por mar海路で，船で．nivel del mar海抜．Vivíamos junto al mar.私たちは海のそばに住んでいた．2［主に M-］…海；内海；（大きな）湖．6 examplesMar Mediterráneo地中海．Mar Caribeカリブ海．Mar del Japón日本海．Mar Rojo紅海．Mar Muerto死海．Mar Caspioカスピ海．3大洋（＝océano）．MarPacífico 太平洋．4大波，うねり；〘比喩的〙 動揺．6 examplesgolpe de mar大波，怒涛(どとう)．mar montañosa大荒れの［荒れ狂った］海．mar arbolada（波高6メートル以上の）高波の海，荒波．mar gruesa（波高6メートル以下の）高波の海．mar picada（やや）荒れた海．mar rizada（さざ波ほどに）波立つ海．5（月面などの）海．a mares〘話〙 たくさん，大量に．llover a mares大雨が降る．estar hecho un mar de lágrimas〘話〙 涙にかき暮れる，大泣きする．hablar de la mar夢みたいなことを話す［計画する］；話が山のようにある．hacerse a la mar出帆する，出航する．la mar de...〘話〙la mar de veces何度も．mar de fondo(1)波のうねり，大波．un mar de...たくさんの…，大量の…．un mar de sangre血の海．［←〔ラ〕mare；[関連]marea, marino, marisco. 〔ポルトガル〕mar. 〔仏〕mer. 〔伊〕mare. 〔英〕marine「海の；船舶の」．〔独〕Meer］",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null
@@ -507,9 +254,9 @@
     }
   },
   {
-    "start": 0,
-    "length": 2,
-    "text": "es",
+    "start": 3,
+    "length": 5,
+    "text": "llamo",
     "entry": {
       "entry_type": "term",
       "is_primary": true,
@@ -530,20 +277,20 @@
       "score": 0,
       "frequency_order": 0,
       "dictionary_alias": "小学館 西和中辞典 第2版",
-      "dictionary_index": 4,
+      "dictionary_index": 1,
       "source_term_exact_match_count": 1,
       "match_primary_reading": false,
-      "max_original_text_length": 2,
+      "max_original_text_length": 5,
       "headwords": [
         {
           "index": 0,
-          "term": "ser",
-          "reading": "ser",
+          "term": "llamar",
+          "reading": "llamar",
           "sources": [
             {
-              "original_text": "es",
-              "transformed_text": "es",
-              "deinflected_text": "ser",
+              "original_text": "llamo",
+              "transformed_text": "llamo",
+              "deinflected_text": "llamar",
               "match_type": "exact",
               "match_source": "term",
               "is_primary": true
@@ -555,13 +302,13 @@
       ],
       "definitions": [
         {
-          "id": "01977b0f-8ed7-7c23-a658-53299d9ad0e4",
+          "id": "01977b0f-9131-7e62-8423-500afd6e8754",
           "index": 0,
           "headword_indices": [
             0
           ],
           "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 4,
+          "dictionary_index": 1,
           "dictionary_alias": "小学館 西和中辞典 第2版",
           "score": 0,
           "frequency_order": 0,
@@ -572,160 +319,7 @@
           "tags": [],
           "entries": [
             {
-              "term_glossary_string": "[女] 〘略〙SociedadEspañola deRadiodifusión スペインラジオ放送．",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        }
-      ],
-      "pronunciations": [],
-      "frequencies": []
-    }
-  },
-  {
-    "start": 0,
-    "length": 2,
-    "text": "es",
-    "entry": {
-      "entry_type": "term",
-      "is_primary": true,
-      "text_processor_rule_chain_candidates": [
-        []
-      ],
-      "inflection_rule_chain_candidates": [
-        {
-          "source": "algorithm",
-          "inflection_rules": [
-            {
-              "name": "imperative",
-              "description": "Imperative form of a verb"
-            }
-          ]
-        }
-      ],
-      "score": 0,
-      "frequency_order": 0,
-      "dictionary_alias": "小学館 西和中辞典 第2版",
-      "dictionary_index": 5,
-      "source_term_exact_match_count": 1,
-      "match_primary_reading": false,
-      "max_original_text_length": 2,
-      "headwords": [
-        {
-          "index": 0,
-          "term": "ar",
-          "reading": "ar",
-          "sources": [
-            {
-              "original_text": "es",
-              "transformed_text": "es",
-              "deinflected_text": "ar",
-              "match_type": "exact",
-              "match_source": "term",
-              "is_primary": true
-            }
-          ],
-          "tags": [],
-          "word_classes": []
-        }
-      ],
-      "definitions": [
-        {
-          "id": "01977b0f-8b28-76f3-b95a-162a7c3be7b9",
-          "index": 0,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 5,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "[間投] 〖軍〗 〘命令などで〙 直ちに，さあ．",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9013-76c2-897b-0a94186da476",
-          "index": 1,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 5,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "〘接尾〙1動詞語尾．⇒charlar, ensuciar.2形容詞語尾．⇒familiar, solar.3「場所，生息地」の意を表す男性名詞語尾．⇒pinar, tejar.",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9013-76c2-897b-1afdcfe9c5dd",
-          "index": 2,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 5,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "〘略〙1AltezaReal 殿下．2annoregni〔ラ〕治世第…年に（＝año del reinado）.",
-              "term_glossary_text": null,
-              "term_glossary_image": null,
-              "term_glossary_structured_content": null
-            }
-          ]
-        },
-        {
-          "id": "01977b0f-9014-7850-96eb-bc211c3683c7",
-          "index": 3,
-          "headword_indices": [
-            0
-          ],
-          "dictionary": "小学館 西和中辞典 第2版",
-          "dictionary_index": 5,
-          "dictionary_alias": "小学館 西和中辞典 第2版",
-          "score": 0,
-          "frequency_order": 0,
-          "sequences": [
-            0
-          ],
-          "is_primary": true,
-          "tags": [],
-          "entries": [
-            {
-              "term_glossary_string": "〖化〗 argón アルゴン．",
+              "term_glossary_string": "[他]1呼ぶ，（声や身ぶりで）呼び寄せる；⸨a...…に⸩ 呼び出す．6 examplesllamar un taxiタクシーを呼ぶ．llamar a＋人 por SU nombre〈人〉を名前で呼ぶ．llamar a＋人 con la mano〈人〉を手招きする．llamar a＋人 por señas〈人〉に合図する．Marta nos llamó a voces.マルタが大声で私たちを呼んだ．La sirena nos llamó de nuevo al trabajo.サイレンで私たちは再び仕事に呼び戻された．2…に電話をかける（＝～ por teléfono）．2 examples¿Quiere llamarme mañana a las siete?明日は7時に電話してくれますか．llamar a＋人 a casa [a la oficina]〈人〉の自宅［職場］に電話する．3（用件のために）呼び招く；要請する．5 examplesllamar al médico医者を呼ぶ．llamar a la ambulancia救急車を呼ぶ．llamar a la policía警察を呼ぶ．llamar a los bomberos消防車を呼ぶ．llamar a＋人 a...〈人〉を…の職に呼び招く．4⸨＋名前を表す語句⸩ ⸨…と⸩…を呼ぶ；⸨…と⸩評して言う．2 examplesEn el colegio le llamaban “listillo”.彼は学校で「お利口さん」と呼ばれていた．Llamamos peque al chico.私たちはその少年をおちびちゃんと呼んだ．▲対象物が事物でも a を前置することがある．1 example⇒A estas palabras las llamamos capicúa.私たちはこれらの文を回文と呼んでいる．5〈関心・興味などを〉ひきつける；〈人を〉魅了する．4 examplesllamar la atención a＋人〈人〉の注意を引く．No me llama ir a París.私はパリに行きたいとは思わない．No le llaman los deportes.彼はスポーツに興味がない．Este valle tan pintoresco llama a muchos turistas.このとても美しい渓谷は多くの観光客を魅了する．6〈世論などに〉訴える；〈神に〉祈る．2 examplesllamar al Consejo de Seguridad（国連の）安全保障理事会に提訴する．llamar a Dios神に祈る．7〖軍〗 召集する．━[自]1ノックする，呼び鈴を鳴らす．1 examplepasar sin llamarノックしないで入る．2電話をかける．━～・se[再]¿Cómo te llamas? ―Me llamo Miguel.君の名前は何ですか．―ミゲルです．llamar a＋人 de todo〈人〉の悪口を言う．llamar a la puertaドアをノックする．Cuando preparaba la cena, llamaron a la puerta.夕食の支度をしていると誰かが呼び鈴を鳴らした．llamar a la puerta de＋人〈人〉を訪ねる，〈人〉に助けを求める．lo que se llamaいわゆる．¿Quién llama?〘訪問者・電話の相手に〙 どちら様ですか．［←〔ラ〕clāmāre「叫ぶ」（→clamar）；[関連]clamor, exclamar. 〔英〕(ex)claim,clamor］",
               "term_glossary_text": null,
               "term_glossary_image": null,
               "term_glossary_structured_content": null

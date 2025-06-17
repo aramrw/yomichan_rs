@@ -818,13 +818,13 @@ pub enum NativeDbQueryInfo<K: ToKey + Clone> {
 type CreateQueryFn<Item, KeyVal> =
     dyn Fn(&Item, IndexQueryIdentifier) -> NativeDbQueryInfo<KeyVal> + Sync + Send;
 
-pub struct DictionaryDatabase {
-    db: Database<'static>,
-    db_name: &'static str,
+pub struct DictionaryDatabase<'a> {
+    db: Database<'a>,
+    db_name: &'a str,
 }
 
-impl Deref for DictionaryDatabase {
-    type Target = Database<'static>;
+impl<'a> Deref for DictionaryDatabase<'a> {
+    type Target = Database<'a>;
     fn deref(&self) -> &Self::Target {
         &self.db
     }
@@ -846,7 +846,7 @@ impl From<Box<native_db::db_type::Error>> for Box<DictionaryDatabaseError> {
     }
 }
 
-impl DictionaryDatabase {
+impl DictionaryDatabase<'_> {
     pub fn new(path: impl AsRef<Path>) -> Self {
         Self {
             // if the file does not exist, or is an empty file,
@@ -1634,10 +1634,13 @@ mod ycd {
 }
 
 #[cfg(test)]
-mod init_db {
+mod dbtests {
     use std::fs::remove_dir_all;
 
     use crate::{test_utils, Yomichan};
+
+    #[test]
+    fn test_two_instances() {}
 
     #[test]
     #[ignore]

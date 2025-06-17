@@ -1,3 +1,4 @@
+use crate::backend::Backend;
 use crate::database::dictionary_database::{
     DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMeta, DatabaseMetaFrequency,
     DatabaseMetaMatchType, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
@@ -54,6 +55,49 @@ use std::{fs, io, mem};
 use super::dictionary_database::{DatabaseTag, DatabaseTermMeta, DictionaryDatabase};
 
 //use chrono::{DateTime, Local};
+
+impl Yomichan<'_> {
+    pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
+        &mut self,
+        zip_paths: &[P],
+    ) -> Result<(), ImportError> {
+        self.backend.import_dictionaries_internal(zip_paths);
+        Ok(())
+    }
+}
+
+impl Backend<'_> {
+    pub fn import_dictionaries_internal<P: AsRef<Path> + Send + Sync>(
+        &mut self,
+        zip_paths: &[P],
+    ) -> Result<(), ImportError> {
+        let settings = self.options.get_options_mut();
+        let db = &self.db;
+        ImportZipError::check_zip_paths(zip_paths)?;
+
+        let options: Vec<DictionaryOptions> = zip_paths
+            .par_iter()
+            .map(|path| import_dictionary(path, settings, db))
+            .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
+
+        let mut options: IndexMap<String, DictionaryOptions> = options
+            .into_iter()
+            .map(|opt| (opt.name.clone(), opt))
+            .collect();
+
+        let current_profile = settings.get_current_profile_mut();
+        let mut main_dictionary = &mut current_profile.options.general.main_dictionary;
+        if main_dictionary.is_empty() {
+            *main_dictionary = options[0].name.clone();
+        }
+        current_profile.options.dictionaries.extend(options);
+        let rwtx = db.rw_transaction()?;
+        db_rwriter(&rwtx, vec![settings.to_owned()]);
+        rwtx.commit()?;
+
+        Ok(())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ImportSteps {
@@ -417,34 +461,6 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
 
     temp_dir.close()?;
     Ok(temp_dir_path)
-}
-
-impl Yomichan {
-    pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
-        &mut self,
-        zip_paths: &[P],
-    ) -> Result<(), ImportError> {
-        let settings = self.options.get_options_mut();
-        let db = &self.backend.translator.db;
-        ImportZipError::check_zip_paths(zip_paths)?;
-
-        let mut options: Vec<DictionaryOptions> = zip_paths
-            .par_iter()
-            .map(|path| import_dictionary(path, settings, db))
-            .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
-
-        let current_profile = settings.get_current_profile_mut();
-        let mut main_dictionary = &mut current_profile.options.general.main_dictionary;
-        if main_dictionary.is_empty() {
-            *main_dictionary = options[0].name.clone();
-        }
-        current_profile.options.dictionaries.append(&mut options);
-        let rwtx = db.rw_transaction()?;
-        db_rwriter(&rwtx, vec![settings.clone()]);
-        rwtx.commit()?;
-
-        Ok(())
-    }
 }
 
 pub fn import_dictionary<P: AsRef<Path>>(

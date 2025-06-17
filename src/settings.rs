@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use native_db::native_db;
 use native_db::ToKey;
 use native_model::native_model;
@@ -115,7 +116,7 @@ pub struct ProfileOptions {
     pub audio: AudioOptions,
     pub scanning: ScanningOptions,
     pub translation: TranslationOptions,
-    pub dictionaries: Vec<DictionaryOptions>,
+    pub dictionaries: IndexMap<String, DictionaryOptions>,
     pub parsing: ParsingOptions,
     pub anki: AnkiOptions,
     pub sentence_parsing: SentenceParsingOptions,
@@ -305,7 +306,7 @@ pub struct TranslationTextReplacementGroup {
     pub replacement: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DictionaryOptions {
     /// The title of the dictionary.
     pub name: String,
@@ -678,7 +679,7 @@ pub enum TranslationCollapseEmphaticSequences {
 }
 
 /// Customize dictionary collapsing.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum DictionaryDefinitionsCollapsible {
     /// Definitions will not be collapsed.
     NotCollapsible,

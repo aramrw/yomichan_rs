@@ -1,4 +1,5 @@
 use crate::{
+    backend::FindTermsDetails,
     collect_variant_data_ref,
     database::{
         self,
@@ -19,11 +20,15 @@ use crate::{
     },
     freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
-    settings::{SearchResolution, SortFrequencyDictionaryOrder},
+    settings::{
+        DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
+        SortFrequencyDictionaryOrder, TranslationOptions, TranslationTextReplacementGroup,
+        TranslationTextReplacementOptions,
+    },
     to_variant,
     translation::{
-        FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsOptions,
-        FindTermsSortOrder,
+        FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
+        FindTermsOptions, FindTermsSortOrder,
     },
     translation_internal::{
         DatabaseDeinflection, DictionaryEntryGroup, FindInternalTermsResult,
@@ -60,18 +65,27 @@ use native_db::*;
 use native_model::{native_model, Model};
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::RefCell, cmp::Ordering, fmt::Display, hash::Hash, iter, mem, ops::Index, path::Path,
-    rc::Rc, str::FromStr, sync::LazyLock,
+    cell::RefCell,
+    cmp::Ordering,
+    collections::VecDeque,
+    fmt::Display,
+    hash::Hash,
+    iter, mem,
+    ops::Index,
+    path::Path,
+    rc::Rc,
+    str::FromStr,
+    sync::{Arc, LazyLock},
 };
 
 /// class which finds term and kanji dictionary entries for text.
-pub struct Translator {
-    pub db: DictionaryDatabase,
+pub struct Translator<'a> {
+    pub db: Arc<DictionaryDatabase<'a>>,
     pub mlt: MultiLanguageTransformer,
     pub tag_cache: IndexMap<String, TagCache>,
     /// Invariant Locale
     /// Default: "en-US"
-    pub string_comparer: CollatorBorrowed<'static>,
+    pub string_comparer: CollatorBorrowed<'a>,
     pub number_regex: &'static Regex,
     pub text_processors: TextProcessorMap,
     pub reading_normalizers: ReadingNormalizerMap,
@@ -80,15 +94,15 @@ pub struct Translator {
 static TRANSLATOR_NUMBER_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?").unwrap());
 
-impl Translator {
-    pub fn new(path: impl AsRef<Path>) -> Self {
-        let mut translator = Self::init(path);
+impl<'a> Translator<'a> {
+    pub fn new(db: Arc<DictionaryDatabase<'a>>) -> Self {
+        let mut translator = Self::init(db);
         translator.prepare();
         translator
     }
-    fn init(path: impl AsRef<Path>) -> Self {
+    fn init(db: Arc<DictionaryDatabase<'a>>) -> Self {
         Self {
-            db: DictionaryDatabase::new(path),
+            db,
             mlt: MultiLanguageTransformer::default(),
             tag_cache: IndexMap::new(),
             string_comparer: Collator::try_new(locale!("en-US").into(), CollatorOptions::default())
@@ -283,6 +297,148 @@ impl Translator {
             dictionary_entries: with_user_facing_inflections,
             original_text_length,
         }
+    }
+
+    /// Creates an options object for use with `Translator.findTerms`.
+    pub fn _get_translator_find_terms_options(
+        mode: FindTermsMode,
+        details: &FindTermsDetails,
+        opts: &ProfileOptions,
+    ) -> FindTermsOptions {
+        let FindTermsDetails {
+            mut match_type,
+            mut deinflect,
+            mut primary_reading,
+        } = details.clone();
+        if match_type.is_none() {
+            match_type = Some(FindTermsMatchType::Exact);
+        }
+        if deinflect.is_none() {
+            deinflect = Some(true);
+        }
+        if primary_reading.is_none() {
+            primary_reading = Some("".to_string());
+        }
+
+        let mut enabled_dictionary_map = Self::_get_translator_enabled_dictionary_map(opts);
+        let ProfileOptions {
+            general:
+                GeneralOptions {
+                    main_dictionary,
+                    sort_frequency_dictionary,
+                    sort_frequency_dictionary_order,
+                    language,
+                    ..
+                },
+            scanning: ScanningOptions { alphanumeric, .. },
+            translation:
+                TranslationOptions {
+                    text_replacements: text_replacements_opts,
+                    search_resolution,
+                    ..
+                },
+            ..
+        } = opts;
+
+        let text_replacements = Self::_get_translator_text_replacements(text_replacements_opts);
+        let mut exclude_dictionary_definitions: Option<IndexSet<String>> = None;
+        if mode == FindTermsMode::Merge && !enabled_dictionary_map.contains_key(main_dictionary) {
+            let new = FindTermDictionary {
+                index: enabled_dictionary_map.len(),
+                alias: main_dictionary.to_string(),
+                allow_secondary_searches: false,
+                parts_of_speech_filter: true,
+                use_deinflections: true,
+            };
+            enabled_dictionary_map.insert(main_dictionary.clone(), new);
+            exclude_dictionary_definitions = Some(IndexSet::new());
+            // safe
+            exclude_dictionary_definitions
+                .as_mut()
+                .unwrap()
+                .insert(main_dictionary.clone());
+        }
+        FindTermsOptions {
+            match_type: match_type.unwrap(),
+            deinflect: deinflect.unwrap(),
+            primary_reading: primary_reading.unwrap(),
+            main_dictionary: main_dictionary.to_string(),
+            sort_frequency_dictionary: sort_frequency_dictionary.clone(),
+            sort_frequency_dictionary_order: *sort_frequency_dictionary_order,
+            remove_non_japanese_characters: !*alphanumeric,
+            text_replacements: text_replacements.clone().into(),
+            enabled_dictionary_map,
+            exclude_dictionary_definitions: exclude_dictionary_definitions.clone(),
+            search_resolution: *search_resolution,
+            language: language.to_string(),
+        }
+    }
+
+    fn _get_translator_enabled_dictionary_map(opts: &ProfileOptions) -> TermEnabledDictionaryMap {
+        let mut enabled_dictionary_map: TermEnabledDictionaryMap = IndexMap::new();
+        for (key, dictionary) in &opts.dictionaries {
+            if !dictionary.enabled {
+                continue;
+            }
+            let DictionaryOptions {
+                name,
+                alias,
+                allow_secondary_searches,
+                definitions_collapsible,
+                parts_of_speech_filter,
+                use_deinflections,
+                styles,
+                ..
+            } = dictionary;
+            let new = FindTermDictionary {
+                index: enabled_dictionary_map.len(),
+                alias: alias.clone(),
+                allow_secondary_searches: *allow_secondary_searches,
+                parts_of_speech_filter: *parts_of_speech_filter,
+                use_deinflections: *use_deinflections,
+            };
+            enabled_dictionary_map.insert(name.clone(), new);
+        }
+        enabled_dictionary_map
+    }
+
+    fn _get_translator_text_replacements(
+        text_replacements_options: &TranslationTextReplacementOptions,
+    ) -> VecDeque<Option<Vec<FindTermsTextReplacement>>> {
+        let mut text_replacements = VecDeque::new();
+        for group in &text_replacements_options.groups {
+            let mut text_replacement_entries: Vec<FindTermsTextReplacement> = vec![];
+            for TranslationTextReplacementGroup {
+                pattern,
+                ignore_case,
+                replacement,
+                ..
+            } in group
+            {
+                let re_pattern = if *ignore_case {
+                    format!("(?i){pattern}")
+                } else {
+                    pattern.to_string()
+                };
+                let Ok(pattern_regex) = Regex::new(&re_pattern) else {
+                    // invalid pattern
+                    continue;
+                };
+                let new = FindTermsTextReplacement {
+                    pattern: pattern_regex,
+                    replacement: replacement.to_string(),
+                    is_global: true,
+                };
+                text_replacement_entries.push(new);
+            }
+            if !text_replacement_entries.is_empty() {
+                text_replacements.push_back(Some(text_replacement_entries));
+            }
+        }
+        if !text_replacements.is_empty() || text_replacements_options.search_original {
+            text_replacements.push_front(None);
+        }
+        text_replacements
     }
 
     fn _add_user_facing_inflections(
@@ -730,7 +886,7 @@ impl Translator {
     }
 
     fn _group_tags_mut(&self, tag_targets: &mut [TagExpansionTarget]) {
-        let string_comparer: &CollatorBorrowed<'static> = &self.string_comparer;
+        let string_comparer: &CollatorBorrowed<'a> = &self.string_comparer;
         for tag_expansion_target in tag_targets.iter_mut() {
             // 1. Skip if tags length is 1 or less
             if tag_expansion_target.tags.len() <= 1 {
@@ -1620,7 +1776,7 @@ impl Translator {
         });
         original_len != tags.len()
     }
-    fn _has_any<'a, T: PartialEq + Eq + Hash + 'a, U: std::iter::Iterator<Item = &'a T>>(
+    fn _has_any<'b, T: PartialEq + Eq + Hash + 'b, U: std::iter::Iterator<Item = &'b T>>(
         set: &IndexSet<T>,
         mut values: U,
     ) -> bool {
