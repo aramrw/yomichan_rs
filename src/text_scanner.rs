@@ -10,7 +10,7 @@ use crate::{
 };
 
 impl<'a> Yomichan<'a> {
-    fn search(&mut self, text: &str) -> Option<TermSearchResults> {
+    pub fn search(&mut self, text: &str) -> Option<TermSearchResults> {
         let opts = &self.backend.options.get_current_profile().options;
         self.backend.text_scanner._search_internal(text, 0, opts)
     }
