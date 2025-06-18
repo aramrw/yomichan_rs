@@ -91,7 +91,7 @@ impl<'a> Yomichan<'a> {
 
     /// Deletes dictionaries from the database and options by name.
     /// This function automatically saves, so no need to call `update_options`.
-    pub fn delete_dictionaries(
+    pub fn delete_dictionaries_by_names(
         &mut self,
         names: &[impl AsRef<str>],
     ) -> Result<(), Box<native_db::db_type::Error>> {
@@ -100,6 +100,20 @@ impl<'a> Yomichan<'a> {
         for name in names {
             let name = name.as_ref();
             dictionaries.swap_remove(name);
+        }
+        self.update_options()?;
+
+        Ok(())
+    }
+
+    pub fn delete_dictionaries_by_indexes(
+        &mut self,
+        indexes: &[usize],
+    ) -> Result<(), Box<native_db::db_type::Error>> {
+        let current_profile = self.backend.options.get_current_profile_mut();
+        let dictionaries = &mut current_profile.options.dictionaries;
+        for i in indexes {
+            dictionaries.swap_remove_index(*i);
         }
         self.update_options()?;
 
