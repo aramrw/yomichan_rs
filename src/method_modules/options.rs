@@ -1,17 +1,15 @@
 use module_macros::ref_variant;
-
-use super::create_method_module_mut;
 use crate::{
     settings::{self, Profile},
     Yomichan,
 };
 
 #[ref_variant]
-impl<'a> ModOptionsMut<'a> {
-    fn get_current_profile_mut(&mut self) -> &mut Profile {
+impl<'b> ModOptionsMut<'b> {
+    pub fn get_current_profile_mut(&mut self) -> &mut Profile {
         self.ycd.backend.options.get_current_profile_mut()
     }
-    fn get_all_profiles_mut(&mut self) -> &mut Vec<Profile> {
+    pub fn get_all_profiles_mut(&mut self) -> &mut Vec<Profile> {
         &mut self.ycd.backend.options.profiles
     }
 }

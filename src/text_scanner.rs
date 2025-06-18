@@ -26,6 +26,12 @@ pub struct Sentence {
 }
 
 /// The final, structured result of a term search.
+///
+/// # Parsing Examples
+/// ```
+/// todo!()
+/// ```
+/// See [TermDictionaryEntry] for all fields
 #[derive(Debug, Clone)]
 pub struct TermSearchResults {
     pub dictionary_entries: Vec<TermDictionaryEntry>,
@@ -61,7 +67,7 @@ impl<'a> TextScanner<'a> {
     /// Creates a new TextScanner with default or provided configuration.
     pub fn new(db: Arc<DictionaryDatabase<'a>>) -> Self {
         TextScanner {
-            translator: Translator::new(db),
+            translator: Translator::new(db.clone()),
             scan_len: 20,
             sentence_scan_extent: 50,
             sentence_terminate_at_newlines: true,
@@ -293,19 +299,19 @@ impl<'a> TextScanner<'a> {
 
 #[cfg(test)]
 mod textscanner {
-    use std::sync::{LazyLock, RwLock};
-
     use crate::{test_utils::TEST_PATHS, Yomichan};
+    use std::sync::{LazyLock, RwLock};
 
     static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
         let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
-        // no need to set language, you do it in the test functions
+        ycd.set_language("es");
         RwLock::new(ycd)
     });
 
     #[test]
     fn search() {
-        let ycd = YCD.read().unwrap();
-        //dbg!(res);
+        let mut ycd = YCD.write().unwrap();
+        let res = ycd.search("espanol");
+        dbg!(&res);
     }
 }

@@ -6,6 +6,7 @@ mod dictionary_data;
 mod environment;
 mod errors;
 mod freq;
+mod method_modules;
 mod regex_util;
 pub mod settings;
 mod structured_content;
@@ -14,7 +15,6 @@ mod text_scanner;
 mod translation;
 mod translation_internal;
 mod translator;
-mod method_modules;
 
 use backend::Backend;
 use database::dictionary_database::DictionaryDatabase;
@@ -25,6 +25,7 @@ use settings::Profile;
 
 use native_db::*;
 use native_model::{native_model, Model};
+use text_scanner::TermSearchResults;
 use text_scanner::TextScanner;
 use transaction::RTransaction;
 use translation::FindTermsOptions;
@@ -45,12 +46,48 @@ pub use crate::database::dictionary_importer;
 pub use crate::dictionary::{TermDefinition, TermFrequency, TermPronunciation};
 
 /// A Yomichan Dictionary instance.
+///
+/// # Examples
+/// ```
+/// use yomichan_rs::Yomichan;
+///
+/// // must initialize as mut
+/// let mut ycd = Yomichan::new("~/desktop/db.ycd");
+/// // import dictionaries
+/// ycd.import_dictionaries(&["~/desktop/dicts/daijirin"])?;
+/// // set a language via it's iso
+/// ycd.set_language("ja");
+/// // optionally save the language to the db
+/// ycd.update_options()?;
+/// let res: Option<TermSearchResults> = ycd.search("まだ分かってない")
+/// ```
+/// For more info on results, reference the [TermSearchResults] docs.
+///
+/// # Best Practices
+///
+/// Unless you have a specific use case, it's best to initialize
+/// the Yomichan struct once as an _interior mutable_ static variable:
+/// ```
+/// // Yomichan impls Send + Sync, so you can useRwLock over a Mutex.
+/// static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
+///     let mut ycd = Yomichan::new("~/desktop/db.ycd").unwrap();
+///     ycd.set_language("es");
+///     ycd.update_options()?;
+///     RwLock::new(ycd)
+/// });
+///
+// Example should be updated once we can use search without writing
+/// fn main() {
+///     let mut ycd = YCD.write().unwrap();
+///     let res = ycd.search("espanol es bueno");
+/// }
+/// ```
 pub struct Yomichan<'a> {
     db: Arc<DictionaryDatabase<'a>>,
     backend: Backend<'a>,
 }
 
-impl Yomichan<'_> {
+impl<'a> Yomichan<'a> {
     /// Initializes _(or if one already exists, opens)_ a Yomichan Dictionary Database.
     ///
     /// # Arguments
@@ -60,8 +97,18 @@ impl Yomichan<'_> {
     /// ```
     /// use yomichan_rs::Yomichan;
     ///
-    /// // creates a database at `C:/Users/1/Desktop/yomichan/data.db`
+    /// // creates a database at `~/desktop/yomichan_rs/data.db`
+    /// // desktop is not an empty folder, so it creates a sub folder
     /// let mut ycd = Yomichan::new("c:/users/one/desktop");
+    /// ```
+    /// ```
+    /// // `~/dev/empty_dir/data.db`
+    /// // "empty_dir" is an empty folder, so it doesn't create a sub folder
+    /// let mut ycd = Yomichan::new("c:/users/one/dev/empty_dir");
+    /// ```
+    /// ```
+    /// // `~/desktop/yomichan_rs/data.db` was created above, so it makes a connection
+    /// let mut ycd = Yomichan::new("c:/users/one/desktop/yomichan/data.db");
     /// ```
     pub fn new(path: impl AsRef<Path>) -> Result<Self, InitError> {
         let path = path.as_ref().to_path_buf();
@@ -128,7 +175,7 @@ fn fmt_dbpath(p: PathBuf) -> Result<PathBuf, InitError> {
 #[error("could not create yomichan_rs dictionary database:")]
 pub enum InitError {
     #[error(
-        "\ninvalid path: {p} .. help: 
+        "\ninvalid path: {p} | help: 
   1. \"~/.home/db.ycd\" - opens a ycd instance
   2. \"~/.home/test\"   - creates a new (blank) .ycd file"
     )]

@@ -1,11 +1,10 @@
-
 use std::{
     path::PathBuf,
-    sync::{Arc, LazyLock},
+    sync::{Arc, LazyLock, RwLock},
 };
 use tempfile::{tempdir_in, TempDir};
 
-use crate::database::dictionary_database::DictionaryDatabase;
+use crate::{database::dictionary_database::DictionaryDatabase, Yomichan};
 
 pub(crate) struct TestPaths {
     pub tests_dir: PathBuf,
@@ -17,6 +16,12 @@ pub(crate) static TEST_PATHS: LazyLock<TestPaths> = LazyLock::new(|| TestPaths {
     tests_dir: PathBuf::from("./tests"),
     tests_yomichan_db_path: PathBuf::from("./tests").join("yomichan_rs").join("db.ycd"),
     test_dicts_dir: PathBuf::from("tests").join("test_dicts"),
+});
+
+pub static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
+    let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
+    ycd.set_language("es");
+    RwLock::new(ycd)
 });
 
 pub(crate) static SHARED_DB_INSTANCE: LazyLock<DictionaryDatabase> = LazyLock::new(|| {

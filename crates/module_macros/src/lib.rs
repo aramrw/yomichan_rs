@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    Block, Expr, GenericArgument, Ident, ImplItem, ImplItemFn, ItemImpl, Lifetime, Pat,
-    PathArguments, Receiver, ReturnType, Type, parse_macro_input,
+    Block, Expr, GenericArgument, GenericParam, Ident, ImplItem, ImplItemFn, ItemImpl, Lifetime,
+    Pat, PathArguments, Receiver, ReturnType, Type, parse_macro_input,
     visit::Visit,
     visit_mut::{self, VisitMut},
 };
@@ -33,6 +33,19 @@ fn is_simple_ref_to_owned(ret_type: &ReturnType) -> bool {
     false
 }
 
+/// A visitor that renames all instances of a specific lifetime.
+struct LifetimeRenamer<'s> {
+    from: &'s Ident,
+    to: &'s Lifetime,
+}
+impl VisitMut for LifetimeRenamer<'_> {
+    fn visit_lifetime_mut(&mut self, i: &mut Lifetime) {
+        if i.ident == *self.from {
+            *i = self.to.clone();
+        }
+        visit_mut::visit_lifetime_mut(self, i);
+    }
+}
 /// A visitor to detect if a `Type` contains any explicit lifetimes.
 struct LifetimeVisitor {
     found: bool,
@@ -94,146 +107,83 @@ fn get_owned_return_type(ret_type: &ReturnType) -> ReturnType {
     ret_type.clone()
 }
 
-// #[proc_macro_attribute]
-// pub fn ref_variant(_attr: TokenStream, item: TokenStream) -> TokenStream {
-//     let input_impl = parse_macro_input!(item as ItemImpl);
-//
-//     // --- 1. Derive All Names from the Mut Struct ---
-//     let mut_struct_ident = if let Type::Path(type_path) = &*input_impl.self_ty {
-//         type_path.path.segments.first().unwrap().ident.clone()
-//     } else {
-//         panic!("`ref_variant` must be on a struct impl.");
-//     };
-//
-//     let base_name = mut_struct_ident
-//         .to_string()
-//         .strip_suffix("Mut")
-//         .unwrap_or_else(|| panic!("Struct name for `ref_variant` must end in 'Mut'."))
-//         .to_string();
-//
-//     let ref_struct_ident = Ident::new(&format!("{}Ref", base_name), mut_struct_ident.span());
-//
-//     // Convert base name to snake_case for the method names
-//     let method_base_name_str = to_snake_case(&base_name);
-//     let ref_accessor_ident = Ident::new(&method_base_name_str, mut_struct_ident.span());
-//     let mut_accessor_ident = Ident::new(
-//         &format!("{}_mut", method_base_name_str),
-//         mut_struct_ident.span(),
-//     );
-//
-//     let yomichan_ident = Ident::new("Yomichan", mut_struct_ident.span());
-//
-//     // --- 2. Transform Methods (Unchanged) ---
-//     let mut transformed_methods = Vec::new();
-//     // ... (rest of the transformation logic is the same)
-//     for item in &input_impl.items {
-//         if let ImplItem::Fn(method) = item {
-//             let should_skip = method
-//                 .attrs
-//                 .iter()
-//                 .any(|attr| attr.path().is_ident("skip_ref"));
-//             if !should_skip {
-//                 transformed_methods.push(transform_method_to_ref(method));
-//             }
-//         }
-//     }
-//
-//     // --- 3. Generate All Boilerplate Code ---
-//     let (impl_generics, _ty_generics, where_clause) = input_impl.generics.split_for_impl();
-//     let generated_code = quote! {
-//         // Part A: The mutable struct (previously from the declarative macro)
-//         pub struct #mut_struct_ident #impl_generics #where_clause {
-//             pub ycd: &'a mut #yomichan_ident #impl_generics,
-//         }
-//
-//         // Part B: The immutable struct
-//         pub struct #ref_struct_ident #impl_generics #where_clause {
-//             ycd: &'a #yomichan_ident #impl_generics,
-//         }
-//
-//         // Part C: Both accessor methods on Yomichan
-//         impl #impl_generics #yomichan_ident #impl_generics #where_clause {
-//             /// Accessor for the immutable variant.
-//             pub fn #ref_accessor_ident(&'a self) -> #ref_struct_ident #impl_generics {
-//                 #ref_struct_ident { ycd: self }
-//             }
-//
-//             /// Accessor for the mutable variant.
-//             pub fn #mut_accessor_ident(&'a mut self) -> #mut_struct_ident #impl_generics {
-//                 #mut_struct_ident { ycd: self }
-//             }
-//         }
-//
-//         // Part D: The implementation for the immutable struct
-//         impl #impl_generics #ref_struct_ident #impl_generics #where_clause {
-//             #( #transformed_methods )*
-//         }
-//     };
-//
-//     // The final output is the user's manual `impl ...Mut` block AND all the code we just generated.
-//     let output = quote! {
-//         #input_impl
-//         #generated_code
-//     };
-//
-//     output.into()
-// }
-
 #[proc_macro_attribute]
 pub fn ref_variant(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_impl = parse_macro_input!(item as ItemImpl);
 
-    // --- 1. Derive All Names ---
-    let mut_struct_ident = if let Type::Path(type_path) = &*input_impl.self_ty {
-        type_path.path.segments.first().unwrap().ident.clone()
+    // --- 1. Derive Names & Parse User's Generics ---
+    let mut_struct_ident_template = if let Type::Path(tp) = &*input_impl.self_ty {
+        tp.path.segments.first().unwrap().ident.clone()
     } else {
         panic!("`ref_variant` must be on a struct impl.");
     };
-    let base_name = mut_struct_ident
+    let base_name = mut_struct_ident_template
         .to_string()
         .strip_suffix("Mut")
-        .unwrap_or_else(|| panic!("Struct name for `ref_variant` must end in 'Mut'."))
+        .unwrap_or_else(|| panic!("Struct name must end in 'Mut'."))
         .to_string();
-    let ref_struct_ident = Ident::new(&format!("{}Ref", base_name), mut_struct_ident.span());
+    let mut_struct_ident = Ident::new(
+        &format!("{}Mut", base_name),
+        mut_struct_ident_template.span(),
+    );
+    let ref_struct_ident = Ident::new(
+        &format!("{}Ref", base_name),
+        mut_struct_ident_template.span(),
+    );
     let method_base_name_str = to_snake_case(&base_name);
-    let ref_accessor_ident = Ident::new(&method_base_name_str, mut_struct_ident.span());
+    let ref_accessor_ident = Ident::new(&method_base_name_str, mut_struct_ident_template.span());
     let mut_accessor_ident = Ident::new(
         &format!("{}_mut", method_base_name_str),
-        mut_struct_ident.span(),
+        mut_struct_ident_template.span(),
     );
-    let yomichan_ident = Ident::new("Yomichan", mut_struct_ident.span());
+    let yomichan_ident = Ident::new("Yomichan", mut_struct_ident_template.span());
 
-    // --- 2. Generate Ref and Owned Methods ---
-    let mut ref_impl_items: Vec<ImplItem> = Vec::new();
+    // --- 2. Extract Methods and Create Variants ---
+    let mut mut_methods: Vec<ImplItemFn> = Vec::new();
+    let mut ref_methods: Vec<ImplItemFn> = Vec::new();
+    let mut owned_methods: Vec<ImplItemFn> = Vec::new();
+
+    // Find the lifetime used in the user's template impl, e.g., the 'b in impl<'b> ...
+    let user_lifetime_ident = input_impl
+        .generics
+        .params
+        .iter()
+        .find_map(|p| {
+            if let GenericParam::Lifetime(l) = p {
+                Some(&l.lifetime.ident)
+            } else {
+                None
+            }
+        })
+        .expect("Template impl must have a lifetime parameter.");
 
     for item in &input_impl.items {
         if let ImplItem::Fn(method) = item {
-            if method
-                .attrs
-                .iter()
-                .any(|attr| attr.path().is_ident("skip_ref"))
-            {
+            // A. RENAME the method's lifetimes to match the generated `'a` borrow lifetime.
+            let mut renamed_method = method.clone();
+            let mut renamer = LifetimeRenamer {
+                from: user_lifetime_ident,
+                to: &syn::parse_quote!('a),
+            };
+            renamer.visit_impl_item_fn_mut(&mut renamed_method);
+            mut_methods.push(renamed_method.clone());
+
+            // B. Create the REF variant from the renamed method.
+            if method.attrs.iter().any(|a| a.path().is_ident("skip_ref")) {
                 continue;
             }
+            let ref_method = transform_method_to_ref(&renamed_method);
 
-            let ref_method = transform_method_to_ref(method);
-            let should_skip_owned = method
-                .attrs
-                .iter()
-                .any(|attr| attr.path().is_ident("skip_owned"));
-
-            if !should_skip_owned && is_simple_ref_to_owned(&ref_method.sig.output) {
-                // --- This is the new, robust method construction ---
+            // C. Create the OWNED variant from the ref method.
+            if !method.attrs.iter().any(|a| a.path().is_ident("skip_owned"))
+                && is_simple_ref_to_owned(&ref_method.sig.output)
+            {
                 let mut owned_method = ref_method.clone();
-
-                // 1. Modify the signature
                 owned_method.sig.ident = Ident::new(
                     &format!("{}_owned", ref_method.sig.ident),
                     ref_method.sig.ident.span(),
                 );
                 owned_method.sig.output = get_owned_return_type(&ref_method.sig.output);
-
-                // 2. Build the new body: `self.ref_method_name(args...).clone()`
                 let ref_method_name = &ref_method.sig.ident;
                 let ref_method_args = ref_method.sig.inputs.iter().filter_map(|arg| match arg {
                     syn::FnArg::Typed(pt) => match &*pt.pat {
@@ -242,7 +192,6 @@ pub fn ref_variant(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     },
                     _ => None,
                 });
-
                 let body_suffix = match &ref_method.sig.output {
                     ReturnType::Type(_, ty) => match &**ty {
                         Type::Path(p) => {
@@ -256,37 +205,46 @@ pub fn ref_variant(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     },
                     _ => quote! { .clone() },
                 };
-
                 let body_tokens =
                     quote! { { self.#ref_method_name(#(#ref_method_args),*)#body_suffix } };
                 owned_method.block = syn::parse2::<Block>(body_tokens)
                     .expect("Internal macro error: Failed to parse generated block.");
-
-                ref_impl_items.push(ImplItem::Fn(owned_method));
+                owned_methods.push(owned_method);
             }
-
-            ref_impl_items.push(ImplItem::Fn(ref_method));
+            ref_methods.push(ref_method);
         }
     }
 
-    // --- 3. Generate All Boilerplate ---
-    let (impl_generics, _ty_generics, where_clause) = input_impl.generics.split_for_impl();
-    let generated_code = quote! {
-        pub struct #mut_struct_ident #impl_generics #where_clause { pub ycd: &'a mut #yomichan_ident #impl_generics, }
-        pub struct #ref_struct_ident #impl_generics #where_clause { ycd: &'a #yomichan_ident #impl_generics, }
-        impl #impl_generics #yomichan_ident #impl_generics #where_clause {
-            pub fn #ref_accessor_ident(&'a self) -> #ref_struct_ident #impl_generics { #ref_struct_ident { ycd: self } }
-            pub fn #mut_accessor_ident(&'a mut self) -> #mut_struct_ident #impl_generics { #mut_struct_ident { ycd: self } }
-        }
-        impl #impl_generics #ref_struct_ident #impl_generics #where_clause {
-            #( #ref_impl_items )*
-        }
-    };
-
-    // --- 4. Final Output ---
+    // --- 3. Generate All Code ---
     let output = quote! {
-        #input_impl
-        #generated_code
+        // Part A: Two-Lifetime Struct Definitions
+        pub struct #mut_struct_ident<'a, 'data> where 'data: 'a {
+            pub ycd: &'a mut #yomichan_ident<'data>,
+        }
+        pub struct #ref_struct_ident<'a, 'data> where 'data: 'a {
+            ycd: &'a #yomichan_ident<'data>,
+        }
+
+        // Part B: Accessors on Yomichan
+        impl<'data> #yomichan_ident<'data> {
+            pub fn #ref_accessor_ident<'a>(&'a self) -> #ref_struct_ident<'a, 'data> {
+                #ref_struct_ident { ycd: self }
+            }
+            pub fn #mut_accessor_ident<'a>(&'a mut self) -> #mut_struct_ident<'a, 'data> {
+                #mut_struct_ident { ycd: self }
+            }
+        }
+
+        // Part C: The implementation for the MUTABLE struct
+        impl<'a, 'data> #mut_struct_ident<'a, 'data> where 'data: 'a {
+            #( #mut_methods )*
+        }
+
+        // Part D: The implementation for the REFERENCE struct
+        impl<'a, 'data> #ref_struct_ident<'a, 'data> where 'data: 'a {
+            #( #ref_methods )*
+            #( #owned_methods )*
+        }
     };
     output.into()
 }

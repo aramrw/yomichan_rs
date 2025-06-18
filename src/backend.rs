@@ -64,35 +64,29 @@ impl<'a> Backend<'a> {
         &self,
         rwtx: Option<RwTransaction>,
     ) -> Result<(), Box<native_db::db_type::Error>> {
-        let rwtx = match rwtx {
-            Some(rwtx) => Ok(rwtx),
-            None => self.db.rw_transaction(),
-        }?;
-        rwtx.insert(self.options.clone())?;
+        let rwtx = rwtx.unwrap_or(self.db.rw_transaction()?);
+        rwtx.upsert(self.options.clone())?;
+        rwtx.commit()?;
         Ok(())
     }
 }
 
-impl Yomichan<'_> {
+impl<'a> Yomichan<'a> {
+    // The user facing api to update their options.
+    /// Saves global options for all profiles to the database;
+    /// Meant to be called after you mutate a profile (ie. via [Self::mod_options_mut().get_current_profile_mut])
+    pub fn update_options(&self) -> Result<(), Box<native_db::db_type::Error>> {
+        self.backend._update_options_internal(None);
+        Ok(())
+    }
+
     /// Sets the current profile's main language.
     ///
     /// Only updates the language in Yomichan's memory (ie. does not persist);
     /// To save the set language to the db, call [Self::update_options] after.
     pub fn set_language(&mut self, language_iso: &str) {
-        self.backend
-            .options
-            .get_current_profile_mut()
-            .options
-            .general
-            .language = language_iso.to_string();
-    }
-
-    // The user facing api to update their options.
-    /// Saves global options for all profiles to the database;
-    /// Meant to be called after you mutate a profile (ie. via [Self::get_current_profile_mut])
-    pub fn update_options(&self) -> Result<(), Box<native_db::db_type::Error>> {
-        self.backend._update_options_internal(None);
-        Ok(())
+        let cprof = self.backend.options.get_current_profile_mut();
+        cprof.options.general.language = language_iso.to_string();
     }
 
     /// Deletes dictionaries from the database and options by name.

@@ -525,6 +525,11 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
 
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title.clone();
+    // check if dict exists before continuing
+    let cprof = settings.get_current_profile();
+    if cprof.options.dictionaries.get(&dict_name).is_some() {
+        return Err(ImportError::DictionaryAlreadyExists(dict_name));
+    }
 
     let tag_banks: Result<Vec<Vec<DatabaseTag>>, ImportError> =
         convert_tag_bank_files(tag_bank_paths, &dict_name);

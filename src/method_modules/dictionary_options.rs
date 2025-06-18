@@ -1,19 +1,14 @@
-use std::collections::HashSet;
-
-use super::create_method_module_mut;
 use crate::{
     settings::{self, DictionaryOptions},
     Yomichan,
 };
-use indexmap::IndexMap;
+use indexmap::{map::MutableKeys, IndexMap};
 use module_macros::{ref_variant, skip_ref};
-
-//#[derive(CreateMutModuleVariant)]
-//create_method_module_mut!(Yomichan, ModDictionaryOptionsMut, dictionary_options);
+use std::collections::HashSet;
 
 #[ref_variant]
-impl<'a> ModDictionaryOptionsMut<'a> {
-    pub fn get_all_mut(&'a mut self) -> &'a mut IndexMap<String, DictionaryOptions> {
+impl<'b> ModDictionaryOptionsMut<'b> {
+    pub fn get_all_mut(&'b mut self) -> &'b mut IndexMap<String, DictionaryOptions> {
         &mut self
             .ycd
             .backend
@@ -22,16 +17,35 @@ impl<'a> ModDictionaryOptionsMut<'a> {
             .options
             .dictionaries
     }
-
     pub fn get_by_names_mut(
-        &'a mut self,
-        names: HashSet<impl AsRef<str>>,
-    ) -> Vec<(usize, &'a str, &'a mut DictionaryOptions)> {
+        &'b mut self,
+        names: HashSet<&'b str>,
+    ) -> Vec<(usize, &'b str, &'b mut DictionaryOptions)> {
+        let all = self.get_all_mut();
+        let mut found = Vec::new();
+        for (i, (key, val)) in all.iter_mut().enumerate() {
+            found.push((i, key.as_str(), val));
+        }
+        found
+    }
+    #[deprecated(note = "
+WARNING: THIS FUNCTION IS UNSOUND AND MAY RESULT IN UNDEFINED BEHAVIOR.
+This function attempts an O(1) mutable lookup for performance, but it is PROVEN UNSOUND by Miri
+and may cause Undefined Behavior by violating Rust's aliasing rules.
+
+Its behavior is NOT guaranteed and may break unpredictably with any compiler update,
+dependency change, or shift in architecture. This can result in silent data corruption.
+
+It is recommended to use the safe O(n) version of the function.
+By using this function, you are knowingly accepting the risk of Undefined Behavior.")]
+    pub unsafe fn get_by_names_mut_unsound(
+        &'b mut self,
+        names: HashSet<&'b str>,
+    ) -> Vec<(usize, &'b str, &'b mut DictionaryOptions)> {
         let mut pointers: Vec<(usize, *const str, *mut DictionaryOptions)> =
             Vec::with_capacity(names.len());
         let all = self.get_all_mut();
         for name in names {
-            let name = name.as_ref();
             if let Some((index, map_key, value)) = all.get_full_mut(name) {
                 pointers.push((
                     index,
@@ -42,20 +56,34 @@ impl<'a> ModDictionaryOptionsMut<'a> {
         }
         pointers
             .into_iter()
-            .map(|(i, key_ptr, value_ptr)| {
-                // SAFETY: This is safe because:
-                // 1. The pointers are valid as they were obtained from `all`, which is tied to 'a.
-                // 2. The pointers are guaranteed to be non-aliasing because the `names`
-                //    argument is a `HashSet`, which ensures every key we look up is unique.
-                unsafe { (i, &*key_ptr, &mut *value_ptr) }
-            })
+            .map(|(i, key_ptr, value_ptr)| unsafe { (i, &*key_ptr, &mut *value_ptr) })
             .collect()
     }
-
     pub fn get_by_index_mut(
-        &'a mut self,
+        &'b mut self,
         indexes: HashSet<usize>,
-    ) -> Vec<(usize, &'a str, &'a mut DictionaryOptions)> {
+    ) -> Vec<(usize, &'b str, &'b mut DictionaryOptions)> {
+        let all = self.get_all_mut();
+        let mut found = Vec::new();
+        for (i, (key, val)) in all.iter_mut().enumerate() {
+            found.push((i, key.as_str(), val));
+        }
+        found
+    }
+    #[deprecated(note = "
+WARNING: THIS FUNCTION IS UNSOUND AND MAY RESULT IN UNDEFINED BEHAVIOR.
+This function attempts an O(1) mutable lookup for performance, but it is PROVEN UNSOUND by Miri
+and may cause Undefined Behavior by violating Rust's aliasing rules.
+
+Its behavior is NOT guaranteed and may break unpredictably with any compiler update,
+dependency change, or shift in architecture. This can result in silent data corruption.
+
+It is recommended to use the safe O(n) version of the function.
+By using this function, you are knowingly accepting the risk of Undefined Behavior.")]
+    pub unsafe fn get_by_index_mut_unsound(
+        &'b mut self,
+        indexes: HashSet<usize>,
+    ) -> Vec<(usize, &'b str, &'b mut DictionaryOptions)> {
         let mut pointers: Vec<(usize, *const str, *mut DictionaryOptions)> =
             Vec::with_capacity(indexes.len());
         let all = self.get_all_mut();
@@ -70,20 +98,17 @@ impl<'a> ModDictionaryOptionsMut<'a> {
         }
         pointers
             .into_iter()
-            .map(|(i, key_ptr, value_ptr)| {
-                // SAFETY: This is safe because:
-                // 1. The pointers are valid as they were obtained from `all`, which is tied to 'a.
-                // 2. The pointers are guaranteed to be non-aliasing because the `names`
-                //    argument is a `HashSet`, which ensures every key we look up is unique.
-                unsafe { (i, &*key_ptr, &mut *value_ptr) }
-            })
+            .map(|(i, key_ptr, value_ptr)| unsafe { (i, &*key_ptr, &mut *value_ptr) })
             .collect()
     }
 }
 
-impl<'a> ModDictionaryOptionsRef<'a> {
+impl<'a, 'data> ModDictionaryOptionsRef<'a, 'data>
+where
+    'data: 'a,
+{
     pub fn get_by_names_owned(
-        &'a mut self,
+        &mut self,
         names: &[impl AsRef<str>],
     ) -> Vec<(usize, String, DictionaryOptions)> {
         let all = self.get_all();
@@ -97,7 +122,7 @@ impl<'a> ModDictionaryOptionsRef<'a> {
             .collect()
     }
     pub fn get_by_index_owned(
-        &'a mut self,
+        &mut self,
         indexes: &[usize],
     ) -> Vec<(usize, String, DictionaryOptions)> {
         let all = self.get_all();
@@ -108,5 +133,87 @@ impl<'a> ModDictionaryOptionsRef<'a> {
                 Some((*i, key.clone(), val.clone()))
             })
             .collect()
+    }
+}
+
+// used for testing in miri without IO
+unsafe fn get_by_index_mut_unsound<'b>(
+    all: &mut IndexMap<String, DictionaryOptions>,
+    indexes: HashSet<usize>,
+) -> Vec<(usize, &'b str, &'b mut DictionaryOptions)> {
+    let mut pointers: Vec<(usize, *const str, *mut DictionaryOptions)> =
+        Vec::with_capacity(indexes.len());
+    for i in indexes {
+        if let Some((map_key, value)) = all.get_index_mut(i) {
+            pointers.push((
+                i,
+                map_key.as_str() as *const str,
+                value as *mut DictionaryOptions,
+            ));
+        }
+    }
+    pointers
+        .into_iter()
+        .map(|(i, key_ptr, value_ptr)| unsafe { (i, &*key_ptr, &mut *value_ptr) })
+        .collect()
+}
+
+#[cfg(test)]
+mod mod_dict_opts {
+    use std::collections::HashSet;
+
+    use indexmap::IndexMap;
+
+    use crate::{settings::DictionaryOptions, test_utils};
+
+    use super::get_by_index_mut_unsound;
+
+    #[test]
+    #[ignore]
+    fn get_dictionary_index_unsound() {
+        let mut map = IndexMap::new();
+        map.insert(
+            "dict1".to_string(),
+            DictionaryOptions {
+                enabled: true,
+                ..Default::default()
+            },
+        );
+        map.insert(
+            "dict2".to_string(),
+            DictionaryOptions {
+                enabled: true,
+                ..Default::default()
+            },
+        );
+        map.insert(
+            "dict3".to_string(),
+            DictionaryOptions {
+                enabled: true,
+                ..Default::default()
+            },
+        );
+        unsafe {
+            let found = get_by_index_mut_unsound(&mut map, HashSet::from([0, 2]));
+            for (i, _, opts) in found {
+                println!("Index {}: before mut: {}", i, opts.enabled);
+                opts.enabled = !opts.enabled;
+                println!("Index {}: after mut:  {}", i, opts.enabled);
+            }
+        }
+    }
+
+    #[test]
+    fn get_mut_index_unsound() {
+        let mut ycd = test_utils::YCD.write().unwrap();
+        let mut optmod = ycd.mod_dictionary_options_mut();
+        let found = optmod.get_by_index_mut(HashSet::from([0, 1]));
+        for (i, _, opts) in found {
+            println!("Index {}: before mut: {}", i, opts.enabled);
+            opts.enabled = !opts.enabled;
+            println!("Index {}: after mut:  {}", i, opts.enabled);
+        }
+        // this saves to the db
+        ycd.update_options().unwrap();
     }
 }

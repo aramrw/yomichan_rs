@@ -1655,7 +1655,7 @@ mod dbtests {
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [
             // tdcs.join("daijirin"),
-            // tdcs.join("ajdfreq"),
+            tdcs.join("ajdfreq"),
             // tdcs.join("pitch_accent"),
             tdcs.join("kotobankesjp"),
         ];

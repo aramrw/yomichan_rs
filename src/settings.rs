@@ -306,7 +306,7 @@ pub struct TranslationTextReplacementGroup {
     pub replacement: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub struct DictionaryOptions {
     /// The title of the dictionary.
     pub name: String,

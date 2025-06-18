@@ -45,6 +45,8 @@ pub enum DictionaryFileError {
 
 #[derive(Error, Debug)]
 pub enum ImportError {
+    #[error("cannot import {0} as it is already installed\n[help]: if you are attempting to update it, first call `Yomichan::delete_dictionaries(&self, names: &[&{0}])`, and try importing again")]
+    DictionaryAlreadyExists(String),
     #[error("dictionary file error: {0}")]
     DictionaryFile(#[from] DictionaryFileError),
     #[error("{0}")]
