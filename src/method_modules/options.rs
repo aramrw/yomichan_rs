@@ -1,11 +1,14 @@
-use module_macros::ref_variant;
 use crate::{
-    settings::{self, Profile},
+    settings::{self, Options, Profile},
     Yomichan,
 };
+use module_macros::ref_variant;
 
 #[ref_variant]
 impl<'b> ModOptionsMut<'b> {
+    pub fn get_global_options_mut(&mut self) -> &mut Options {
+        &mut self.ycd.backend.options
+    }
     pub fn get_current_profile_mut(&mut self) -> &mut Profile {
         self.ycd.backend.options.get_current_profile_mut()
     }
