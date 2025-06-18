@@ -25,7 +25,6 @@ use settings::Profile;
 
 use native_db::*;
 use native_model::{native_model, Model};
-use text_scanner::TermSearchResults;
 use text_scanner::TextScanner;
 use transaction::RTransaction;
 use translation::FindTermsOptions;
@@ -43,7 +42,10 @@ use std::{
 
 // public exports:
 pub use crate::database::dictionary_importer;
-pub use crate::dictionary::{TermDefinition, TermFrequency, TermPronunciation};
+pub use crate::dictionary::{
+    TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
+};
+pub use crate::text_scanner::TermSearchResults;
 
 /// A Yomichan Dictionary instance.
 ///
