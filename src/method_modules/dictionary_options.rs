@@ -4,7 +4,7 @@ use crate::{
 };
 use indexmap::{map::MutableKeys, IndexMap};
 use module_macros::{ref_variant, skip_ref};
-use std::collections::HashSet;
+use std::{borrow::Borrow, collections::HashSet};
 
 #[ref_variant]
 impl<'b> ModDictionaryOptionsMut<'b> {
@@ -19,14 +19,37 @@ impl<'b> ModDictionaryOptionsMut<'b> {
     }
     pub fn get_by_names_mut(
         &'b mut self,
-        names: HashSet<&'b str>,
+        names: impl Iterator<Item = &'b str>,
     ) -> Vec<(usize, &'b str, &'b mut DictionaryOptions)> {
         let all = self.get_all_mut();
-        let mut found = Vec::new();
-        for (i, (key, val)) in all.iter_mut().enumerate() {
-            found.push((i, key.as_str(), val));
-        }
-        found
+        let names: HashSet<&'a str> = names.collect();
+        all.iter_mut()
+            .enumerate()
+            .filter_map(|(i, (key, val))| {
+                let key = key.as_str();
+                if names.contains(key) {
+                    return Some((i, key, val));
+                }
+                None
+            })
+            .collect()
+    }
+    pub fn get_by_indexes_mut(
+        &'b mut self,
+        names: impl Iterator<Item = impl Borrow<usize>>,
+    ) -> Vec<(usize, &'b str, &'b mut DictionaryOptions)> {
+        let all = self.get_all_mut();
+        let names: HashSet<usize> = names.into_iter().map(|i| *i.borrow()).collect();
+        all.iter_mut()
+            .enumerate()
+            .filter_map(|(i, (key, val))| {
+                let key = key.as_str();
+                if names.contains(&i) {
+                    return Some((i, key, val));
+                }
+                None
+            })
+            .collect()
     }
     #[deprecated(note = "
 WARNING: THIS FUNCTION IS UNSOUND AND MAY RESULT IN UNDEFINED BEHAVIOR.
@@ -59,17 +82,6 @@ By using this function, you are knowingly accepting the risk of Undefined Behavi
             .map(|(i, key_ptr, value_ptr)| unsafe { (i, &*key_ptr, &mut *value_ptr) })
             .collect()
     }
-    pub fn get_by_index_mut(
-        &'b mut self,
-        indexes: HashSet<usize>,
-    ) -> Vec<(usize, &'b str, &'b mut DictionaryOptions)> {
-        let all = self.get_all_mut();
-        let mut found = Vec::new();
-        for (i, (key, val)) in all.iter_mut().enumerate() {
-            found.push((i, key.as_str(), val));
-        }
-        found
-    }
     #[deprecated(note = "
 WARNING: THIS FUNCTION IS UNSOUND AND MAY RESULT IN UNDEFINED BEHAVIOR.
 This function attempts an O(1) mutable lookup for performance, but it is PROVEN UNSOUND by Miri
@@ -100,6 +112,18 @@ By using this function, you are knowingly accepting the risk of Undefined Behavi
             .into_iter()
             .map(|(i, key_ptr, value_ptr)| unsafe { (i, &*key_ptr, &mut *value_ptr) })
             .collect()
+    }
+    #[skip_ref]
+    pub fn disable_dictionaries_by_name(&'a mut self, names: &'a [impl AsRef<str>]) -> usize {
+        let names: Vec<&str> = names.iter().map(|n| n.as_ref()).collect();
+        let found = &mut self.get_by_names_mut(names.into_iter());
+        if found.is_empty() {
+            return 0;
+        }
+        found.iter_mut().for_each(|dict| {
+            dict.2.enabled = false;
+        });
+        found.len()
     }
 }
 
@@ -207,7 +231,7 @@ mod mod_dict_opts {
     fn get_mut_index_unsound() {
         let mut ycd = test_utils::YCD.write().unwrap();
         let mut optmod = ycd.mod_dictionary_options_mut();
-        let found = optmod.get_by_index_mut(HashSet::from([0, 1]));
+        let found = optmod.get_by_indexes_mut([0, 1].into_iter());
         for (i, _, opts) in found {
             println!("Index {}: before mut: {}", i, opts.enabled);
             opts.enabled = !opts.enabled;

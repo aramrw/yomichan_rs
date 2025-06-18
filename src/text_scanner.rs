@@ -1,18 +1,128 @@
 use std::{cmp, sync::Arc};
 
+use indexmap::IndexMap;
+
 use crate::{
     backend::FindTermsDetails,
     database::dictionary_database::DictionaryDatabase,
-    dictionary::{TermDictionaryEntry, TermSourceMatchType},
+    dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
     settings::ProfileOptions,
     translator::{FindTermsMode, FindTermsResult, Translator},
     Yomichan,
 };
 
 impl<'a> Yomichan<'a> {
-    pub fn search(&mut self, text: &str) -> Option<TermSearchResults> {
+    pub fn search(&mut self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
         let opts = &self.backend.options.get_current_profile().options;
-        self.backend.text_scanner._search_internal(text, 0, opts)
+        let res = self.backend.text_scanner._search_internal(text, 0, opts)?;
+        Some(SentenceParser::parse(res))
+    }
+}
+
+/// Represents one chunk of a parsed sentence, ready for display.
+///
+/// A segment can either be a known term (with dictionary entries) or
+#[derive(Debug, Clone)]
+pub struct TermSearchResultsSegment {
+    pub text: String,
+    pub results: Option<Arc<TermSearchResults>>,
+}
+
+struct SentenceParser {}
+impl SentenceParser {
+    /// Parses the flat list of dictionary entries from `TermSearchResults`
+    /// into a structured `Vec<TermSearchResultsSegment>` using a "longest match" algorithm.
+    ///
+    /// This is the "frontend" logic that constructs the clickable sentence view.
+    ///
+    /// # Arguments
+    /// * `results` - The output from `TextScanner::_search_internal`.
+    ///
+    /// # Returns
+    /// A vector of `TermSearchResultsSegment`s that represent the sentence, broken down
+    /// into clickable terms and plain text.
+    pub fn parse(results: TermSearchResults) -> Vec<TermSearchResultsSegment> {
+        if results.dictionary_entries.is_empty() {
+            // If there are no results, just return the sentence text as one plain segment.
+            return vec![TermSearchResultsSegment {
+                text: results.sentence.text,
+                results: None,
+            }];
+        }
+
+        // --- Step 1: Group dictionary entries by their original source text ---
+        let mut grouped_by_source = IndexMap::<String, Vec<TermDictionaryEntry>>::new();
+        for entry in results.dictionary_entries {
+            // An entry can have multiple headwords, and each headword can have multiple sources.
+            // We need to find the source that matches the original text.
+            if let Some(source) = Self::find_primary_source(&entry) {
+                grouped_by_source
+                    .entry(source.original_text.clone())
+                    .or_default()
+                    .push(entry);
+            }
+        }
+
+        // --- Step 2: Segment the sentence using the "longest match" algorithm ---
+        let sentence_text = &results.sentence.text;
+        let mut parsed_sentence: Vec<TermSearchResultsSegment> = Vec::new();
+        let mut current_pos = 0; // Byte position in sentence_text
+
+        // Get all unique source text keys and sort them by length, descending.
+        // This is crucial for the longest match logic.
+        let mut match_keys: Vec<_> = grouped_by_source.keys().cloned().collect();
+        match_keys.sort_by_key(|b| std::cmp::Reverse(b.len()));
+
+        while current_pos < sentence_text.len() {
+            let remaining_text = &sentence_text[current_pos..];
+
+            // Find the longest key from our map that is a prefix of the remaining text.
+            let best_match = match_keys
+                .iter()
+                .find(|key| remaining_text.starts_with(*key));
+
+            if let Some(found_key) = best_match {
+                // We found a dictionary term. Create a clickable segment.
+                let entries_for_key = grouped_by_source.get(found_key).unwrap();
+
+                let segment_results = TermSearchResults {
+                    dictionary_entries: entries_for_key.clone(),
+                    // The sentence context is the same for all segments.
+                    sentence: results.sentence.clone(),
+                };
+
+                parsed_sentence.push(TermSearchResultsSegment {
+                    text: found_key.clone(),
+                    results: Some(Arc::new(segment_results)),
+                });
+
+                // Advance our position in the sentence by the length of the matched key.
+                current_pos += found_key.len();
+            } else {
+                // No match. This is plain text (space, punctuation, unknown word).
+                // Consume one character and create a non-clickable segment.
+                let char_str = remaining_text.chars().next().unwrap().to_string();
+
+                parsed_sentence.push(TermSearchResultsSegment {
+                    text: char_str.clone(),
+                    results: None,
+                });
+
+                current_pos += char_str.len();
+            }
+        }
+
+        parsed_sentence
+    }
+
+    /// Helper to find the primary source text for a dictionary entry.
+    /// Yomitan's data structure is complex, so we navigate it to find the
+    /// `original_text` that this entry was found from.
+    fn find_primary_source(entry: &TermDictionaryEntry) -> Option<&TermSource> {
+        entry
+            .headwords
+            .iter()
+            .find_map(|hw| hw.sources.iter().find(|s| s.is_primary))
     }
 }
 
@@ -299,18 +409,13 @@ impl<'a> TextScanner<'a> {
 
 #[cfg(test)]
 mod textscanner {
-    use crate::{test_utils::TEST_PATHS, Yomichan};
+    use crate::{test_utils::YCD, Yomichan};
     use std::sync::{LazyLock, RwLock};
-
-    static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
-        let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
-        ycd.set_language("es");
-        RwLock::new(ycd)
-    });
 
     #[test]
     fn search() {
         let mut ycd = YCD.write().unwrap();
+        ycd.set_language("es");
         let res = ycd.search("espanol");
         dbg!(&res);
     }

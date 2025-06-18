@@ -45,7 +45,7 @@ pub use crate::database::dictionary_importer;
 pub use crate::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
-pub use crate::text_scanner::TermSearchResults;
+pub use crate::text_scanner::{TermSearchResults, TermSearchResultsSegment};
 
 /// A Yomichan Dictionary instance.
 ///
