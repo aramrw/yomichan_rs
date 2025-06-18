@@ -1,4 +1,4 @@
-use std::{cmp, sync::Arc};
+use std::{cmp, collections::HashSet, sync::Arc};
 
 use indexmap::IndexMap;
 
@@ -14,7 +14,7 @@ use crate::{
 impl<'a> Yomichan<'a> {
     pub fn search(&mut self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
         let opts = &self.backend.options.get_current_profile().options;
-        let res = self.backend.text_scanner._search_internal(text, 0, opts)?;
+        let res = self.backend.text_scanner.search_sentence(text, opts)?;
         Some(SentenceParser::parse(res))
     }
 }
@@ -41,9 +41,12 @@ impl SentenceParser {
     /// # Returns
     /// A vector of `TermSearchResultsSegment`s that represent the sentence, broken down
     /// into clickable terms and plain text.
+    // In `impl SentenceParser`
+    // Add this import at the top of the file if it's not already there:
+    // use std::collections::HashSet;
+
     pub fn parse(results: TermSearchResults) -> Vec<TermSearchResultsSegment> {
         if results.dictionary_entries.is_empty() {
-            // If there are no results, just return the sentence text as one plain segment.
             return vec![TermSearchResultsSegment {
                 text: results.sentence.text,
                 results: None,
@@ -53,8 +56,6 @@ impl SentenceParser {
         // --- Step 1: Group dictionary entries by their original source text ---
         let mut grouped_by_source = IndexMap::<String, Vec<TermDictionaryEntry>>::new();
         for entry in results.dictionary_entries {
-            // An entry can have multiple headwords, and each headword can have multiple sources.
-            // We need to find the source that matches the original text.
             if let Some(source) = Self::find_primary_source(&entry) {
                 grouped_by_source
                     .entry(source.original_text.clone())
@@ -66,28 +67,45 @@ impl SentenceParser {
         // --- Step 2: Segment the sentence using the "longest match" algorithm ---
         let sentence_text = &results.sentence.text;
         let mut parsed_sentence: Vec<TermSearchResultsSegment> = Vec::new();
-        let mut current_pos = 0; // Byte position in sentence_text
+        let mut current_pos = 0;
 
-        // Get all unique source text keys and sort them by length, descending.
-        // This is crucial for the longest match logic.
         let mut match_keys: Vec<_> = grouped_by_source.keys().cloned().collect();
         match_keys.sort_by_key(|b| std::cmp::Reverse(b.len()));
 
         while current_pos < sentence_text.len() {
             let remaining_text = &sentence_text[current_pos..];
 
-            // Find the longest key from our map that is a prefix of the remaining text.
             let best_match = match_keys
                 .iter()
                 .find(|key| remaining_text.starts_with(*key));
 
             if let Some(found_key) = best_match {
-                // We found a dictionary term. Create a clickable segment.
                 let entries_for_key = grouped_by_source.get(found_key).unwrap();
 
+                // --- CORRECT FIX LOCATION ---
+                // Deduplicate the entries for this specific segment.
+                let mut seen_entries = HashSet::new();
+                let unique_entries: Vec<TermDictionaryEntry> = entries_for_key
+                    .iter()
+                    .filter(|entry| {
+                        if let (Some(headword), Some(definition)) =
+                            (entry.headwords.first(), entry.definitions.first())
+                        {
+                            let key = (headword.term.clone(), definition.id.clone());
+                            // `insert` returns true if the key was new. We keep the entry only if it's new.
+                            seen_entries.insert(key)
+                        } else {
+                            // Don't keep malformed entries
+                            false
+                        }
+                    })
+                    .cloned()
+                    .collect();
+                // --- END FIX ---
+
                 let segment_results = TermSearchResults {
-                    dictionary_entries: entries_for_key.clone(),
-                    // The sentence context is the same for all segments.
+                    // Use the clean, unique list of entries
+                    dictionary_entries: unique_entries,
                     sentence: results.sentence.clone(),
                 };
 
@@ -96,18 +114,13 @@ impl SentenceParser {
                     results: Some(Arc::new(segment_results)),
                 });
 
-                // Advance our position in the sentence by the length of the matched key.
                 current_pos += found_key.len();
             } else {
-                // No match. This is plain text (space, punctuation, unknown word).
-                // Consume one character and create a non-clickable segment.
                 let char_str = remaining_text.chars().next().unwrap().to_string();
-
                 parsed_sentence.push(TermSearchResultsSegment {
                     text: char_str.clone(),
                     results: None,
                 });
-
                 current_pos += char_str.len();
             }
         }
@@ -186,6 +199,75 @@ impl<'a> TextScanner<'a> {
         }
     }
 
+    /// Scans an entire sentence to find all possible dictionary terms within it.
+    ///
+    /// This method implements the core logic for the full-sentence analysis view.
+    /// It uses language-specific strategies to find all potential terms.
+    ///
+    /// - For non-spaced languages (ja, zh, ko), it performs a "sliding window"
+    ///   search from every character position.
+    /// - For spaced languages, it optimizes by only starting a search from the
+    ///   beginning of each word, while still preserving the full sentence context
+    ///   for the parser.
+    ///
+    /// The final, flat list of all found dictionary entries is then returned,
+    /// ready to be consumed by the `SentenceParser`.
+    pub fn search_sentence(
+        &mut self,
+        sentence_text: &str,
+        options: &ProfileOptions,
+    ) -> Option<TermSearchResults> {
+        let mut all_entries: Vec<TermDictionaryEntry> = Vec::new();
+
+        // A helper closure to avoid duplicating the API call logic.
+        let mut find_and_extend = |text_slice: &str| {
+            if let Some(find_result) = self.find_term_dictionary_entries(text_slice, options) {
+                all_entries.extend(find_result.dictionary_entries);
+            }
+        };
+
+        // --- Core Logic Change ---
+        // Use a language-specific scanning strategy.
+        match options.general.language.as_str() {
+            // For non-spaced languages, a search must be started from every position.
+            "ja" | "zh" | "ko" => {
+                for (i, _) in sentence_text.char_indices() {
+                    find_and_extend(&sentence_text[i..]);
+                }
+            }
+
+            // For spaced languages, we can optimize by only searching from the start of words.
+            // This preserves the original string slicing, which is vital for the SentenceParser.
+            _ => {
+                let mut last_char_was_whitespace = true;
+                for (i, c) in sentence_text.char_indices() {
+                    let is_whitespace = c.is_whitespace();
+                    if !is_whitespace && last_char_was_whitespace {
+                        // This character is the start of a new word.
+                        // We search the rest of the string from this point.
+                        find_and_extend(&sentence_text[i..]);
+                    }
+                    last_char_was_whitespace = is_whitespace;
+                }
+            }
+        }
+
+        // If no terms were found anywhere in the sentence, return None.
+        if all_entries.is_empty() {
+            return None;
+        }
+
+        // The input text IS the sentence. Construct the final result.
+        // The `SentenceParser` will use this complete list to build the segmented view.
+        Some(TermSearchResults {
+            dictionary_entries: all_entries,
+            sentence: Sentence {
+                text: sentence_text.to_string(),
+                offset: 0,
+            },
+        })
+    }
+
     // --- Public API Method ---
 
     /// The main entry point for scanning text.
@@ -203,6 +285,7 @@ impl<'a> TextScanner<'a> {
         full_text: &str,
         start_position: usize,
         options: &ProfileOptions,
+        search_entire_text: bool,
     ) -> Option<TermSearchResults> {
         // This method will orchestrate the calls to the private helpers below.
         // It's the public "do everything" function.
@@ -213,18 +296,18 @@ impl<'a> TextScanner<'a> {
             return None;
         }
         let search_text = search_text_ref.to_string();
-
         // 2. Find the terms using the translator.
         let find_result = self.find_term_dictionary_entries(&search_text, options)?;
 
-        // 3. Extract the sentence context.
+        if search_entire_text {
+            return self.search_sentence(full_text, options);
+        }
+
         let sentence = self.extract_sentence(
             full_text,
             start_position,
             find_result.original_text_length as usize,
         );
-
-        // 4. Assemble and return the final result.
         Some(TermSearchResults {
             dictionary_entries: find_result.dictionary_entries,
             sentence,
@@ -416,7 +499,7 @@ mod textscanner {
     fn search() {
         let mut ycd = YCD.write().unwrap();
         ycd.set_language("es");
-        let res = ycd.search("espanol");
+        let res = ycd.search("espanol es bueno");
         dbg!(&res);
     }
 }

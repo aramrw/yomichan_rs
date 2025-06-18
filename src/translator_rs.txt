@@ -3345,8 +3345,6 @@ impl<'a> Translator<'a> {
         variants_map
     }
 
-    // In impl<'a> Translator<'a>
-
     fn _add_entries_to_deinflections(
         &self,
         language: &str,
@@ -3358,12 +3356,11 @@ impl<'a> Translator<'a> {
             return;
         }
 
-        // Step 1: Group mutable references to the original deinflections by their term.
-        // This is the equivalent of JS `_groupDeinflectionsByTerm` but for mutable Rust.
+        // 1. Group deinflections by term, storing mutable references to the originals.
+        // This is equivalent to `_groupDeinflectionsByTerm` in JS.
         let mut unique_deinflections_map: IndexMap<String, Vec<&mut DatabaseDeinflection>> =
             IndexMap::new();
         for deinflection in deinflections.iter_mut() {
-            // Do not process empty strings.
             if deinflection.deinflected_text.is_empty() {
                 continue;
             }
@@ -3373,35 +3370,33 @@ impl<'a> Translator<'a> {
                 .push(deinflection);
         }
 
-        if unique_deinflections_map.is_empty() {
-            return;
-        }
-
-        // Step 2: Get the unique terms for the DB query
-        // and the corresponding groups of mutable references.
-        let unique_deinflection_terms: Vec<String> =
+        // 2. Get the unique terms for the DB query and the arrays of mutable references.
+        let mut unique_deinflection_terms: Vec<String> =
             unique_deinflections_map.keys().cloned().collect();
-
-        // Note: `into_values()` consumes the map.
-        // This is fine as we don't need the map afterward.
-        let mut unique_deinflection_groups: Vec<Vec<&mut DatabaseDeinflection>> =
+        //unique_deinflection_terms.retain(|term| !term.is_empty());
+        let mut unique_deinflection_arrays: Vec<Vec<&mut DatabaseDeinflection>> =
             unique_deinflections_map.into_values().collect();
 
-        // Step 3: Query the database.
+        // 3. Query the database with the unique terms.
+        dbg!(
+            "Calling findTermsBulk with the following terms:",
+            &unique_deinflection_terms
+        );
         let database_entries = self
             .db
             .find_terms_bulk(
                 &unique_deinflection_terms,
-                enabled_dictionary_map,
+                &enabled_dictionary_map,
                 match_type,
             )
             .unwrap_or_default();
+        //dbg!("term entries len: {}", database_entries.len());
 
-        // Step 4: Match the results back to the original deinflections via the grouped mutable references.
+        // 4. Match the results back to the original deinflections via the grouped mutable references.
         self._match_entries_to_deinflections(
             language,
             &database_entries,
-            &mut unique_deinflection_groups,
+            &mut unique_deinflection_arrays,
             enabled_dictionary_map,
         );
     }
@@ -3413,47 +3408,25 @@ impl<'a> Translator<'a> {
     //     enabled_dictionary_map: &FindTermDictionaryMap,
     //     match_type: TermSourceMatchType,
     // ) {
-    //     if deinflections.is_empty() {
-    //         return;
-    //     }
-    //
-    //     // 1. Group deinflections by term, storing mutable references to the originals.
-    //     // This is equivalent to `_groupDeinflectionsByTerm` in JS.
-    //     let mut unique_deinflections_map: IndexMap<String, Vec<&mut DatabaseDeinflection>> =
-    //         IndexMap::new();
-    //     for deinflection in deinflections.iter_mut() {
-    //         if deinflection.deinflected_text.is_empty() {
-    //             continue;
-    //         }
-    //         unique_deinflections_map
-    //             .entry(deinflection.deinflected_text.clone())
-    //             .or_default()
-    //             .push(deinflection);
-    //     }
-    //
-    //     // 2. Get the unique terms for the DB query and the arrays of mutable references.
-    //     let mut unique_deinflection_terms: Vec<String> =
+    //     let mut unique_deinflections_map = Translator::_group_deinflections_by_term(deinflections);
+    //     let unique_deinflections_owned_terms: Vec<String> =
     //         unique_deinflections_map.keys().cloned().collect();
-    //     //unique_deinflection_terms.retain(|term| !term.is_empty());
-    //     let mut unique_deinflection_arrays: Vec<Vec<&mut DatabaseDeinflection>> =
-    //         unique_deinflections_map.into_values().collect();
+    //     let unique_deinflections_terms_refs: Vec<&String> =
+    //         unique_deinflections_owned_terms.iter().collect();
+    //     let mut unique_deinflection_arrays: Vec<&mut Vec<DatabaseDeinflection>> =
+    //         unique_deinflections_map.values_mut().collect();
     //
-    //     // 3. Query the database with the unique terms.
-    //     dbg!(
-    //         "Calling findTermsBulk with the following terms:",
-    //         &unique_deinflection_terms
-    //     );
-    //     let database_entries = self
-    //         .db
-    //         .find_terms_bulk(
-    //             &unique_deinflection_terms,
-    //             &enabled_dictionary_map,
-    //             match_type,
-    //         )
-    //         .unwrap_or_default();
-    //     //dbg!("term entries len: {}", database_entries.len());
-    //
-    //     // 4. Match the results back to the original deinflections via the grouped mutable references.
+    //     let database_entries = match self.db.find_terms_bulk(
+    //         &unique_deinflections_terms_refs,
+    //         &enabled_dictionary_map,
+    //         match_type,
+    //     ) {
+    //         Ok(entries) => entries,
+    //         Err(e) => {
+    //             eprintln!("`find_terms_bulk` called from `_add_entries_to_deinflections` found no entries for deinflections:\n{deinflections:?}\nreason: {e}");
+    //             vec![]
+    //         }
+    //     };
     //     self._match_entries_to_deinflections(
     //         language,
     //         &database_entries,
@@ -3560,7 +3533,6 @@ impl<'a> Translator<'a> {
         }
         result
     }
-
     /// helper function to return `(opts: FindTermOptions).text_replacements`
     fn _get_text_replacement_variants(opts: &FindTermsOptions) -> FindTermsTextReplacements {
         opts.text_replacements.clone()
