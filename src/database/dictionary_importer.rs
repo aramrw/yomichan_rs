@@ -770,7 +770,7 @@ fn convert_term_bank_file(
 
             let structured_content = entry.structured_content.swap_remove(0);
             let defs = get_string_content(structured_content.content);
-            let gloss_content = TermGlossaryContent::new(defs.concat(), None, None, None);
+            let gloss_content = TermGlossaryContent::new(defs.join("\n"), None, None, None);
             let gloss = TermGlossary::Content(Box::new(gloss_content));
             db_term.glossary = vec![gloss];
 
