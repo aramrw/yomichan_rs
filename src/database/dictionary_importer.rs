@@ -302,7 +302,6 @@ impl DictionarySummary {
 pub struct SummaryDetails {
     pub prefix_wildcard_supported: bool,
     pub counts: SummaryCounts,
-    // I dont know what this is
     // some kind of styles.css file stuff
     pub styles: String,
     pub yomitan_version: String,
