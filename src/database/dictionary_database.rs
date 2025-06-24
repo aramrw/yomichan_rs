@@ -1,9 +1,9 @@
 use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    DictionaryDataTag, MetaDataMatchType, TermGlossary, TermGlossaryContent, TermMeta,
-    TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPitch,
-    TermMetaPitchData,
+    DictionaryDataTag, MetaDataMatchType, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
+    TermMetaModeType, TermMetaPitch, TermMetaPitchData,
 };
+use crate::structured_content::{StructuredContent, TermGlossary};
 use crate::test_utils::TEST_PATHS;
 use crate::translator::TagTargetItem;
 use serde_with::{serde_as, NoneAsEmptyString};
@@ -150,7 +150,7 @@ pub struct DatabaseTermMeta {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-#[native_model(id = 2, version = 1)]
+#[native_model(id = 2, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
 #[native_db]
 pub struct DatabaseTermEntry {
     #[primary_key]
@@ -226,17 +226,17 @@ impl DatabaseTermEntry {
             id,
             expression,
             reading,
-            expression_reverse: _expression_reverse, // Mark unused if not used in this function
-            reading_reverse: _reading_reverse,       // Mark unused
+            expression_reverse: _expression_reverse,
+            reading_reverse: _reading_reverse,
             definition_tags,
-            tags: _tags, // Mark unused (or use if it's the fallback for definition_tags)
+            tags: _tags,
             rules,
             score,
             glossary,
             sequence,
             term_tags,
             dictionary,
-            file_path: _file_path, // Mark unused
+            file_path: _file_path,
         } = self;
         TermEntry {
             id,
@@ -245,7 +245,7 @@ impl DatabaseTermEntry {
             match_source,
             term: expression,
             reading,
-            definition_tags: split_optional_string_field(definition_tags), // Consider fallback to _tags
+            definition_tags: split_optional_string_field(definition_tags),
             term_tags: split_optional_string_field(term_tags),
             rules: split_optional_string_field(Some(rules)),
             definitions: glossary,
@@ -858,6 +858,14 @@ impl DictionaryDatabase<'_> {
         }
     }
 
+    // /// a test function to see what the entries for a key contain
+    // fn _internal_get_all_secondary_dicts(
+    //     &self,
+    //     key: impl ToKey,
+    // ) -> Result<Vec<()>, Box<DictionaryDatabaseError>> {
+    //     let rtx = self.db.r_transaction()?;
+    // }
+    //
     pub fn get_dictionary_summaries(
         &self,
     ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
@@ -869,10 +877,7 @@ impl DictionaryDatabase<'_> {
         Ok(summaries)
     }
 
-    fn get_field_from_entry<'a>(
-        entry: &'a DatabaseTermEntry,
-        kind: SecondaryKeyQueryKind,
-    ) -> &'a str {
+    fn get_field_from_entry(entry: &DatabaseTermEntry, kind: SecondaryKeyQueryKind) -> &str {
         match kind {
             SecondaryKeyQueryKind::Expression => &entry.expression,
             SecondaryKeyQueryKind::Reading => &entry.reading,
@@ -880,7 +885,6 @@ impl DictionaryDatabase<'_> {
             SecondaryKeyQueryKind::ReadingReverse => &entry.reading_reverse,
             SecondaryKeyQueryKind::Sequence => {
                 eprintln!("Unexpected SecondaryKeyQueryKind::Sequence in helper");
-                // The &'static str literal "" can be safely coerced to the shorter lifetime 'a.
                 ""
             }
         }
@@ -1629,7 +1633,7 @@ mod ycd {
         let match_type = TermSourceMatchType::Exact;
         // Pass term_list directly as it implements AsRef<str> for String
         let result = ycd.find_terms_bulk(&term_list, &dictionaries, match_type);
-        //dbg!(result);
+        dbg!(result);
     }
 }
 
@@ -1654,10 +1658,11 @@ mod dbtests {
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [
-            // tdcs.join("daijirin"),
-            tdcs.join("ajdfreq"),
+            //tdcs.join("daijirin"),
+            tdcs.join("daijirin_test_version"),
+            //tdcs.join("ajdfreq"),
             // tdcs.join("pitch_accent"),
-            tdcs.join("kotobankesjp"),
+            //tdcs.join("kotobankesjp"),
         ];
         match ycd.import_dictionaries(&paths) {
             Ok(_) => {}

@@ -165,7 +165,7 @@ mod ycd_tests {
     use std::cell::RefCell;
 
     use crate::{
-        database::dictionary_database::DatabaseMetaFrequency,
+        database::dictionary_database::{DatabaseMetaFrequency, DatabaseTermEntry},
         dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
         test_utils::TEST_PATHS,
         Yomichan,
@@ -174,10 +174,36 @@ mod ycd_tests {
     use super::{Backend, FindTermsDetails};
 
     #[test]
-    fn rmp_serde() {
+    fn rmp_serde_item() {
         use rmp_serde::{Deserializer, Serializer};
         use serde::{Deserialize, Serialize};
+        let item = DatabaseTermEntry {
+            id: "01979a72-8db0-7c33-9ff1-426c5a879886".into(),
+            expression: "赤狗母魚".into(),
+            reading: "あかえそ".into(),
+            expression_reverse: "魚母狗赤".into(),
+            reading_reverse: "そえかあ".into(),
+            definition_tags: None,
+            tags: None,
+            rules: "".into(),
+            score: 0,
+            dictionary: "大辞林　第四番".into(),
+            ..Default::default()
+        };
+        // Serialize to MessagePack
+        let mut buf = Vec::new();
+        item.serialize(&mut Serializer::new(&mut buf)).unwrap();
+        // Deserialize from MessagePack
+        let mut deserializer = Deserializer::new(&buf[..]);
+        let deserialized: DatabaseTermEntry = Deserialize::deserialize(&mut deserializer).unwrap();
+        println!("Original: {item:#?}");
+        println!("Deserialized: {deserialized:#?}");
+    }
 
+    #[test]
+    fn rmp_serde_meta() {
+        use rmp_serde::{Deserializer, Serializer};
+        use serde::{Deserialize, Serialize};
         let db_meta_frequency = DatabaseMetaFrequency {
             id: "01974e4d-fced-7e10-8a42-831546fbde45".to_string(),
             freq_expression: "自業自得".to_string(),
@@ -185,18 +211,15 @@ mod ycd_tests {
             data: TermMetaFreqDataMatchType::Generic(GenericFreqData::Integer(8455)),
             dictionary: "Anime & J-drama".to_string(),
         };
-
         // Serialize to MessagePack
         let mut buf = Vec::new();
         db_meta_frequency
             .serialize(&mut Serializer::new(&mut buf))
             .unwrap();
-
         // Deserialize from MessagePack
         let mut deserializer = Deserializer::new(&buf[..]);
         let deserialized: DatabaseMetaFrequency =
             Deserialize::deserialize(&mut deserializer).unwrap();
-
         assert_eq!(db_meta_frequency, deserialized);
         println!("Original: {db_meta_frequency:?}");
         println!("Deserialized: {deserialized:?}");

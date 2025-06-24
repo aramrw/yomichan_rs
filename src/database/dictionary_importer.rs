@@ -6,20 +6,19 @@ use crate::database::dictionary_database::{
 };
 use crate::dictionary::{self, KanjiDictionaryEntry};
 use crate::dictionary_data::{
-    self, dictionary_data_util, DictionaryDataTag, Index, MetaDataMatchType, TermGlossary,
-    TermGlossaryContent, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
-    TermMetaModeType, TermMetaPitchData, TermV3, TermV4,
+    self, dictionary_data_util, DictionaryDataTag, Index, MetaDataMatchType, TermGlossaryImage,
+    TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPitchData,
+    TermV3, TermV4,
 };
 use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
 };
 use crate::structured_content::{
-    ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
+    ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem, TermEntryItemTuple,
 };
 
 use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
-use crate::structured_content::EntryItemMatchType;
-use crate::Yomichan;
+use crate::{test_utils, Yomichan};
 
 use color_eyre::owo_colors::OwoColorize;
 use indexmap::IndexMap;
@@ -41,6 +40,7 @@ use uuid::Uuid;
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
+use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -422,23 +422,6 @@ pub struct ImportRequirementContext {
     //file_map: ArchiveFileMap,
     media: IndexMap<String, MediaDataArrayBufferContent>,
 }
-
-impl<'de> Deserialize<'de> for EntryItemMatchType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        UntaggedEnumVisitor::new()
-            .string(|single| Ok(EntryItemMatchType::String(single.to_string())))
-            .i128(|int| Ok(EntryItemMatchType::Integer(int)))
-            .seq(|seq| {
-                seq.deserialize()
-                    .map(EntryItemMatchType::StructuredContentVec)
-            })
-            .deserialize(deserializer)
-    }
-}
-
 /// Deserializable type mapping a `term_bank_$i.json` file.
 pub type TermBank = Vec<TermEntryItem>;
 pub type TermMetaBank = Vec<TermMeta>;
@@ -729,14 +712,15 @@ fn convert_term_bank_file(
     })?;
     let reader = BufReader::new(file);
 
-    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<TermBank>();
+    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermEntryItemTuple>>();
     let mut entries = match stream.next() {
         Some(Ok(entries)) => entries,
         Some(Err(reason)) => {
+            println!("{reason}");
             return Err(crate::errors::DictionaryFileError::File {
                 outpath,
                 reason: reason.to_string(),
-            })
+            });
         }
         None => return Err(DictionaryFileError::Empty(outpath)),
     };
@@ -746,37 +730,41 @@ fn convert_term_bank_file(
     let terms: Vec<DatabaseTermEntry> = entries
         .into_iter()
         .map(|mut entry| {
+            let TermEntryItemTuple(
+                expression,
+                reading,
+                def_tags,
+                rules,
+                score,
+                structured_content,
+                sequence,
+                term_tags,
+            ) = entry;
             let id = uuid::Uuid::now_v7().to_string();
-            let expression = entry.expression;
-            let reading = entry.reading;
             let expression_reverse = rev_str(&expression);
             let reading_reverse = rev_str(&reading);
-            let mut db_term = DatabaseTermEntry {
+            let term = DatabaseTermEntry {
                 id,
                 expression,
                 expression_reverse,
                 reading,
                 reading_reverse,
-                definition_tags: entry.def_tags,
-                rules: entry.rules,
-                score: entry.score,
-                sequence: Some(entry.sequence),
-                term_tags: Some(entry.term_tags),
+                definition_tags: Some(def_tags),
+                rules,
+                score,
+                sequence: Some(sequence),
+                term_tags: Some(term_tags),
                 file_path: outpath.clone().into_os_string(),
                 dictionary: dict_name.to_owned(),
+                glossary: structured_content,
                 ..Default::default()
             };
-
-            let structured_content = entry.structured_content.swap_remove(0);
-            let defs = get_string_content(structured_content.content);
-            let gloss_content = TermGlossaryContent::new(defs.join("\n"), None, None, None);
-            let gloss = TermGlossary::Content(Box::new(gloss_content));
-            db_term.glossary = vec![gloss];
-
-            db_term
+            let path = test_utils::TEST_PATHS.tests_dir.with_extension("rs");
+            let file = File::options().create(true).truncate(true).open(&path);
+            std::fs::write(&path, format!("{term:#?}")).unwrap();
+            term
         })
         .collect();
-
     Ok(terms)
 }
 
@@ -784,55 +772,55 @@ fn rev_str(expression: &str) -> String {
     expression.chars().rev().collect()
 }
 
-fn get_string_content(c_match_type: ContentMatchType) -> Vec<String> {
-    match c_match_type {
-        ContentMatchType::String(string) => vec![string],
-        ContentMatchType::Element(element) => handle_content_match_type(vec![*element]),
-        ContentMatchType::Content(vec) => handle_content_match_type(vec),
-    }
-}
+// fn get_string_content(c_match_type: ContentMatchType) -> Vec<String> {
+//     match c_match_type {
+//         ContentMatchType::String(string) => vec![string],
+//         ContentMatchType::Element(element) => handle_content_match_type(vec![*element]),
+//         ContentMatchType::Content(vec) => handle_content_match_type(vec),
+//     }
+// }
 
-fn handle_content_match_type(content: Vec<Element>) -> Vec<String> {
-    let mut content_strings: Vec<String> = Vec::new();
-
-    for e in content {
-        match e {
-            Element::UnknownString(string) => content_strings.push(string),
-            Element::Link(mut element) => {
-                if let Some(content) = std::mem::take(&mut element.content) {
-                    content_strings.extend(get_string_content(content));
-                }
-            }
-            Element::Styled(mut element) => {
-                if let Some(content) = std::mem::take(&mut element.content) {
-                    content_strings.extend(get_string_content(content));
-                }
-            }
-            Element::Unstyled(mut element) => {
-                if let Some(content) = std::mem::take(&mut element.content) {
-                    content_strings.extend(get_string_content(content));
-                }
-            }
-            Element::Table(mut element) => {
-                if let Some(content) = std::mem::take(&mut element.content) {
-                    content_strings.extend(get_string_content(content));
-                }
-            }
-            // img elements don't have children
-            Element::Image(_) => {}
-            // br elements don't have children
-            Element::LineBreak(_) => {}
-            _ => {
-                panic!(
-                    "handle_content_match_type err: matched nothing! | line: {}",
-                    line!()
-                )
-            }
-        }
-    }
-
-    content_strings
-}
+// fn handle_content_match_type(content: Vec<ContentMatchType>) -> Vec<String> {
+//     let mut content_strings: Vec<String> = Vec::new();
+//
+//     for e in content {
+//         match e {
+//             Element::UnknownString(string) => content_strings.push(string),
+//             Element::Link(mut element) => {
+//                 if let Some(content) = std::mem::take(&mut element.content) {
+//                     content_strings.extend(get_string_content(content));
+//                 }
+//             }
+//             Element::Styled(mut element) => {
+//                 if let Some(content) = std::mem::take(&mut element.content) {
+//                     content_strings.extend(get_string_content(content));
+//                 }
+//             }
+//             Element::Unstyled(mut element) => {
+//                 if let Some(content) = std::mem::take(&mut element.content) {
+//                     content_strings.extend(get_string_content(content));
+//                 }
+//             }
+//             Element::Table(mut element) => {
+//                 if let Some(content) = std::mem::take(&mut element.content) {
+//                     content_strings.extend(get_string_content(content));
+//                 }
+//             }
+//             // img elements don't have children
+//             Element::Image(_) => {}
+//             // br elements don't have children
+//             Element::LineBreak(_) => {}
+//             _ => {
+//                 panic!(
+//                     "handle_content_match_type err: matched nothing! | line: {}",
+//                     line!()
+//                 )
+//             }
+//         }
+//     }
+//
+//     content_strings
+// }
 
 /****************** Helper Functions ******************/
 

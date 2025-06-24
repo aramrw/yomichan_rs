@@ -1,0 +1,599 @@
+DatabaseTermEntry {
+    id: "01979f89-59b7-7321-975d-e939949092bf",
+    expression: "柱",
+    reading: "じゅう",
+    expression_reverse: "柱",
+    reading_reverse: "うゅじ",
+    definition_tags: Some(
+        "",
+    ),
+    tags: None,
+    rules: "",
+    score: -1,
+    glossary: [
+        Content(
+            Tagged(
+                StructuredContent {
+                    content: Content(
+                        [
+                            Element(
+                                Styled(
+                                    StyledElement {
+                                        tag: Span,
+                                        content: Some(
+                                            Content(
+                                                [
+                                                    Element(
+                                                        Styled(
+                                                            StyledElement {
+                                                                tag: Span,
+                                                                content: Some(
+                                                                    Content(
+                                                                        [
+                                                                            String(
+                                                                                "【",
+                                                                            ),
+                                                                            Element(
+                                                                                Styled(
+                                                                                    StyledElement {
+                                                                                        tag: Span,
+                                                                                        content: Some(
+                                                                                            String(
+                                                                                                "柱",
+                                                                                            ),
+                                                                                        ),
+                                                                                        data: Some(
+                                                                                            {
+                                                                                                "name": "漢字見出",
+                                                                                            },
+                                                                                        ),
+                                                                                        style: None,
+                                                                                        title: None,
+                                                                                        lang: None,
+                                                                                    },
+                                                                                ),
+                                                                            ),
+                                                                            String(
+                                                                                "】",
+                                                                            ),
+                                                                        ],
+                                                                    ),
+                                                                ),
+                                                                data: Some(
+                                                                    {
+                                                                        "name": "漢字見出G",
+                                                                    },
+                                                                ),
+                                                                style: None,
+                                                                title: None,
+                                                                lang: None,
+                                                            },
+                                                        ),
+                                                    ),
+                                                    Element(
+                                                        Styled(
+                                                            StyledElement {
+                                                                tag: UnorderedList,
+                                                                content: Some(
+                                                                    Content(
+                                                                        [
+                                                                            Element(
+                                                                                Styled(
+                                                                                    StyledElement {
+                                                                                        tag: ListItem,
+                                                                                        content: Some(
+                                                                                            Content(
+                                                                                                [
+                                                                                                    String(
+                                                                                                        "チュウ",
+                                                                                                    ),
+                                                                                                    Element(
+                                                                                                        LineBreak(
+                                                                                                            LineBreak {
+                                                                                                                tag: Span,
+                                                                                                                data: None,
+                                                                                                            },
+                                                                                                        ),
+                                                                                                    ),
+                                                                                                    Element(
+                                                                                                        LineBreak(
+                                                                                                            LineBreak {
+                                                                                                                tag: Span,
+                                                                                                                data: None,
+                                                                                                            },
+                                                                                                        ),
+                                                                                                    ),
+                                                                                                ],
+                                                                                            ),
+                                                                                        ),
+                                                                                        data: Some(
+                                                                                            {
+                                                                                                "name": "漢字音",
+                                                                                            },
+                                                                                        ),
+                                                                                        style: None,
+                                                                                        title: None,
+                                                                                        lang: None,
+                                                                                    },
+                                                                                ),
+                                                                            ),
+                                                                            Element(
+                                                                                Styled(
+                                                                                    StyledElement {
+                                                                                        tag: ListItem,
+                                                                                        content: Some(
+                                                                                            Content(
+                                                                                                [
+                                                                                                    String(
+                                                                                                        "ジュウ",
+                                                                                                    ),
+                                                                                                    Element(
+                                                                                                        LineBreak(
+                                                                                                            LineBreak {
+                                                                                                                tag: Span,
+                                                                                                                data: None,
+                                                                                                            },
+                                                                                                        ),
+                                                                                                    ),
+                                                                                                ],
+                                                                                            ),
+                                                                                        ),
+                                                                                        data: Some(
+                                                                                            {
+                                                                                                "name": "漢字音",
+                                                                                            },
+                                                                                        ),
+                                                                                        style: None,
+                                                                                        title: None,
+                                                                                        lang: None,
+                                                                                    },
+                                                                                ),
+                                                                            ),
+                                                                        ],
+                                                                    ),
+                                                                ),
+                                                                data: Some(
+                                                                    {
+                                                                        "name": "漢字音G",
+                                                                    },
+                                                                ),
+                                                                style: None,
+                                                                title: None,
+                                                                lang: None,
+                                                            },
+                                                        ),
+                                                    ),
+                                                ],
+                                            ),
+                                        ),
+                                        data: Some(
+                                            {
+                                                "name": "見出部",
+                                            },
+                                        ),
+                                        style: None,
+                                        title: None,
+                                        lang: None,
+                                    },
+                                ),
+                            ),
+                            Element(
+                                Styled(
+                                    StyledElement {
+                                        tag: Div,
+                                        content: Some(
+                                            Element(
+                                                Styled(
+                                                    StyledElement {
+                                                        tag: Div,
+                                                        content: Some(
+                                                            Element(
+                                                                Styled(
+                                                                    StyledElement {
+                                                                        tag: Div,
+                                                                        content: Some(
+                                                                            Element(
+                                                                                Styled(
+                                                                                    StyledElement {
+                                                                                        tag: Div,
+                                                                                        content: Some(
+                                                                                            Element(
+                                                                                                Styled(
+                                                                                                    StyledElement {
+                                                                                                        tag: Div,
+                                                                                                        content: Some(
+                                                                                                            Content(
+                                                                                                                [
+                                                                                                                    Element(
+                                                                                                                        Styled(
+                                                                                                                            StyledElement {
+                                                                                                                                tag: Span,
+                                                                                                                                content: Some(
+                                                                                                                                    String(
+                                                                                                                                        "はしら。",
+                                                                                                                                    ),
+                                                                                                                                ),
+                                                                                                                                data: Some(
+                                                                                                                                    {
+                                                                                                                                        "name": "語釈",
+                                                                                                                                    },
+                                                                                                                                ),
+                                                                                                                                style: None,
+                                                                                                                                title: None,
+                                                                                                                                lang: None,
+                                                                                                                            },
+                                                                                                                        ),
+                                                                                                                    ),
+                                                                                                                    Element(
+                                                                                                                        Styled(
+                                                                                                                            StyledElement {
+                                                                                                                                tag: Div,
+                                                                                                                                content: Some(
+                                                                                                                                    Content(
+                                                                                                                                        [
+                                                                                                                                            String(
+                                                                                                                                                "「",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            String(
+                                                                                                                                                                "柱石",
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "・",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            String(
+                                                                                                                                                                "柱頭",
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "・",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            String(
+                                                                                                                                                                "円柱",
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "・",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            String(
+                                                                                                                                                                "支柱",
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "・",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            String(
+                                                                                                                                                                "石柱",
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "・",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            Content(
+                                                                                                                                                                [
+                                                                                                                                                                    String(
+                                                                                                                                                                        "脊柱",
+                                                                                                                                                                    ),
+                                                                                                                                                                    Element(
+                                                                                                                                                                        Styled(
+                                                                                                                                                                            StyledElement {
+                                                                                                                                                                                tag: Span,
+                                                                                                                                                                                content: Some(
+                                                                                                                                                                                    String(
+                                                                                                                                                                                        "(せきちゅう)",
+                                                                                                                                                                                    ),
+                                                                                                                                                                                ),
+                                                                                                                                                                                data: Some(
+                                                                                                                                                                                    {
+                                                                                                                                                                                        "name": "ルビG",
+                                                                                                                                                                                    },
+                                                                                                                                                                                ),
+                                                                                                                                                                                style: Some(
+                                                                                                                                                                                    StructuredContentStyle {
+                                                                                                                                                                                        font_style: None,
+                                                                                                                                                                                        font_weight: Some(
+                                                                                                                                                                                            Normal,
+                                                                                                                                                                                        ),
+                                                                                                                                                                                        font_size: Some(
+                                                                                                                                                                                            "0.6em",
+                                                                                                                                                                                        ),
+                                                                                                                                                                                        color: None,
+                                                                                                                                                                                        background: None,
+                                                                                                                                                                                        background_color: None,
+                                                                                                                                                                                        text_decoration_line: None,
+                                                                                                                                                                                        text_decoration_style: None,
+                                                                                                                                                                                        text_decoration_color: None,
+                                                                                                                                                                                        border_color: None,
+                                                                                                                                                                                        border_style: None,
+                                                                                                                                                                                        border_radius: None,
+                                                                                                                                                                                        border_width: None,
+                                                                                                                                                                                        clip_path: None,
+                                                                                                                                                                                        vertical_align: Some(
+                                                                                                                                                                                            Super,
+                                                                                                                                                                                        ),
+                                                                                                                                                                                        text_align: None,
+                                                                                                                                                                                        text_emphasis: None,
+                                                                                                                                                                                        text_shadow: None,
+                                                                                                                                                                                        margin: None,
+                                                                                                                                                                                        margin_top: None,
+                                                                                                                                                                                        margin_left: None,
+                                                                                                                                                                                        margin_right: None,
+                                                                                                                                                                                        margin_bottom: None,
+                                                                                                                                                                                        padding: None,
+                                                                                                                                                                                        padding_top: None,
+                                                                                                                                                                                        padding_left: None,
+                                                                                                                                                                                        padding_right: None,
+                                                                                                                                                                                        padding_bottom: None,
+                                                                                                                                                                                        word_break: None,
+                                                                                                                                                                                        white_space: None,
+                                                                                                                                                                                        cursor: None,
+                                                                                                                                                                                        list_style_type: None,
+                                                                                                                                                                                    },
+                                                                                                                                                                                ),
+                                                                                                                                                                                title: None,
+                                                                                                                                                                                lang: None,
+                                                                                                                                                                            },
+                                                                                                                                                                        ),
+                                                                                                                                                                    ),
+                                                                                                                                                                ],
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "・",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            String(
+                                                                                                                                                                "鉄柱",
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "・",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            String(
+                                                                                                                                                                "電柱",
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "・",
+                                                                                                                                            ),
+                                                                                                                                            Element(
+                                                                                                                                                Styled(
+                                                                                                                                                    StyledElement {
+                                                                                                                                                        tag: Span,
+                                                                                                                                                        content: Some(
+                                                                                                                                                            String(
+                                                                                                                                                                "門柱",
+                                                                                                                                                            ),
+                                                                                                                                                        ),
+                                                                                                                                                        data: Some(
+                                                                                                                                                            {
+                                                                                                                                                                "name": "熟語",
+                                                                                                                                                            },
+                                                                                                                                                        ),
+                                                                                                                                                        style: None,
+                                                                                                                                                        title: None,
+                                                                                                                                                        lang: None,
+                                                                                                                                                    },
+                                                                                                                                                ),
+                                                                                                                                            ),
+                                                                                                                                            String(
+                                                                                                                                                "」",
+                                                                                                                                            ),
+                                                                                                                                        ],
+                                                                                                                                    ),
+                                                                                                                                ),
+                                                                                                                                data: Some(
+                                                                                                                                    {
+                                                                                                                                        "name": "熟語例G",
+                                                                                                                                    },
+                                                                                                                                ),
+                                                                                                                                style: None,
+                                                                                                                                title: None,
+                                                                                                                                lang: None,
+                                                                                                                            },
+                                                                                                                        ),
+                                                                                                                    ),
+                                                                                                                ],
+                                                                                                            ),
+                                                                                                        ),
+                                                                                                        data: Some(
+                                                                                                            {
+                                                                                                                "name": "語義G",
+                                                                                                            },
+                                                                                                        ),
+                                                                                                        style: None,
+                                                                                                        title: None,
+                                                                                                        lang: None,
+                                                                                                    },
+                                                                                                ),
+                                                                                            ),
+                                                                                        ),
+                                                                                        data: Some(
+                                                                                            {
+                                                                                                "name": "中語義",
+                                                                                            },
+                                                                                        ),
+                                                                                        style: None,
+                                                                                        title: None,
+                                                                                        lang: None,
+                                                                                    },
+                                                                                ),
+                                                                            ),
+                                                                        ),
+                                                                        data: Some(
+                                                                            {
+                                                                                "name": "準大語義",
+                                                                            },
+                                                                        ),
+                                                                        style: None,
+                                                                        title: None,
+                                                                        lang: None,
+                                                                    },
+                                                                ),
+                                                            ),
+                                                        ),
+                                                        data: Some(
+                                                            {
+                                                                "name": "大語義",
+                                                            },
+                                                        ),
+                                                        style: None,
+                                                        title: None,
+                                                        lang: None,
+                                                    },
+                                                ),
+                                            ),
+                                        ),
+                                        data: Some(
+                                            {
+                                                "name": "解説部",
+                                            },
+                                        ),
+                                        style: None,
+                                        title: None,
+                                        lang: None,
+                                    },
+                                ),
+                            ),
+                        ],
+                    ),
+                },
+            ),
+        ),
+    ],
+    sequence: Some(
+        10332500000,
+    ),
+    term_tags: Some(
+        "",
+    ),
+    dictionary: "大辞林\u{3000}第四版",
+    file_path: "tests\\test_dicts\\daijirin\\term_bank_96.json",
+}

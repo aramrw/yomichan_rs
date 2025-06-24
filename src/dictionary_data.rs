@@ -2,7 +2,7 @@ use crate::database::dictionary_database::{DBMetaType, TermMetaPhoneticData};
 use crate::database::dictionary_importer::FrequencyMode;
 use crate::dictionary::VecNumOrNum;
 // use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
-use crate::structured_content::ImageElement;
+use crate::structured_content::{ContentMatchType, ImageElement, StructuredContent, TermGlossary};
 use native_db::{Key, ToKey};
 
 use bimap::BiHashMap;
@@ -85,16 +85,7 @@ pub enum TermGlossaryType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermGlossaryImage {
     pub term_glossary_type: TermGlossaryType,
-    pub term_image: Option<TermImage>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermImage {
-    pub image_element_base: ImageElement,
-    pub vertical_align: Option<()>,
-    pub border: Option<()>,
-    pub border_radius: Option<()>,
-    pub size_units: Option<()>,
+    pub term_image: Option<ImageElement>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -176,69 +167,11 @@ pub struct DictionaryDataTag {
     pub score: i128,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum TermGlossary {
-    Content(Box<TermGlossaryContent>),
-    /// This is a tuple struct in js.
-    /// If you see an `Array.isArray()` check on a [TermGlossary], its looking for this.
-    Deinflection(TermGlossaryDeinflection),
-}
-
-impl Default for TermGlossary {
-    fn default() -> Self {
-        TermGlossary::Content(Box::default())
-    }
-}
-
-/// The last three values are [`None`] for now because
-/// I have to figure them out lol
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct TermGlossaryContent {
-    /// A single string of continuous text containing the entry's definition.
-    /// The `entry`'s definition is simply extracted and concatenated-
-    /// meaning that there is no formatting.
-    pub term_glossary_string: String,
-    pub term_glossary_text: Option<TermGlossaryText>,
-    pub term_glossary_image: Option<TermGlossaryImage>,
-    /// An entry's raw HTML [`StructuredContent`]is converted into a String,
-    /// without deserialization.
-    /// As such, it is up to the program to render the content properly.
-    pub term_glossary_structured_content: Option<TermGlossaryStructuredContent>,
-}
-
-impl TermGlossaryContent {
-    pub fn new(
-        tgs: String,
-        tgt: Option<TermGlossaryText>,
-        tgi: Option<TermGlossaryImage>,
-        tgsc: Option<TermGlossaryStructuredContent>,
-    ) -> Self {
-        Self {
-            term_glossary_string: tgs,
-            term_glossary_text: tgt,
-            term_glossary_image: tgi,
-            term_glossary_structured_content: tgsc,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct TermGlossaryText {
-    pub term_glossary_type: TermGlossaryType,
-    pub text: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-/// Represents the structured content of a term.
-///
-/// An entry's entire HTML [`StructuredContent`] is [`Deserialize`]d into a String and pushed into `content`.
-/// As such, it is up to the program to render `content` properly.
-///
-/// If the program is unable/unwilling to render html:
-/// See: [`TermV4`]
-pub struct TermGlossaryStructuredContent {
-    content: String,
-}
+// #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub struct TermGlossaryText {
+//     pub term_glossary_type: TermGlossaryType,
+//     pub text: String,
+// }
 
 /// Yomichan-like term model.
 ///
@@ -279,13 +212,6 @@ pub struct TermV4 {
     pub definition: String,
     pub sequence: i128,
     pub term_tags: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// TermGlossaryDeinflection represents the deinflection information of a term.
-pub struct TermGlossaryDeinflection {
-    pub uninflected: String,
-    pub inflection_rule_chain: Vec<String>,
 }
 
 /************* Term Meta *************/

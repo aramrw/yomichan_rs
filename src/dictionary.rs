@@ -1,6 +1,6 @@
 use crate::{
     database::dictionary_database::{Pronunciation, TermPronunciationMatchType},
-    dictionary_data::TermGlossaryContent,
+    structured_content::TermGlossaryContent,
     translation_internal::TextProcessorRuleChainCandidate,
     translator::TermType,
 };
@@ -319,4 +319,3 @@ pub struct TermDictionaryEntry {
 }
 
 /*************** Pitch Accent & Pronunciation ***************/
-

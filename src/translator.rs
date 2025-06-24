@@ -15,8 +15,8 @@ use crate::{
         TermSource, TermSourceMatchSource, TermSourceMatchType, VecNumOrNum,
     },
     dictionary_data::{
-        FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermGlossary,
-        TermGlossaryContent, TermGlossaryDeinflection, TermMetaFreqDataMatchType, TermMetaModeType,
+        FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermMetaFreqDataMatchType,
+        TermMetaModeType,
     },
     freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
@@ -25,6 +25,7 @@ use crate::{
         SortFrequencyDictionaryOrder, TranslationOptions, TranslationTextReplacementGroup,
         TranslationTextReplacementOptions,
     },
+    structured_content::{TermGlossary, TermGlossaryContent, TermGlossaryDeinflection},
     to_variant,
     translation::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
@@ -2453,6 +2454,7 @@ impl<'a> Translator<'a> {
             ));
         }
     }
+
     fn _add_term_definitions(
         definitions: &mut Vec<TermDefinition>,
         definitions_map: &mut IndexMap<String, TermDefinition>,
@@ -2854,7 +2856,7 @@ impl<'a> Translator<'a> {
         let content_definitions: Vec<TermGlossaryContent> = definitions
             .into_iter()
             .filter_map(|def| match def {
-                TermGlossary::Content(c) => Some(*c),
+                TermGlossary::Content(c) => Some(c),
                 TermGlossary::Deinflection(_) => None,
             })
             .collect();
@@ -3139,10 +3141,8 @@ impl<'a> Translator<'a> {
                     if let TermGlossary::Deinflection(term_glossary_deinflection) =
                         definition_variant
                     {
-                        let TermGlossaryDeinflection {
-                            uninflected: form_of,
-                            inflection_rule_chain: inflection_rules,
-                        } = term_glossary_deinflection;
+                        let TermGlossaryDeinflection(form_of, inflection_rules) =
+                            term_glossary_deinflection;
                         if form_of.is_empty() {
                             continue;
                         }

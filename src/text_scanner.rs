@@ -498,8 +498,8 @@ mod textscanner {
     #[test]
     fn search() {
         let mut ycd = YCD.write().unwrap();
-        ycd.set_language("es");
-        let res = ycd.search("espanol es bueno");
+        ycd.set_language("ja");
+        let res = ycd.search("日本人");
         dbg!(&res);
     }
 }

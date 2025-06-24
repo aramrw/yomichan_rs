@@ -1,0 +1,164 @@
+[
+  [
+        "草いきれ",
+        "くさいきれ",
+        "",
+        "",
+        0,
+        [
+            {
+                "type": "structured-content",
+                "content": [
+                    {
+                        "tag": "span",
+                        "data": {
+                            "name": "見出部"
+                        },
+                        "content": [
+                            {
+                                "tag": "span",
+                                "style": {
+                                    "fontWeight": "bold"
+                                },
+                                "data": {
+                                    "name": "見出仮名"
+                                },
+                                "content": [
+                                    "くさ",
+                                    {
+                                        "tag": "span",
+                                        "style": {
+                                            "marginRight": 0.5
+                                        },
+                                        "data": {
+                                            "name": "語構成"
+                                        }
+                                    },
+                                    "いきれ"
+                                ]
+                            },
+                            {
+                                "tag": "span",
+                                "style": {
+                                    "fontSize": "0.7em",
+                                    "verticalAlign": "super",
+                                    "marginRight": 0.25,
+                                    "marginLeft": 0.25
+                                },
+                                "data": {
+                                    "name": "アクセントG"
+                                },
+                                "content": {
+                                    "tag": "span",
+                                    "data": {
+                                        "name": "アクセント"
+                                    },
+                                    "content": {
+                                        "tag": "span",
+                                        "data": {
+                                            "name": "accent"
+                                        },
+                                        "content": "[3]"
+                                    }
+                                }
+                            },
+                            {
+                                "tag": "span",
+                                "data": {
+                                    "name": "表記G"
+                                },
+                                "content": [
+                                    "【",
+                                    {
+                                        "tag": "span",
+                                        "data": {
+                                            "name": "標準表記"
+                                        },
+                                        "content": "草いきれ"
+                                    },
+                                    "】"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tag": "div",
+                        "data": {
+                            "name": "解説部"
+                        },
+                        "content": {
+                            "tag": "div",
+                            "data": {
+                                "name": "大語義"
+                            },
+                            "content": {
+                                "tag": "div",
+                                "data": {
+                                    "name": "準大語義"
+                                },
+                                "content": {
+                                    "tag": "div",
+                                    "data": {
+                                        "name": "中語義"
+                                    },
+                                    "content": {
+                                        "tag": "div",
+                                        "data": {
+                                            "name": "語義G"
+                                        },
+                                        "content": [
+                                            {
+                                                "tag": "span",
+                                                "data": {
+                                                    "name": "語釈"
+                                                },
+                                                "content": "夏の強い日ざしをうけて、草むらから立ちのぼる、むっとする熱気。"
+                                            },
+                                            {
+                                                "tag": "div",
+                                                "data": {
+                                                    "name": "季語G"
+                                                },
+                                                "content": [
+                                                    {
+                                                        "tag": "span",
+                                                        "style": {
+                                                            "verticalAlign": "text-bottom",
+                                                            "marginRight": 0.25
+                                                        },
+                                                        "content": {
+                                                            "tag": "img",
+                                                            "height": 1.0,
+                                                            "width": 1.0,
+                                                            "sizeUnits": "em",
+                                                            "appearance": "monochrome",
+                                                            "title": "季",
+                                                            "collapsible": false,
+                                                            "collapsed": false,
+                                                            "background": false,
+                                                            "path": "daijirin2/季-default.svg"
+                                                        }
+                                                    },
+                                                    {
+                                                        "tag": "span",
+                                                        "data": {
+                                                            "name": "季語"
+                                                        },
+                                                        "content": "夏"
+                                                    },
+                                                    "。"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        ],
+        4352700000,
+        ""
+    ],
+]
