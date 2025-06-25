@@ -615,21 +615,21 @@ fn deserialize_element_from_value(value: Value) -> Result<Element, String> {
     })
 }
 
-// impl<'de> Deserialize<'de> for Element {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         // The deserializer now dispatches to the correct visitor method
-//         // based on the data format it is reading.
-//         deserializer.deserialize_any(ElementVisitor)
-//     }
-// }
+impl<'de> Deserialize<'de> for Element {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // The deserializer now dispatches to the correct visitor method
+        // based on the data format it is reading.
+        deserializer.deserialize_any(ElementVisitor)
+    }
+}
 
 /// Represents All `Content` elements that can
 /// appear within a `"content":` section.
 #[skip_serializing_none]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Element {
     UnknownString(String),
@@ -696,7 +696,7 @@ pub struct UnstyledElement {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TableElement {
     /// `TableElement`'s tags could be the following:
@@ -711,6 +711,116 @@ pub struct TableElement {
     pub style: Option<StructuredContentStyle>,
     /// Defines the language of an element in the format defined by RFC 5646.
     lang: Option<String>,
+}
+
+impl<'de> Deserialize<'de> for TableElement {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct TableElementVisitor;
+
+        impl<'de> Visitor<'de> for TableElementVisitor {
+            type Value = TableElement;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence for a TableElement")
+            }
+
+            // This is the method that will be called for your MessagePack data
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                // Field 1: Tag (required, always first)
+                let tag: HtmlTag = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+
+                // Now, we handle the rest of the fields which might be optional or in any order.
+                // The most robust way is to read them all as generic values and then pick them apart.
+                let mut content = None;
+                let mut row_span = None;
+                let mut col_span = None;
+                let mut style = None;
+                let mut data = None;
+
+                // Loop through the remaining elements in the sequence
+                while let Some(value) = seq.next_element::<serde_json::Value>()? {
+                    // Try to see if the value is a number (for row_span/col_span)
+                    if let Some(num) = value.as_u64() {
+                        // Business rule: assume the first number is row_span, second is col_span
+                        if row_span.is_none() {
+                            row_span = Some(num as u16);
+                        } else if col_span.is_none() {
+                            col_span = Some(num as u16);
+                        }
+                        continue; // Go to next item in sequence
+                    }
+                    
+                    // Try to see if it's a style object
+                    if let Ok(s) = serde_json::from_value::<StructuredContentStyle>(value.clone()) {
+                        style = Some(s);
+                        continue;
+                    }
+
+                    // Try to see if it's a data object
+                    if let Ok(d) = serde_json::from_value::<IndexMap<String, String>>(value.clone()) {
+                        data = Some(d);
+                        continue;
+                    }
+
+                    // If it's none of the above, it must be the content.
+                    // We can only have one content field.
+                    if content.is_none() {
+                        content = Some(serde_json::from_value(value).map_err(de::Error::custom)?);
+                    }
+                }
+
+                Ok(TableElement {
+                    tag,
+                    content,
+                    data,
+                    col_span,
+                    row_span,
+                    style,
+                    lang: None, // lang is not in the sequence format
+                })
+            }
+
+            // OPTIONAL: To maintain compatibility with JSON map format if needed
+            fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+            where
+                A: de::MapAccess<'de>,
+            {
+                // This will deserialize from the map-based JSON format
+                #[derive(Deserialize)]
+                #[serde(rename_all = "camelCase")]
+                struct Helper {
+                    tag: HtmlTag,
+                    content: Option<ContentMatchType>,
+                    data: Option<IndexMap<String, String>>,
+                    col_span: Option<u16>,
+                    row_span: Option<u16>,
+                    style: Option<StructuredContentStyle>,
+                    lang: Option<String>,
+                }
+
+                let helper = Helper::deserialize(de::value::MapAccessDeserializer::new(map))?;
+                Ok(TableElement {
+                    tag: helper.tag,
+                    content: helper.content,
+                    data: helper.data,
+                    col_span: helper.col_span,
+                    row_span: helper.row_span,
+                    style: helper.style,
+                    lang: helper.lang,
+                })
+            }
+        }
+
+        // This allows Serde to call visit_seq for sequences and visit_map for maps
+        deserializer.deserialize_any(TableElementVisitor)
+    }
 }
 
 #[skip_serializing_none]

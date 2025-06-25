@@ -1,6 +1,6 @@
 [
   [
-    "0197a4a2-7a8c-7363-a496-8a549603ae78",
+    "0197a4d5-d4b3-7933-b32f-95b89f75015b",
     "自業自得",
     "じごうじとく",
     "得自業自",
@@ -96,6 +96,7 @@
                   {
                     "tag": "th",
                     "content": "類義語",
+                    "rowSpan": 3,
                     "style": {
                       "verticalAlign": "middle",
                       "textAlign": "center"
