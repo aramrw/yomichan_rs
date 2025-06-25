@@ -2,9 +2,10 @@ use std::{fmt, fs::File, hash::Hash, io::BufReader};
 
 use indexmap::IndexMap;
 use serde::{
-    de::{self, Error, MapAccess, Visitor},
+    de::{self, Error, MapAccess, SeqAccess, Visitor},
     Deserialize, Deserializer, Serialize,
 };
+use serde_json::Value;
 use serde_untagged::UntaggedEnumVisitor;
 use serde_with::skip_serializing_none;
 
@@ -49,60 +50,49 @@ impl<'de> Deserialize<'de> for ContentMatchType {
     where
         D: Deserializer<'de>,
     {
-        // First, deserialize the data into a generic, abstract value.
-        let value = serde_json::Value::deserialize(deserializer)?;
+        // Step 1: Deserialize into a generic Value.
+        let value = serde_json::Value::deserialize(deserializer).map_err(|e| {
+            de::Error::custom(format!(
+                "Failed to deserialize into intermediate Value: {}",
+                e
+            ))
+        })?;
 
-        // --- Check the shape of the value to guide deserialization ---
+        // We'll store errors from each attempt
+        let mut errors = Vec::new();
 
-        // Check 1: Is it a JSON array?
-        // This is the most likely candidate for the `Content` variant.
-        if value.is_array() {
-            // Attempt to deserialize the array into Vec<ContentMatchType>.
-            // This will recursively call this same function for each item in the array.
-            match serde_json::from_value::<Vec<ContentMatchType>>(value) {
-                Ok(content_vec) => return Ok(ContentMatchType::Content(content_vec)),
-                Err(e) => {
-                    // This could happen if the array contains something that doesn't fit ContentMatchType.
-                    return Err(de::Error::custom(format!(
-                        "failed to parse array as Content: {e}",
-                    )));
-                }
-            }
-        }
-
-        // Check 2: Is it a JSON object?
-        // This is the most likely candidate for the `Element` variant.
-        if value.is_object() {
-            // Attempt to deserialize the object into an Element.
-            match serde_json::from_value::<Element>(value) {
+        // Step 2: Try as Element (expects an object or array representing a tag).
+        if value.is_object() || value.is_array() {
+            match Element::deserialize(value.clone()) {
                 Ok(element) => return Ok(ContentMatchType::Element(Box::new(element))),
-                Err(e) => {
-                    return Err(de::Error::custom(format!(
-                        "failed to parse object as Element: {e}",
-                    )));
-                }
+                Err(e) => errors.push(format!("[Attempted as Element] {}", e)),
             }
         }
 
-        // Check 3: Is it a JSON string?
-        // This is the most likely candidate for the `String` variant.
+        // Step 3: Try as Vec<ContentMatchType> (expects an array).
+        if value.is_array() {
+            match <Vec<ContentMatchType>>::deserialize(value.clone()) {
+                Ok(content_vec) => return Ok(ContentMatchType::Content(content_vec)),
+                Err(e) => errors.push(format!("[Attempted as Vec<ContentMatchType>] {}", e)),
+            }
+        }
+
+        // Step 4: Try as String.
         if value.is_string() {
-            // Attempt to deserialize the value as a String.
-            match serde_json::from_value::<String>(value) {
+            match String::deserialize(value.clone()) {
                 Ok(s) => return Ok(ContentMatchType::String(s)),
-                Err(e) => {
-                    // This is unlikely to fail if is_string() is true, but we handle it for correctness.
-                    return Err(de::Error::custom(format!(
-                        "failed to parse string as String: {e}"
-                    )));
-                }
+                Err(e) => errors.push(format!("[Attempted as String] {}", e)),
             }
         }
 
-        // If the value is not an array, object, or string, it's an unsupported type.
-        Err(de::Error::custom(
-            "data is not a valid ContentMatchType: expected an array, object, or string",
-        ))
+        // Step 5: If all attempts failed, report everything.
+        Err(de::Error::custom(format!(
+            "Data did not match any variant of ContentMatchType (Element, Vec, or String).\n\
+            Problematic value: {}\n\n\
+            Errors:\n- {}",
+            serde_json::to_string_pretty(&value).unwrap_or_else(|_| format!("{:?}", value)),
+            errors.join("\n- ")
+        )))
     }
 }
 
@@ -121,70 +111,85 @@ impl<'de> Deserialize<'de> for TermGlossary {
     where
         D: Deserializer<'de>,
     {
-        // First, deserialize the data into a generic, abstract value.
-        let value = serde_json::Value::deserialize(deserializer)?;
-        let val_clone = value.clone();
+        // Step 1: Deserialize into a generic Value to inspect it.
+        let value = serde_json::Value::deserialize(deserializer).map_err(|e| {
+            de::Error::custom(format!(
+                "Failed to deserialize into intermediate Value: {}",
+                e
+            ))
+        })?;
 
-        // --- Attempt to match each variant ---
+        // Step 2: Try to deserialize the Value as the `Deinflection` variant.
+        // `Deinflection` is a tuple `(String, Vec<String>)`, which looks like a JSON array.
+        if value.is_array() {
+            if let Ok(deinflection) = TermGlossaryDeinflection::deserialize(value.clone()) {
+                return Ok(TermGlossary::Deinflection(deinflection));
+            }
+        }
 
-        // Attempt 2: Try to parse it as TermGlossaryContent (which can be an object or a string).
-        // This will consume the value on the final attempt.
-        if let Ok(content) = serde_json::from_value::<TermGlossaryContent>(value.clone()) {
-            // If successful, we have our answer.
+        // Step 3: Try to deserialize the Value as the `Content` variant.
+        // This can be an object or a string.
+        if let Ok(content) = TermGlossaryContent::deserialize(value.clone()) {
             return Ok(TermGlossary::Content(content));
         }
 
-        // Attempt 1: Try to parse it as a Deinflection array.
-        // This is a good first candidate because its shape (an array) is very specific.
-        if let Ok(deinflection) = serde_json::from_value::<TermGlossaryDeinflection>(value) {
-            // If successful, we have our answer.
-            return Ok(TermGlossary::Deinflection(deinflection));
-        }
-
-        // If none of the above attempts worked, the data is in an unknown format.
-        Err(de::Error::custom(
-            format!(" {val_clone} did not match TermGlossary variants: expected deinflection array or content object/string"),
-        ))
+        // Step 4: If BOTH variants fail, create a detailed error message.
+        Err(de::Error::custom(format!(
+            "Data did not match any variant of TermGlossary (Deinflection or Content).\nProblematic value: {}",
+            serde_json::to_string_pretty(&value).unwrap_or_else(|_| format!("{:?}", value))
+        )))
     }
 }
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermGlossaryDeinflection(pub String, pub Vec<String>);
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum TermGlossaryContent {
     Tagged(TaggedContent),
     String(String),
 }
 
-// impl<'de> Deserialize<'de> for TermGlossaryContent {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         // 1. Deserialize into a generic Value first.
-//         let value = serde_json::Value::deserialize(deserializer)?;
-//
-//         // 2. Try to deserialize the Value as a TaggedContent object.
-//         // We clone the value because from_value consumes it, and we might need it again.
-//         if let Ok(tagged) = serde_json::from_value::<TaggedContent>(value.clone()) {
-//             return Ok(TermGlossaryContent::Tagged(tagged));
-//         }
-//
-//         // 3. If that failed, try to deserialize it as a String.
-//         if let Ok(s) = serde_json::from_value::<String>(value) {
-//             return Ok(TermGlossaryContent::String(s));
-//         }
-//
-//         // 4. If all attempts fail, return a custom error.
-//         Err(de::Error::custom(
-//             "data did not match any variant of TermGlossaryContent",
-//         ))
-//     }
-// }
+impl<'de> Deserialize<'de> for TermGlossaryContent {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Step 1: Deserialize into a generic Value.
+        let value = serde_json::Value::deserialize(deserializer).map_err(|e| {
+            de::Error::custom(format!(
+                "Failed to deserialize into intermediate Value: {}",
+                e
+            ))
+        })?;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+        // Step 2: Try to deserialize as `TaggedContent` (expects a map or a sequence).
+        // We'll capture the error if it fails.
+        let tagged_error = match TaggedContent::deserialize(value.clone()) {
+            Ok(tagged) => return Ok(TermGlossaryContent::Tagged(tagged)),
+            Err(e) => e.to_string(), // Keep the error message
+        };
+
+        // Step 3: Try to deserialize as `String`. This is where your error likely originates.
+        // If `value` is a sequence, this will fail with "invalid type: sequence, expected a string".
+        let string_error = match String::deserialize(value.clone()) {
+            Ok(s) => return Ok(TermGlossaryContent::String(s)),
+            Err(e) => e.to_string(), // Keep the error message
+        };
+
+        // Step 4: If both attempts failed, report everything.
+        Err(de::Error::custom(format!(
+            "Data did not match any variant of TermGlossaryContent (Tagged or String).\n\
+            Problematic value: {}\n\n\
+            Attempt 1 (as TaggedContent) failed with: {}\n\
+            Attempt 2 (as String) failed with: {}",
+            serde_json::to_string_pretty(&value).unwrap_or_else(|_| format!("{:?}", value)),
+            tagged_error,
+            string_error
+        )))
+    }
+}
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub enum TaggedContent {
     #[serde(rename = "text")]
@@ -197,6 +202,112 @@ pub enum TaggedContent {
         #[serde(rename = "content")]
         content: ContentMatchType,
     },
+}
+
+impl<'de> Deserialize<'de> for TaggedContent {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct TaggedContentVisitor;
+
+        impl<'de> Visitor<'de> for TaggedContentVisitor {
+            type Value = TaggedContent;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str(
+                    "a map with a 'type' key (JSON format) or a [tag, payload] sequence (MessagePack format)",
+                )
+            }
+
+            /// Handles the MessagePack format: `["tag", payload]`
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: de::SeqAccess<'de>,
+            {
+                // The first element is the tag string.
+                let tag: String = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &"a [tag, payload] sequence"))?;
+
+                // The second element is the payload, which depends on the tag.
+                let content = match tag.as_str() {
+                    "text" => {
+                        let text: String = seq
+                            .next_element()?
+                            .ok_or_else(|| de::Error::invalid_length(1, &"a text payload"))?;
+                        TaggedContent::Text { text }
+                    }
+                    "img" => {
+                        let image_payload: Box<ImageElement> = seq
+                            .next_element()?
+                            .ok_or_else(|| de::Error::invalid_length(1, &"an image payload"))?;
+                        TaggedContent::Image(image_payload)
+                    }
+                    "structured-content" => {
+                        let content: ContentMatchType = seq.next_element()?.ok_or_else(|| {
+                            de::Error::invalid_length(1, &"a structured-content payload")
+                        })?;
+                        TaggedContent::StructuredContent { content }
+                    }
+                    _ => {
+                        return Err(de::Error::unknown_variant(
+                            &tag,
+                            &["text", "img", "structured-content"],
+                        ))
+                    }
+                };
+
+                // Ensure there are no more elements in the sequence.
+                if seq.next_element::<de::IgnoredAny>()?.is_some() {
+                    return Err(de::Error::invalid_length(3, &self));
+                }
+
+                Ok(content)
+            }
+
+            /// Handles the JSON format: `{"type": "tag", ...}`
+            fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+            where
+                A: de::MapAccess<'de>,
+            {
+                // To handle an internally tagged enum from a map, the easiest
+                // way is to deserialize into a generic value and then use
+                // from_value, which re-applies Serde's `#[serde(tag = "...")]` logic.
+                let value =
+                    serde_json::Value::deserialize(de::value::MapAccessDeserializer::new(map))?;
+
+                // This helper struct allows us to leverage Serde's derived logic for internally tagged enums.
+                #[derive(Deserialize)]
+                #[serde(tag = "type")]
+                enum Helper {
+                    #[serde(rename = "text")]
+                    Text { text: String },
+                    #[serde(rename = "img")]
+                    Image(Box<ImageElement>),
+                    #[serde(rename = "structured-content")]
+                    StructuredContent {
+                        #[serde(rename = "content")]
+                        content: ContentMatchType,
+                    },
+                }
+
+                // Deserialize from the intermediate `serde_json::Value`.
+                let helper = Helper::deserialize(value).map_err(de::Error::custom)?;
+
+                // Convert from the helper enum back to our main TaggedContent enum.
+                Ok(match helper {
+                    Helper::Text { text } => TaggedContent::Text { text },
+                    Helper::Image(img) => TaggedContent::Image(img),
+                    Helper::StructuredContent { content } => {
+                        TaggedContent::StructuredContent { content }
+                    }
+                })
+            }
+        }
+
+        deserializer.deserialize_any(TaggedContentVisitor)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -280,6 +391,7 @@ pub enum HtmlTag {
     Summary,
     #[serde(rename = "br")]
     Break,
+    Img,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -288,7 +400,9 @@ pub enum VerticalAlign {
     Baseline,
     Sub,
     Super,
+    #[serde(rename = "text-bottom")]
     TextTop,
+    #[serde(rename = "text-bottom")]
     TextBottom,
     Middle,
     Top,
@@ -354,14 +468,15 @@ pub enum TextAlign {
     MatchParent,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum SizeUnits {
     Px,
     Em,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StructuredContentStyle {
     font_style: Option<FontStyle>,
@@ -401,120 +516,120 @@ pub struct StructuredContentStyle {
 // daijisen: ~6.35s WITHOUT custom deserialization.
 // daijisen: ~7.13 WITH custom deserialization.
 
-// impl<'de> Deserialize<'de> for ContentMatchType {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         UntaggedEnumVisitor::new()
-//             .string(|single| Ok(ContentMatchType::String(single.to_string())))
-//             .map(|map| map.deserialize().map(ContentMatchType::Element))
-//             .seq(|seq| seq.deserialize().map(ContentMatchType::Content))
-//             .deserialize(deserializer)
-//     }
-// }
+struct ElementVisitor;
+
+impl<'de> Visitor<'de> for ElementVisitor {
+    type Value = Element;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter
+            .write_str("a map with a 'tag' key (for JSON) or a sequence/tuple (for MessagePack)")
+    }
+
+    // This method will be called by `rmp_serde` when it sees an array.
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        // Here we recreate your logic for the array format.
+        // The idea is to deserialize the entire sequence into a serde_json::Value
+        // ONLY because the rest of your logic depends on it. A more performant
+        // solution would deserialize field-by-field.
+        let value_seq: Vec<Value> =
+            de::Deserialize::deserialize(de::value::SeqAccessDeserializer::new(&mut seq))?;
+        let value = Value::Array(value_seq);
+
+        // Now you can call a helper function with your existing logic
+        deserialize_element_from_value(value).map_err(de::Error::custom)
+    }
+
+    // This method will be called by `serde_json` when it sees an object.
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        // Same principle: reconstruct a `serde_json::Value` and use your existing logic.
+        let value_map: serde_json::Map<String, Value> =
+            de::Deserialize::deserialize(de::value::MapAccessDeserializer::new(&mut map))?;
+        let value = Value::Object(value_map);
+
+        // Call the same helper function
+        deserialize_element_from_value(value).map_err(de::Error::custom)
+    }
+}
+
+fn deserialize_element_from_value(value: Value) -> Result<Element, String> {
+    // Determine the tag from either the map or array structure.
+    let tag_str = if let Some(obj) = value.as_object() {
+        obj.get("tag")
+            .and_then(Value::as_str)
+            .ok_or("Element map is missing a 'tag' field")?
+    } else if let Some(arr) = value.as_array() {
+        if arr.is_empty() {
+            return Err("Element array cannot be empty".to_string());
+        }
+        arr[0]
+            .as_str()
+            .ok_or("First element of Element array must be a tag string".to_string())?
+    } else {
+        return Err(format!(
+            "Element must be a map or an array, but was: {:?}",
+            value
+        ));
+    };
+
+    // Use `serde_json::from_value` to deserialize into the correct concrete struct.
+    // We must clone `value` because `from_value` consumes it.
+    let result = match tag_str {
+        "a" => serde_json::from_value(value.clone()).map(Element::Link),
+        "div" | "span" | "ol" | "ul" | "li" | "details" | "summary" => {
+            serde_json::from_value(value.clone()).map(Element::Styled)
+        }
+        "ruby" | "rt" | "rp" | "t" | "table" | "thead" | "tbody" | "tfoot" | "tr" | "tb" | "tf" => {
+            serde_json::from_value(value.clone()).map(Element::Unstyled)
+        }
+        "td" | "th" => serde_json::from_value(value.clone()).map(Element::Table),
+        "br" => serde_json::from_value(value.clone()).map(Element::LineBreak),
+        "img" => serde_json::from_value(value.clone()).map(Element::Image),
+        unknown_tag => {
+            // Replicate the behavior of `Error::unknown_variant` by creating a useful error message.
+            let known_variants = &[
+                "a", "div", "span", "ol", "ul", "li", "details", "summary", "ruby", "rt", "rp",
+                "t", "table", "thead", "tbody", "tfoot", "tr", "tb", "tf", "td", "th", "br", "img",
+            ];
+            // We need to return a `Result<_, serde_json::Error>` to match the other arms.
+            // A simple way is to create an `io::Error`.
+            return Err(format!(
+                "unknown variant `{}`, expected one of {:?}",
+                unknown_tag, known_variants
+            ));
+        }
+    };
+
+    // Add the detailed final error message, which is very helpful for debugging.
+    result.map_err(|e| {
+        format!(
+            "Failed to deserialize Element with tag '{}'. Error: {}. Original value was: {}",
+            tag_str, e, value
+        )
+    })
+}
 
 // impl<'de> Deserialize<'de> for Element {
 //     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 //     where
 //         D: Deserializer<'de>,
 //     {
-//         serde_untagged::UntaggedEnumVisitor::new()
-//             .string(|unkown_string| Ok(Element::UnknownString(unkown_string.to_string())))
-//             .map(|map| {
-//                 let value = map.deserialize::<serde_json::Value>()?;
-//                 let tag = match value.get("tag") {
-//                     Some(tag) => tag
-//                         .as_str()
-//                         .ok_or_else(|| serde::de::Error::custom("tag is not a string")),
-//                     None => Err(serde::de::Error::custom("missing tag")),
-//                 }?;
-//
-//                 let element = match tag {
-//                     "a" => serde_json::from_value(value).map(Element::Link),
-//                     "div" => serde_json::from_value(value).map(Element::Styled),
-//                     "span" => serde_json::from_value(value).map(Element::Styled),
-//                     "br" => serde_json::from_value(value).map(Element::LineBreak),
-//                     "img" => serde_json::from_value(value).map(Element::Image),
-//                     "ruby" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "rt" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "rp" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "t" => serde_json::from_value(value).map(Element::Unstyled),
-//                     //"th" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "tb" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "tf" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "ol" => serde_json::from_value(value).map(Element::Styled),
-//                     "ul" => serde_json::from_value(value).map(Element::Styled),
-//                     "li" => serde_json::from_value(value).map(Element::Styled),
-//                     "details" => serde_json::from_value(value).map(Element::Styled),
-//                     "summary" => serde_json::from_value(value).map(Element::Styled),
-//                     "table" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "thead" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "tbody" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "tfoot" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "tr" => serde_json::from_value(value).map(Element::Unstyled),
-//                     "td" => serde_json::from_value(value).map(Element::Table),
-//                     "th" => serde_json::from_value(value).map(Element::Table),
-//                     _ => {
-//                         if let serde_json::Value::String(s) = value {
-//                             Ok(Element::UnknownString(s.to_string()))
-//                         } else {
-//                             Err(serde::de::Error::custom(format!(
-//                                 "unexpected value: {tag};"
-//                             )))
-//                         }
-//                     }
-//                 };
-//
-//                 element.map_err(|err| {
-//                     serde::de::Error::custom(format!("failed to deserialize element: {err}"))
-//                 })
-//             })
-//             .deserialize(deserializer)
+//         // The deserializer now dispatches to the correct visitor method
+//         // based on the data format it is reading.
+//         deserializer.deserialize_any(ElementVisitor)
 //     }
 // }
 
-impl<'de> Deserialize<'de> for Element {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        // Step 1: Deserialize into a generic Value. This is a single,
-        // fast operation provided by serde_json.
-        let value = serde_json::Value::deserialize(deserializer)?;
-        let val_clone = value.clone();
-
-        // Step 2: Get the tag.
-        let tag = value
-            .get("tag")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| Error::missing_field("tag"))?;
-
-        // Step 3: Dispatch directly based on the tag. `from_value` is highly
-        // optimized for this and does not re-parse the string.
-        match tag {
-            "a" => serde_json::from_value(value).map(Element::Link),
-            "div" | "span" | "ol" | "ul" | "li" | "details" | "summary" => {
-                serde_json::from_value(value).map(Element::Styled)
-            }
-            "ruby" | "rt" | "rp" | "t" | "table" | "thead" | "tbody" | "tfoot" | "tr" | "tb"
-            | "tf" => serde_json::from_value(value).map(Element::Unstyled),
-            "td" | "th" => serde_json::from_value(value).map(Element::Table),
-            "br" => serde_json::from_value(value).map(Element::LineBreak),
-            "img" => serde_json::from_value(value).map(Element::Image),
-            unknown_tag => Err(Error::unknown_variant(unknown_tag, &["..."])),
-        }
-        .map_err(|e| {
-            serde::de::Error::custom(format!(
-                "serde_json::from_value failed with error: {e}. The JSON value was: {val_clone}"
-            ))
-        })
-    }
-}
-
 /// Represents All `Content` elements that can
 /// appear within a `"content":` section.
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Element {
     UnknownString(String),
@@ -549,17 +664,18 @@ pub enum Element {
 }
 
 /// This element doesn't support children or support language.
+#[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LineBreak {
     /// The `LineBreak`' tag is:
     /// [`HtmlTag::Break`] | `"br"`.
-    tag: HtmlTag,
+    pub tag: HtmlTag,
     data: Option<IndexMap<String, String>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnstyledElement {
     /// `UnstyledElements`'s' tags could be the following:
@@ -579,8 +695,8 @@ pub struct UnstyledElement {
     lang: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TableElement {
     /// `TableElement`'s tags could be the following:
@@ -597,8 +713,8 @@ pub struct TableElement {
     lang: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StyledElement {
     /// `StyledElement`'s tags are:
@@ -621,8 +737,8 @@ pub struct StyledElement {
     lang: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkElement {
     /// The `LinkElement`'s tag is:
@@ -647,11 +763,11 @@ pub enum NumberOrString {
     String(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageElement {
-    pub tag: Option<HtmlTag>,
+    pub tag: HtmlTag,
     /// This element doesn't support children.
     pub content: Option<()>,
     /// The vertical alignment of the image.
@@ -698,9 +814,8 @@ pub struct ImageElement {
 #[test]
 fn from_json() {
     let path = &test_utils::TEST_PATHS.tests_dir;
-    let file = File::open(path.join("writing.json")).unwrap();
+    let file = File::open(path.join("自業自得_rust.json")).unwrap();
     let reader = BufReader::new(file);
-    // Read the JSON contents of the file as an instance of `User`.
     let u: Vec<DatabaseTermEntry> = serde_json::from_reader(reader).unwrap();
     dbg!(&u[0]);
 }

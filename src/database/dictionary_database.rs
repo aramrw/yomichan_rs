@@ -6,6 +6,7 @@ use crate::dictionary_data::{
 use crate::structured_content::{StructuredContent, TermGlossary};
 use crate::test_utils::TEST_PATHS;
 use crate::translator::TagTargetItem;
+use serde_with::skip_serializing_none;
 use serde_with::{serde_as, NoneAsEmptyString};
 
 use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
@@ -149,7 +150,51 @@ pub struct DatabaseTermMeta {
     pub dictionary: String,
 }
 
+impl From<DatabaseTermEntryTuple> for DatabaseTermEntry {
+    fn from(tuple: DatabaseTermEntryTuple) -> Self {
+        Self {
+            id: tuple.0,
+            expression: tuple.1,
+            reading: tuple.2,
+            expression_reverse: tuple.3,
+            reading_reverse: tuple.4,
+            definition_tags: tuple.5,
+            tags: tuple.6,
+            rules: tuple.7,
+            score: tuple.8,
+            glossary: tuple.9,
+            sequence: tuple.10,
+            term_tags: tuple.11,
+            dictionary: tuple.12,
+            file_path: tuple.13,
+        }
+    }
+}
+
+impl From<DatabaseTermEntry> for DatabaseTermEntryTuple {
+    fn from(s: DatabaseTermEntry) -> Self {
+        Self(
+            s.id,
+            s.expression,
+            s.reading,
+            s.expression_reverse,
+            s.reading_reverse,
+            s.definition_tags,
+            s.tags,
+            s.rules,
+            s.score,
+            s.glossary,
+            s.sequence,
+            s.term_tags,
+            s.dictionary,
+            s.file_path,
+        )
+    }
+}
+
+#[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[serde(from = "DatabaseTermEntryTuple", into = "DatabaseTermEntryTuple")]
 #[native_model(id = 2, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
 #[native_db]
 pub struct DatabaseTermEntry {
@@ -173,8 +218,26 @@ pub struct DatabaseTermEntry {
     pub sequence: Option<i128>,
     pub term_tags: Option<String>,
     pub dictionary: String,
-    pub file_path: OsString,
+    pub file_path: String,
 }
+
+#[derive(Serialize, Deserialize)]
+struct DatabaseTermEntryTuple(
+    String,            // id
+    String,            // expression
+    String,            // reading
+    String,            // expression_reverse
+    String,            // reading_reverse
+    Option<String>,    // definition_tags
+    Option<String>,    // tags
+    String,            // rules
+    i128,              // score
+    Vec<TermGlossary>, // glossary
+    Option<i128>,      // sequence
+    Option<String>,    // term_tags
+    String,            // dictionary
+    String,            // file_path
+);
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermEntry {
@@ -1007,6 +1070,7 @@ impl DictionaryDatabase<'_> {
 
         Ok(all_final_results)
     }
+
     // Translates the JavaScript `findTermsBulk` function.
     ///
     /// Queries for a list of terms, matching against expression or reading fields,
@@ -1619,17 +1683,11 @@ mod ycd {
     fn find_terms_bulk_exact_match_test() {
         //let (_f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
-        let term_list = vec!["日本語".to_string()];
-        let mut dictionaries_set = IndexSet::new();
-        dictionaries_set.insert("大辞林\u{3000}第四版".to_string());
+        let term_list = vec!["自業自得".to_string()];
+        let mut dictionaries = IndexSet::new();
+        dictionaries.insert("大辞林\u{3000}第四版".to_string());
+        dictionaries.insert("四字熟語辞典オンライン".to_string());
 
-        struct TestDictionarySet(IndexSet<String>);
-        impl DictionarySet for TestDictionarySet {
-            fn has(&self, value: &str) -> bool {
-                self.0.contains(value)
-            }
-        }
-        let dictionaries = TestDictionarySet(dictionaries_set);
         let match_type = TermSourceMatchType::Exact;
         // Pass term_list directly as it implements AsRef<str> for String
         let result = ycd.find_terms_bulk(&term_list, &dictionaries, match_type);
@@ -1659,7 +1717,8 @@ mod dbtests {
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [
             //tdcs.join("daijirin"),
-            tdcs.join("daijirin_test_version"),
+            tdcs.join("yonjijukugo"),
+            //tdcs.join("daijirin_test_version"),
             //tdcs.join("ajdfreq"),
             // tdcs.join("pitch_accent"),
             //tdcs.join("kotobankesjp"),

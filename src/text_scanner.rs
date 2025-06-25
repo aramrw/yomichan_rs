@@ -499,7 +499,7 @@ mod textscanner {
     fn search() {
         let mut ycd = YCD.write().unwrap();
         ycd.set_language("ja");
-        let res = ycd.search("日本人");
+        let res = ycd.search("自業自得");
         dbg!(&res);
     }
 }

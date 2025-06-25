@@ -1,0 +1,142 @@
+[
+  [
+    "0197a4a2-7a8c-7363-a496-8a549603ae78",
+    "自業自得",
+    "じごうじとく",
+    "得自業自",
+    "くとじうごじ",
+    null,
+    null,
+    "",
+    0,
+    [
+      {
+        "type": "structured-content",
+        "content": [
+          {
+            "tag": "span",
+            "content": "じごうじとく【自業自得】"
+          },
+          {
+            "tag": "div",
+            "content": [
+              "自分が行ったことが自分に返ってくること。",
+              {
+                "tag": "br"
+              },
+              "悪い意味で使われることが多い。",
+              {
+                "tag": "br"
+              },
+              "自分の行動の善悪の業によって、苦楽の業を受けるという意味の仏教の因果の法則を表す言葉。"
+            ]
+          },
+          {
+            "tag": "table",
+            "content": [
+              {
+                "tag": "tr",
+                "content": [
+                  {
+                    "tag": "th",
+                    "content": "漢検級",
+                    "style": {
+                      "verticalAlign": "middle",
+                      "textAlign": "center"
+                    }
+                  },
+                  {
+                    "tag": "td",
+                    "content": {
+                      "tag": "a",
+                      "content": "準２級",
+                      "href": "https://yoji.jitenon.jp/cat/kyu2j.html"
+                    }
+                  }
+                ]
+              },
+              {
+                "tag": "tr",
+                "content": [
+                  {
+                    "tag": "th",
+                    "content": "場面用途",
+                    "style": {
+                      "verticalAlign": "middle",
+                      "textAlign": "center"
+                    }
+                  },
+                  {
+                    "tag": "td",
+                    "content": [
+                      {
+                        "tag": "a",
+                        "content": "行いの報いを受ける",
+                        "href": "https://yoji.jitenon.jp/bamen/list26.html"
+                      },
+                      "／",
+                      {
+                        "tag": "a",
+                        "content": "行動",
+                        "href": "https://yoji.jitenon.jp/bamen/list522.html"
+                      },
+                      "／",
+                      {
+                        "tag": "a",
+                        "content": "ことわざ",
+                        "href": "https://yoji.jitenon.jp/bamen/list531.html"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "tag": "tr",
+                "content": [
+                  {
+                    "tag": "th",
+                    "content": "類義語",
+                    "style": {
+                      "verticalAlign": "middle",
+                      "textAlign": "center"
+                    }
+                  },
+                  {
+                    "tag": "td",
+                    "content": {
+                      "tag": "a",
+                      "content": "因果応報（いんがおうほう）",
+                      "href": "?query=因果応報&wildcards=off"
+                    }
+                  }
+                ]
+              },
+              {
+                "tag": "tr",
+                "content": {
+                  "tag": "td",
+                  "content": "自業自縛（じごうじばく）"
+                }
+              },
+              {
+                "tag": "tr",
+                "content": {
+                  "tag": "td",
+                  "content": {
+                    "tag": "a",
+                    "content": "自縄自縛（じじょうじばく）",
+                    "href": "?query=自縄自縛&wildcards=off"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    401,
+    "準２級",
+    "四字熟語辞典オンライン",
+    "tests/test_dicts/yonjijukugo/term_bank_3.json"
+  ]
+]

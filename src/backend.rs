@@ -162,42 +162,52 @@ impl From<FuriganaSegment> for ParseTextSegment {
 type ParseTextLine = Vec<ParseTextSegment>;
 
 mod ycd_tests {
-    use std::cell::RefCell;
+    use std::{cell::RefCell, fs::File, io::BufReader};
 
     use crate::{
         database::dictionary_database::{DatabaseMetaFrequency, DatabaseTermEntry},
         dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
-        test_utils::TEST_PATHS,
+        test_utils::{self, TEST_PATHS},
         Yomichan,
     };
 
     use super::{Backend, FindTermsDetails};
 
     #[test]
-    fn rmp_serde_item() {
+    fn rmp_serde_item_debug() {
         use rmp_serde::{Deserializer, Serializer};
         use serde::{Deserialize, Serialize};
-        let item = DatabaseTermEntry {
-            id: "01979a72-8db0-7c33-9ff1-426c5a879886".into(),
-            expression: "赤狗母魚".into(),
-            reading: "あかえそ".into(),
-            expression_reverse: "魚母狗赤".into(),
-            reading_reverse: "そえかあ".into(),
-            definition_tags: None,
-            tags: None,
-            rules: "".into(),
-            score: 0,
-            dictionary: "大辞林　第四番".into(),
-            ..Default::default()
-        };
-        // Serialize to MessagePack
+        use std::fs::File;
+        use std::io::BufReader;
+
+        // This is the generic Value type from the correct crate
+        use rmpv::Value;
+
+        // --- SETUP: Create the MessagePack bytes from your JSON ---
+        let path = &test_utils::TEST_PATHS.tests_dir;
+        let file = File::open(path.join("自業自得_rust.json")).unwrap();
+        let reader = BufReader::new(file);
+
+        // This part uses your full DatabaseTermEntry struct, which is correct
+        let items: Vec<DatabaseTermEntry> = serde_json::from_reader(reader).unwrap();
+
         let mut buf = Vec::new();
-        item.serialize(&mut Serializer::new(&mut buf)).unwrap();
-        // Deserialize from MessagePack
-        let mut deserializer = Deserializer::new(&buf[..]);
-        let deserialized: DatabaseTermEntry = Deserialize::deserialize(&mut deserializer).unwrap();
-        println!("Original: {item:#?}");
-        println!("Deserialized: {deserialized:#?}");
+        items.serialize(&mut Serializer::new(&mut buf)).unwrap();
+
+        // --- THE DEBUGGING STEP ---
+        // Deserialize the raw bytes into the generic `rmpv::Value`
+        let decoded_value: Value =
+            rmp_serde::from_slice(&buf).expect("Failed to decode MessagePack into generic Value");
+
+        // Print the decoded structure. This is the crucial output!
+        // It will show you exactly what is being stored.
+        println!("--- DECODED RMPV::VALUE ---");
+        println!("{:#?}", decoded_value);
+        println!("--- END DECODED RMPV::VALUE ---");
+
+        // We still expect the final deserialization to fail, which is what we're debugging.
+        let result: Result<Vec<DatabaseTermEntry>, _> = rmp_serde::from_slice(&buf);
+        result.unwrap();
     }
 
     #[test]

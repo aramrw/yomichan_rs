@@ -537,6 +537,18 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         }
     };
 
+    // ------------- TESTING ----------------
+    let jigoujitoku = term_list.iter().find(|term| term.expression == "自業自得");
+    let path = test_utils::TEST_PATHS
+        .tests_dir
+        .join("自業自得_rust")
+        .with_extension("json");
+    if let Some(jt) = jigoujitoku {
+        let vec = serde_json::to_vec_pretty(&[jt]).unwrap();
+        std::fs::write(&path, vec).unwrap();
+    }
+    // ------------- TESTING ----------------
+
     let kanji_meta_banks: Result<Vec<Vec<DatabaseMetaFrequency>>, DictionaryFileError> =
         kanji_meta_bank_paths
             .into_par_iter()
@@ -712,11 +724,11 @@ fn convert_term_bank_file(
     })?;
     let reader = BufReader::new(file);
 
-    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermEntryItemTuple>>();
+    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermEntryItem>>();
     let mut entries = match stream.next() {
         Some(Ok(entries)) => entries,
         Some(Err(reason)) => {
-            println!("{reason}");
+            eprintln!("{outpath:?} failed:\nreason: {reason}");
             return Err(crate::errors::DictionaryFileError::File {
                 outpath,
                 reason: reason.to_string(),
@@ -730,7 +742,7 @@ fn convert_term_bank_file(
     let terms: Vec<DatabaseTermEntry> = entries
         .into_iter()
         .map(|mut entry| {
-            let TermEntryItemTuple(
+            let TermEntryItem {
                 expression,
                 reading,
                 def_tags,
@@ -739,7 +751,7 @@ fn convert_term_bank_file(
                 structured_content,
                 sequence,
                 term_tags,
-            ) = entry;
+            } = entry;
             let id = uuid::Uuid::now_v7().to_string();
             let expression_reverse = rev_str(&expression);
             let reading_reverse = rev_str(&reading);
@@ -749,19 +761,16 @@ fn convert_term_bank_file(
                 expression_reverse,
                 reading,
                 reading_reverse,
-                definition_tags: Some(def_tags),
+                definition_tags: def_tags,
                 rules,
                 score,
                 sequence: Some(sequence),
                 term_tags: Some(term_tags),
-                file_path: outpath.clone().into_os_string(),
+                file_path: outpath.clone().to_string_lossy().to_string(),
                 dictionary: dict_name.to_owned(),
                 glossary: structured_content,
                 ..Default::default()
             };
-            let path = test_utils::TEST_PATHS.tests_dir.with_extension("rs");
-            let file = File::options().create(true).truncate(true).open(&path);
-            std::fs::write(&path, format!("{term:#?}")).unwrap();
             term
         })
         .collect();
