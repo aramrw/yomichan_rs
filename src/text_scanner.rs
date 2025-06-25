@@ -499,7 +499,18 @@ mod textscanner {
     fn search() {
         let mut ycd = YCD.write().unwrap();
         ycd.set_language("ja");
-        let res = ycd.search("自業自得");
-        dbg!(&res);
+        let res = ycd.search("日本は好きですね");
+        let Some(res) = res else {
+            panic!("search test failed");
+        };
+        for item in res {
+            let Some(item) = item.results else {
+                continue;
+            };
+            let entries = &item.dictionary_entries;
+            for entry in entries {
+                println!("found item for: {:#?}", entry.headwords)
+            }
+        }
     }
 }

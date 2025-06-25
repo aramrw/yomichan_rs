@@ -1,11 +1,11 @@
 [
   [
-    "0197a4d5-d4b3-7933-b32f-95b89f75015b",
+    "0197a530-f357-7363-a2cb-3fe65fceb1fb",
     "自業自得",
     "じごうじとく",
     "得自業自",
     "くとじうごじ",
-    null,
+    "",
     null,
     "",
     0,
@@ -15,129 +15,160 @@
         "content": [
           {
             "tag": "span",
-            "content": "じごうじとく【自業自得】"
+            "content": [
+              {
+                "tag": "span",
+                "content": [
+                  "じごう",
+                  {
+                    "tag": "span",
+                    "data": {
+                      "name": "語構成"
+                    },
+                    "style": {
+                      "marginRight": 0.5
+                    }
+                  },
+                  "じとく"
+                ],
+                "data": {
+                  "name": "見出仮名"
+                },
+                "style": {
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "tag": "span",
+                "content": "(じごふ—)",
+                "data": {
+                  "name": "歴史仮名"
+                },
+                "style": {
+                  "fontSize": "0.6em"
+                }
+              },
+              {
+                "tag": "span",
+                "content": {
+                  "tag": "span",
+                  "content": {
+                    "tag": "span",
+                    "content": "[0]",
+                    "data": {
+                      "name": "accent"
+                    }
+                  },
+                  "data": {
+                    "name": "アクセント"
+                  }
+                },
+                "data": {
+                  "name": "アクセントG"
+                },
+                "style": {
+                  "fontSize": "0.7em",
+                  "verticalAlign": "super",
+                  "marginLeft": 0.25,
+                  "marginRight": 0.25
+                }
+              },
+              {
+                "tag": "span",
+                "content": [
+                  "【",
+                  {
+                    "tag": "span",
+                    "content": "自業自得",
+                    "data": {
+                      "name": "標準表記"
+                    }
+                  },
+                  "】"
+                ],
+                "data": {
+                  "name": "表記G"
+                }
+              }
+            ],
+            "data": {
+              "name": "見出部"
+            }
           },
           {
             "tag": "div",
-            "content": [
-              "自分が行ったことが自分に返ってくること。",
-              {
-                "tag": "br"
-              },
-              "悪い意味で使われることが多い。",
-              {
-                "tag": "br"
-              },
-              "自分の行動の善悪の業によって、苦楽の業を受けるという意味の仏教の因果の法則を表す言葉。"
-            ]
-          },
-          {
-            "tag": "table",
-            "content": [
-              {
-                "tag": "tr",
-                "content": [
-                  {
-                    "tag": "th",
-                    "content": "漢検級",
-                    "style": {
-                      "verticalAlign": "middle",
-                      "textAlign": "center"
-                    }
-                  },
-                  {
-                    "tag": "td",
-                    "content": {
-                      "tag": "a",
-                      "content": "準２級",
-                      "href": "https://yoji.jitenon.jp/cat/kyu2j.html"
-                    }
-                  }
-                ]
-              },
-              {
-                "tag": "tr",
-                "content": [
-                  {
-                    "tag": "th",
-                    "content": "場面用途",
-                    "style": {
-                      "verticalAlign": "middle",
-                      "textAlign": "center"
-                    }
-                  },
-                  {
-                    "tag": "td",
+            "content": {
+              "tag": "div",
+              "content": {
+                "tag": "div",
+                "content": {
+                  "tag": "div",
+                  "content": {
+                    "tag": "div",
                     "content": [
                       {
-                        "tag": "a",
-                        "content": "行いの報いを受ける",
-                        "href": "https://yoji.jitenon.jp/bamen/list26.html"
+                        "tag": "span",
+                        "content": [
+                          {
+                            "tag": "span",
+                            "content": "〘仏〙",
+                            "data": {
+                              "name": "専門"
+                            }
+                          },
+                          "自分のおこないの結果を自分が受けること。一般には悪い報いを受けることにいう。"
+                        ],
+                        "data": {
+                          "name": "語釈"
+                        }
                       },
-                      "／",
                       {
-                        "tag": "a",
-                        "content": "行動",
-                        "href": "https://yoji.jitenon.jp/bamen/list522.html"
-                      },
-                      "／",
-                      {
-                        "tag": "a",
-                        "content": "ことわざ",
-                        "href": "https://yoji.jitenon.jp/bamen/list531.html"
+                        "tag": "div",
+                        "content": [
+                          "「",
+                          {
+                            "tag": "span",
+                            "content": "━",
+                            "data": {
+                              "name": "見出相当部"
+                            },
+                            "style": {
+                              "fontWeight": "bold"
+                            }
+                          },
+                          "だからやむを得まい」"
+                        ],
+                        "data": {
+                          "name": "用例"
+                        }
                       }
-                    ]
-                  }
-                ]
-              },
-              {
-                "tag": "tr",
-                "content": [
-                  {
-                    "tag": "th",
-                    "content": "類義語",
-                    "rowSpan": 3,
-                    "style": {
-                      "verticalAlign": "middle",
-                      "textAlign": "center"
+                    ],
+                    "data": {
+                      "name": "語義G"
                     }
                   },
-                  {
-                    "tag": "td",
-                    "content": {
-                      "tag": "a",
-                      "content": "因果応報（いんがおうほう）",
-                      "href": "?query=因果応報&wildcards=off"
-                    }
+                  "data": {
+                    "name": "中語義"
                   }
-                ]
-              },
-              {
-                "tag": "tr",
-                "content": {
-                  "tag": "td",
-                  "content": "自業自縛（じごうじばく）"
+                },
+                "data": {
+                  "name": "準大語義"
                 }
               },
-              {
-                "tag": "tr",
-                "content": {
-                  "tag": "td",
-                  "content": {
-                    "tag": "a",
-                    "content": "自縄自縛（じじょうじばく）",
-                    "href": "?query=自縄自縛&wildcards=off"
-                  }
-                }
+              "data": {
+                "name": "大語義"
               }
-            ]
+            },
+            "data": {
+              "name": "解説部"
+            }
           }
         ]
       }
     ],
-    401,
-    "準２級",
-    "四字熟語辞典オンライン",
-    "tests/test_dicts/yonjijukugo/term_bank_3.json"
+    6803200000,
+    "",
+    "大辞林　第四版",
+    "tests/test_dicts/daijirin/term_bank_64.json"
   ]
 ]

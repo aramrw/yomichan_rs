@@ -1683,10 +1683,11 @@ mod ycd {
     fn find_terms_bulk_exact_match_test() {
         //let (_f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
-        let term_list = vec!["自業自得".to_string()];
+        let term_list = vec!["日本語", "日本", "日"];
         let mut dictionaries = IndexSet::new();
         dictionaries.insert("大辞林\u{3000}第四版".to_string());
         dictionaries.insert("四字熟語辞典オンライン".to_string());
+        dictionaries.insert("旺文社国語辞典 第十一版 画像無し".to_string());
 
         let match_type = TermSourceMatchType::Exact;
         // Pass term_list directly as it implements AsRef<str> for String
@@ -1716,8 +1717,9 @@ mod dbtests {
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [
-            //tdcs.join("daijirin"),
-            tdcs.join("yonjijukugo"),
+            tdcs.join("daijirin"),
+            //tdcs.join("oubunshakokugo"),
+            //tdcs.join("yonjijukugo"),
             //tdcs.join("daijirin_test_version"),
             //tdcs.join("ajdfreq"),
             // tdcs.join("pitch_accent"),

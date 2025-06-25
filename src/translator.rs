@@ -26,7 +26,7 @@ use crate::{
         TranslationTextReplacementOptions,
     },
     structured_content::{TermGlossary, TermGlossaryContent, TermGlossaryDeinflection},
-    to_variant,
+    test_utils, to_variant,
     translation::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
         FindTermsOptions, FindTermsSortOrder,
@@ -2119,6 +2119,7 @@ impl<'a> Translator<'a> {
                 eprintln!("Error finding terms exact bulk: {e:?}");
                 Vec::new()
             });
+        dbg!(&database_entries);
         // this._sortDatabaseEntriesByIndex(databaseEntries);
         // Assuming TermEntry has an `index` field which is the original index from term_list
         database_entries.sort_by_key(|e| e.index);
@@ -3093,6 +3094,16 @@ impl<'a> Translator<'a> {
         deinflections.extend(dictionary_deinflections);
         for deinflection in &mut deinflections {
             for mut entry in deinflection.database_entries.iter_mut() {
+                for def in &entry.definitions {
+                    if matches!(def, TermGlossary::Deinflection(_)) {
+                        let incorrect_values_path = test_utils::TEST_PATHS
+                            .tests_dir
+                            .join("incorrect")
+                            .with_extension("json");
+                        let json = serde_json::to_string_pretty(&def).unwrap();
+                        std::fs::write(incorrect_values_path, json);
+                    }
+                }
                 entry
                     .definitions
                     .retain(|def| !matches!(def, TermGlossary::Deinflection(_)))
@@ -3141,8 +3152,10 @@ impl<'a> Translator<'a> {
                     if let TermGlossary::Deinflection(term_glossary_deinflection) =
                         definition_variant
                     {
-                        let TermGlossaryDeinflection(form_of, inflection_rules) =
-                            term_glossary_deinflection;
+                        let TermGlossaryDeinflection {
+                            form_of,
+                            rules: inflection_rules,
+                        } = term_glossary_deinflection;
                         if form_of.is_empty() {
                             continue;
                         }
@@ -3176,6 +3189,7 @@ impl<'a> Translator<'a> {
                             text_processor_rule_chain_candidates.clone(),
                             inflection_rule_chain_candidates,
                         );
+
                         dictionary_deinflections.push(dictionary_deinflection);
                     }
                 }
@@ -3396,6 +3410,12 @@ impl<'a> Translator<'a> {
                 match_type,
             )
             .unwrap_or_default();
+        // println!(
+        //     "found {} for:\n unique_deinflections_terms: {:#?}, enabled_dictionary_map: {:#?}",
+        //     database_entries.len(),
+        //     &unique_deinflection_terms,
+        //     &enabled_dictionary_map
+        // );
 
         // Step 4: Match the results back to the original deinflections via the grouped mutable references.
         self._match_entries_to_deinflections(
