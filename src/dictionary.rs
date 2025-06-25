@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     database::dictionary_database::{Pronunciation, TermPronunciationMatchType},
-    structured_content::TermGlossaryContent,
+    structured_content::{TermGlossaryContent, TermGlossaryContentGroup},
     translation_internal::TextProcessorRuleChainCandidate,
     translator::TermType,
 };
@@ -246,7 +246,7 @@ pub struct TermDefinition {
     pub is_primary: bool,
     pub tags: Vec<DictionaryTag>,
     /// The definition entries.
-    pub entries: Vec<TermGlossaryContent>,
+    pub entries: Vec<TermGlossaryContentGroup>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

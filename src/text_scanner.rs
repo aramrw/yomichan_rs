@@ -507,7 +507,7 @@ mod textscanner {
     fn search() {
         let mut ycd = YCD.write().unwrap();
         ycd.set_language("ja");
-        let res = ycd.search("飾る");
+        let res = ycd.search("晩餐");
         let Some(res) = res else {
             panic!("search test failed");
         };
@@ -521,7 +521,6 @@ mod textscanner {
                 for def in defs {
                     let gloss = def.entries.clone();
                     for content in gloss.iter() {
-                        let output = content.to_plain_text();
                         let path = test_utils::TEST_PATHS
                             .tests_dir
                             .join("search")
@@ -529,9 +528,10 @@ mod textscanner {
                         let mut file = OpenOptions::new()
                             .append(true)
                             .create(true)
+                            .write(true)
                             .open(path)
                             .unwrap();
-                        file.write_all(output.as_bytes()).unwrap();
+                        file.write_all(content.plain_text.as_bytes()).unwrap();
                     }
                 }
             }

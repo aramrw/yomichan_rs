@@ -25,7 +25,10 @@ use crate::{
         SortFrequencyDictionaryOrder, TranslationOptions, TranslationTextReplacementGroup,
         TranslationTextReplacementOptions,
     },
-    structured_content::{TermGlossary, TermGlossaryContent, TermGlossaryDeinflection},
+    structured_content::{
+        TermGlossary, TermGlossaryContent, TermGlossaryContentGroup, TermGlossaryDeinflection,
+        TermGlossaryGroupType,
+    },
     test_utils, to_variant,
     translation::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
@@ -2854,12 +2857,12 @@ impl<'a> Translator<'a> {
             score,
             dictionary,
         } = database_entry;
-        let content_definitions: Vec<TermGlossaryContent> = definitions
+        let content_definitions: Vec<TermGlossaryContentGroup> = definitions
             .clone()
             .into_iter()
             .filter_map(|def| match def {
-                TermGlossary::Content(c) => Some(c),
-                TermGlossary::Deinflection(_) => None,
+                TermGlossaryGroupType::Content(c) => Some(c),
+                TermGlossaryGroupType::Deinflection(_) => None,
             })
             .collect();
         let reading = match raw_reading.is_empty() {
@@ -2943,7 +2946,7 @@ impl<'a> Translator<'a> {
         sequences: Vec<i128>,
         is_primary: bool,
         tags: Vec<DictionaryTag>,
-        entries: Vec<TermGlossaryContent>,
+        entries: Vec<TermGlossaryContentGroup>,
     ) -> TermDefinition {
         TermDefinition {
             id,
@@ -3096,18 +3099,18 @@ impl<'a> Translator<'a> {
         for deinflection in &mut deinflections {
             for mut entry in deinflection.database_entries.iter_mut() {
                 for def in &entry.definitions {
-                    if matches!(def, TermGlossary::Deinflection(_)) {
-                        let incorrect_values_path = test_utils::TEST_PATHS
-                            .tests_dir
-                            .join("incorrect")
-                            .with_extension("json");
-                        let json = serde_json::to_string_pretty(&def).unwrap();
-                        std::fs::write(incorrect_values_path, json);
-                    }
+                    // if matches!(def, TermGlossaryGroupType::Deinflection(_)) {
+                    //     let incorrect_values_path = test_utils::TEST_PATHS
+                    //         .tests_dir
+                    //         .join("incorrect")
+                    //         .with_extension("json");
+                    //     let json = serde_json::to_string_pretty(&def).unwrap();
+                    //     std::fs::write(incorrect_values_path, json);
+                    // }
                 }
                 entry
                     .definitions
-                    .retain(|def| !matches!(def, TermGlossary::Deinflection(_)))
+                    .retain(|def| !matches!(def, TermGlossaryGroupType::Deinflection(_)))
             }
             deinflection
                 .database_entries
@@ -3150,7 +3153,7 @@ impl<'a> Translator<'a> {
                     continue;
                 }
                 for definition_variant in definitions {
-                    if let TermGlossary::Deinflection(term_glossary_deinflection) =
+                    if let TermGlossaryGroupType::Deinflection(term_glossary_deinflection) =
                         definition_variant
                     {
                         let TermGlossaryDeinflection {

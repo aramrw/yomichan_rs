@@ -96,18 +96,21 @@ impl<'de> Deserialize<'de> for ContentMatchType {
     }
 }
 
+// does not exist within yomitan (yomichan_rs unique struct)
 // the entire definition node tree parsed and
 // inserted with correct formatting in different ways for rendering
-pub struct TermGlossaryGroup {
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
+pub struct TermGlossaryContentGroup {
     // this is used for programs that cannot render html
     pub plain_text: String,
     // this is used for programs that can render html (we ignore it for now)
     pub html: Option<String>,
-    pub glossary_type: TermGlossaryType,
 }
-pub enum TermGlossaryType {
-    Content,
-    Deinflection,
+
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
+pub enum TermGlossaryGroupType {
+    Content(TermGlossaryContentGroup),
+    Deinflection(TermGlossaryDeinflection),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -118,6 +121,37 @@ pub enum TermGlossary {
     /// This is a tuple struct in js.
     /// If you see an `Array.isArray()` check on a [TermGlossary], its looking for this.
     Deinflection(TermGlossaryDeinflection),
+}
+
+impl From<TermGlossary> for TermGlossaryGroupType {
+    fn from(value: TermGlossary) -> Self {
+        match value {
+            TermGlossary::Deinflection(d) => Self::Deinflection(d),
+            TermGlossary::Content(ref c) => {
+                let plain_text = match value {
+                    TermGlossary::Content(ref c) => c.to_plain_text(),
+                    _ => panic!(
+                        "TermGlossary::Deinflection cannot be turned into a TermGlossaryGroup"
+                    ),
+                };
+                let group = TermGlossaryContentGroup {
+                    plain_text,
+                    html: None,
+                };
+                Self::Content(group)
+            }
+        }
+    }
+}
+
+impl From<TermGlossaryContent> for TermGlossaryContentGroup {
+    fn from(value: TermGlossaryContent) -> Self {
+        let plain_text = value.to_plain_text();
+        Self {
+            plain_text,
+            html: None,
+        }
+    }
 }
 
 impl TermGlossaryContent {

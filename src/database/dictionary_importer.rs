@@ -770,7 +770,7 @@ fn convert_term_bank_file(
                 dictionary: dict_name.to_owned(),
                 // instead of pushing the entire tree as it is
                 // create helper functions to parse the tree as a string or html
-                glossary: structured_content.into(),
+                glossary: structured_content.into_iter().map(|sc| sc.into()).collect(),
                 ..Default::default()
             };
             term

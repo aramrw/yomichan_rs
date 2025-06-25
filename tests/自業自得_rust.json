@@ -1,6 +1,6 @@
 [
   [
-    "0197a530-f357-7363-a2cb-3fe65fceb1fb",
+    "0197a5df-9bae-7241-b1a4-3b557b2d00bd",
     "自業自得",
     "じごうじとく",
     "得自業自",
@@ -11,159 +11,10 @@
     0,
     [
       {
-        "type": "structured-content",
-        "content": [
-          {
-            "tag": "span",
-            "content": [
-              {
-                "tag": "span",
-                "content": [
-                  "じごう",
-                  {
-                    "tag": "span",
-                    "data": {
-                      "name": "語構成"
-                    },
-                    "style": {
-                      "marginRight": 0.5
-                    }
-                  },
-                  "じとく"
-                ],
-                "data": {
-                  "name": "見出仮名"
-                },
-                "style": {
-                  "fontWeight": "bold"
-                }
-              },
-              {
-                "tag": "span",
-                "content": "(じごふ—)",
-                "data": {
-                  "name": "歴史仮名"
-                },
-                "style": {
-                  "fontSize": "0.6em"
-                }
-              },
-              {
-                "tag": "span",
-                "content": {
-                  "tag": "span",
-                  "content": {
-                    "tag": "span",
-                    "content": "[0]",
-                    "data": {
-                      "name": "accent"
-                    }
-                  },
-                  "data": {
-                    "name": "アクセント"
-                  }
-                },
-                "data": {
-                  "name": "アクセントG"
-                },
-                "style": {
-                  "fontSize": "0.7em",
-                  "verticalAlign": "super",
-                  "marginLeft": 0.25,
-                  "marginRight": 0.25
-                }
-              },
-              {
-                "tag": "span",
-                "content": [
-                  "【",
-                  {
-                    "tag": "span",
-                    "content": "自業自得",
-                    "data": {
-                      "name": "標準表記"
-                    }
-                  },
-                  "】"
-                ],
-                "data": {
-                  "name": "表記G"
-                }
-              }
-            ],
-            "data": {
-              "name": "見出部"
-            }
-          },
-          {
-            "tag": "div",
-            "content": {
-              "tag": "div",
-              "content": {
-                "tag": "div",
-                "content": {
-                  "tag": "div",
-                  "content": {
-                    "tag": "div",
-                    "content": [
-                      {
-                        "tag": "span",
-                        "content": [
-                          {
-                            "tag": "span",
-                            "content": "〘仏〙",
-                            "data": {
-                              "name": "専門"
-                            }
-                          },
-                          "自分のおこないの結果を自分が受けること。一般には悪い報いを受けることにいう。"
-                        ],
-                        "data": {
-                          "name": "語釈"
-                        }
-                      },
-                      {
-                        "tag": "div",
-                        "content": [
-                          "「",
-                          {
-                            "tag": "span",
-                            "content": "━",
-                            "data": {
-                              "name": "見出相当部"
-                            },
-                            "style": {
-                              "fontWeight": "bold"
-                            }
-                          },
-                          "だからやむを得まい」"
-                        ],
-                        "data": {
-                          "name": "用例"
-                        }
-                      }
-                    ],
-                    "data": {
-                      "name": "語義G"
-                    }
-                  },
-                  "data": {
-                    "name": "中語義"
-                  }
-                },
-                "data": {
-                  "name": "準大語義"
-                }
-              },
-              "data": {
-                "name": "大語義"
-              }
-            },
-            "data": {
-              "name": "解説部"
-            }
-          }
-        ]
+        "Content": {
+          "plain_text": "じごうじとく(じごふ—)[0]【自業自得】\n〘仏〙自分のおこないの結果を自分が受けること。一般には悪い報いを受けることにいう。\n「━だからやむを得まい」",
+          "html": null
+        }
       }
     ],
     6803200000,

@@ -3,7 +3,7 @@ use crate::dictionary_data::{
     DictionaryDataTag, MetaDataMatchType, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
     TermMetaModeType, TermMetaPitch, TermMetaPitchData,
 };
-use crate::structured_content::{StructuredContent, TermGlossary};
+use crate::structured_content::{StructuredContent, TermGlossary, TermGlossaryGroupType};
 use crate::test_utils::TEST_PATHS;
 use crate::translator::TagTargetItem;
 use serde_with::skip_serializing_none;
@@ -213,7 +213,7 @@ pub struct DatabaseTermEntry {
     pub tags: Option<String>,
     pub rules: String,
     pub score: i128,
-    pub glossary: Vec<TermGlossary>,
+    pub glossary: Vec<TermGlossaryGroupType>,
     #[secondary_key]
     pub sequence: Option<i128>,
     pub term_tags: Option<String>,
@@ -223,20 +223,20 @@ pub struct DatabaseTermEntry {
 
 #[derive(Serialize, Deserialize)]
 struct DatabaseTermEntryTuple(
-    String,            // id
-    String,            // expression
-    String,            // reading
-    String,            // expression_reverse
-    String,            // reading_reverse
-    Option<String>,    // definition_tags
-    Option<String>,    // tags
-    String,            // rules
-    i128,              // score
-    Vec<TermGlossary>, // glossary
-    Option<i128>,      // sequence
-    Option<String>,    // term_tags
-    String,            // dictionary
-    String,            // file_path
+    String,                     // id
+    String,                     // expression
+    String,                     // reading
+    String,                     // expression_reverse
+    String,                     // reading_reverse
+    Option<String>,             // definition_tags
+    Option<String>,             // tags
+    String,                     // rules
+    i128,                       // score
+    Vec<TermGlossaryGroupType>, // glossary
+    Option<i128>,               // sequence
+    Option<String>,             // term_tags
+    String,                     // dictionary
+    String,                     // file_path
 );
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -250,7 +250,7 @@ pub struct TermEntry {
     pub definition_tags: Vec<String>,
     pub term_tags: Vec<String>,
     pub rules: Vec<String>,
-    pub definitions:Vec<TermGlossary>,
+    pub definitions: Vec<TermGlossaryGroupType>,
     pub score: i128,
     pub dictionary: String,
     pub sequence: i128,
