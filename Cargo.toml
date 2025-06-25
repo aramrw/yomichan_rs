@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde = "1.0.203"
+serde = { version = "1.0.203", features = ["rc"] }
 serde_json = "1.0.117"
 thiserror = "2.0.12"
 native_db = { git = "https://github.com/vincent-herlemont/native_db", rev = "03ab5a3" }

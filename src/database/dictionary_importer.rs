@@ -768,7 +768,9 @@ fn convert_term_bank_file(
                 term_tags: Some(term_tags),
                 file_path: outpath.clone().to_string_lossy().to_string(),
                 dictionary: dict_name.to_owned(),
-                glossary: structured_content,
+                // instead of pushing the entire tree as it is
+                // create helper functions to parse the tree as a string or html
+                glossary: structured_content.into(),
                 ..Default::default()
             };
             term

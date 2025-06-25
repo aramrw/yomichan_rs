@@ -2855,6 +2855,7 @@ impl<'a> Translator<'a> {
             dictionary,
         } = database_entry;
         let content_definitions: Vec<TermGlossaryContent> = definitions
+            .clone()
             .into_iter()
             .filter_map(|def| match def {
                 TermGlossary::Content(c) => Some(c),

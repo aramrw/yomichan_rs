@@ -96,6 +96,20 @@ impl<'de> Deserialize<'de> for ContentMatchType {
     }
 }
 
+// the entire definition node tree parsed and
+// inserted with correct formatting in different ways for rendering
+pub struct TermGlossaryGroup {
+    // this is used for programs that cannot render html
+    pub plain_text: String,
+    // this is used for programs that can render html (we ignore it for now)
+    pub html: Option<String>,
+    pub glossary_type: TermGlossaryType,
+}
+pub enum TermGlossaryType {
+    Content,
+    Deinflection,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum TermGlossary {
@@ -104,6 +118,136 @@ pub enum TermGlossary {
     /// This is a tuple struct in js.
     /// If you see an `Array.isArray()` check on a [TermGlossary], its looking for this.
     Deinflection(TermGlossaryDeinflection),
+}
+
+impl TermGlossaryContent {
+    pub fn to_plain_text(&self) -> String {
+        let mut buffer = String::new();
+        match self {
+            Self::String(s) => {
+                buffer.push_str(s);
+            }
+            Self::Tagged(tagged_content) => {
+                Self::render_tagged_content(tagged_content, &mut buffer);
+            }
+        }
+        buffer.trim().to_string()
+    }
+
+    fn render_tagged_content(tagged: &TaggedContent, buffer: &mut String) {
+        match tagged {
+            TaggedContent::Text { text } => {
+                buffer.push_str(text);
+            }
+            TaggedContent::Image(image_element) => {
+                if let Some(alt) = &image_element.alt {
+                    buffer.push_str(alt);
+                } else {
+                    buffer.push_str(&format!("[Image: {}]", image_element.path));
+                }
+            }
+            // This is the crucial part that contains the recursive tree.
+            TaggedContent::StructuredContent { content } => {
+                Self::render_content_match_type(content, buffer);
+            }
+        }
+    }
+
+    /// Helper that recursively renders any `ContentMatchType`.
+    /// This is the main recursive dispatcher.
+    fn render_content_match_type(content: &ContentMatchType, buffer: &mut String) {
+        match content {
+            ContentMatchType::String(s) => {
+                buffer.push_str(s);
+            }
+            ContentMatchType::Content(vec) => {
+                for item in vec {
+                    Self::render_content_match_type(item, buffer);
+                }
+            }
+            ContentMatchType::Element(element) => {
+                Self::render_element(element, buffer);
+            }
+        }
+    }
+
+    /// Renders a single, specific `Element` enum variant, applying formatting rules.
+    fn render_element(element: &Element, buffer: &mut String) {
+        // --- 1. PRE-CONTENT FORMATTING (e.g., adding newlines for blocks) ---
+        // We check the tag to see if it's a block-level element.
+        let is_block = match element {
+            Element::Styled(e) => matches!(
+                e.tag,
+                HtmlTag::Div
+                    | HtmlTag::OrderedList
+                    | HtmlTag::UnorderedList
+                    | HtmlTag::ListItem
+                    | HtmlTag::Details
+                    | HtmlTag::TableRow
+            ),
+            Element::Unstyled(e) => matches!(e.tag, HtmlTag::TableRow | HtmlTag::Table), // Treat whole tables and rows as blocks
+            Element::Table(e) => matches!(e.tag, HtmlTag::TableRow), // Should be handled by parent, but for safety
+            Element::LineBreak(_) => true,
+            _ => false,
+        };
+
+        if is_block {
+            // Ensure we start on a new line, but don't add redundant newlines.
+            if !buffer.is_empty() && !buffer.ends_with('\n') {
+                buffer.push('\n');
+            }
+        }
+
+        // --- 2. RENDER THE ELEMENT'S CONTENT RECURSIVELY ---
+        match element {
+            Element::UnknownString(s) => buffer.push_str(s),
+            Element::Link(e) => {
+                if let Some(content) = &e.content {
+                    Self::render_content_match_type(content, buffer);
+                }
+            }
+            Element::Styled(e) => {
+                // Add indentation for list items
+                if e.tag == HtmlTag::ListItem {
+                    buffer.push_str("  - ");
+                }
+                if let Some(content) = &e.content {
+                    Self::render_content_match_type(content, buffer);
+                }
+            }
+            Element::Unstyled(e) => {
+                if let Some(content) = &e.content {
+                    Self::render_content_match_type(content, buffer);
+                }
+            }
+            Element::Table(e) => {
+                if let Some(content) = &e.content {
+                    Self::render_content_match_type(content, buffer);
+                }
+                // Add a tab after table cells for spacing
+                buffer.push('\t');
+            }
+            Element::LineBreak(_) => {
+                // The newline is handled by the pre-formatting logic.
+            }
+            Element::Image(e) => {
+                // For plain text, we can render the alt text or a placeholder.
+                if let Some(alt) = &e.alt {
+                    buffer.push_str(alt);
+                } else {
+                    buffer.push_str(&format!("[Image: {}]", e.path));
+                }
+            }
+        }
+
+        // --- 3. POST-CONTENT FORMATTING (e.g., adding newlines for blocks) ---
+        if is_block {
+            // After a block element, always ensure there's a newline.
+            if !buffer.ends_with('\n') {
+                buffer.push('\n');
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

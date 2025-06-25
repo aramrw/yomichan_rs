@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     database::dictionary_database::{Pronunciation, TermPronunciationMatchType},
     structured_content::TermGlossaryContent,

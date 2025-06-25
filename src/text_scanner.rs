@@ -492,24 +492,48 @@ impl<'a> TextScanner<'a> {
 
 #[cfg(test)]
 mod textscanner {
-    use crate::{test_utils::YCD, Yomichan};
-    use std::sync::{LazyLock, RwLock};
+    use crate::{
+        structured_content::TermGlossary,
+        test_utils::{self, YCD},
+        Yomichan,
+    };
+    use std::{
+        fs::OpenOptions,
+        io::Write,
+        sync::{LazyLock, RwLock},
+    };
 
     #[test]
     fn search() {
         let mut ycd = YCD.write().unwrap();
         ycd.set_language("ja");
-        let res = ycd.search("日本は好きですね");
+        let res = ycd.search("飾る");
         let Some(res) = res else {
             panic!("search test failed");
         };
-        for item in res {
-            let Some(item) = item.results else {
+        for segment in &res {
+            let Some(results) = &segment.results else {
                 continue;
             };
-            let entries = &item.dictionary_entries;
+            let entries = &results.dictionary_entries;
             for entry in entries {
-                println!("found item for: {:#?}", entry.headwords)
+                let defs = &entry.definitions;
+                for def in defs {
+                    let gloss = def.entries.clone();
+                    for content in gloss.iter() {
+                        let output = content.to_plain_text();
+                        let path = test_utils::TEST_PATHS
+                            .tests_dir
+                            .join("search")
+                            .with_extension("json");
+                        let mut file = OpenOptions::new()
+                            .append(true)
+                            .create(true)
+                            .open(path)
+                            .unwrap();
+                        file.write_all(output.as_bytes()).unwrap();
+                    }
+                }
             }
         }
     }

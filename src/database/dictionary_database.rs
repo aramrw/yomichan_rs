@@ -46,7 +46,7 @@ use std::ffi::OsString;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 // std::sync::{Arc, LazyLock} - LazyLock is used, Arc is not
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::{fs, marker}; // marker is unused
 
 // Helper macro for creating enum variants like NativeDbQueryInfo::Exact(value)
@@ -162,7 +162,7 @@ impl From<DatabaseTermEntryTuple> for DatabaseTermEntry {
             tags: tuple.6,
             rules: tuple.7,
             score: tuple.8,
-            glossary: tuple.9,
+            glossary: tuple.9.into(),
             sequence: tuple.10,
             term_tags: tuple.11,
             dictionary: tuple.12,
@@ -183,7 +183,7 @@ impl From<DatabaseTermEntry> for DatabaseTermEntryTuple {
             s.tags,
             s.rules,
             s.score,
-            s.glossary,
+            s.glossary.to_vec(),
             s.sequence,
             s.term_tags,
             s.dictionary,
@@ -250,7 +250,7 @@ pub struct TermEntry {
     pub definition_tags: Vec<String>,
     pub term_tags: Vec<String>,
     pub rules: Vec<String>,
-    pub definitions: Vec<TermGlossary>,
+    pub definitions:Vec<TermGlossary>,
     pub score: i128,
     pub dictionary: String,
     pub sequence: i128,
