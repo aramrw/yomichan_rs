@@ -538,15 +538,15 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
     };
 
     // ------------- TESTING ----------------
-    let jigoujitoku = term_list.iter().find(|term| term.expression == "自業自得");
-    let path = test_utils::TEST_PATHS
-        .tests_dir
-        .join("自業自得_rust")
-        .with_extension("json");
-    if let Some(jt) = jigoujitoku {
-        let vec = serde_json::to_vec_pretty(&[jt]).unwrap();
-        std::fs::write(&path, vec).unwrap();
-    }
+    // let jigoujitoku = term_list.iter().find(|term| term.expression == "自業自得");
+    // let path = test_utils::TEST_PATHS
+    //     .tests_dir
+    //     .join("自業自得_rust")
+    //     .with_extension("json");
+    // if let Some(jt) = jigoujitoku {
+    //     let vec = serde_json::to_vec_pretty(&[jt]).unwrap();
+    //     std::fs::write(&path, vec).unwrap();
+    // }
     // ------------- TESTING ----------------
 
     let kanji_meta_banks: Result<Vec<Vec<DatabaseMetaFrequency>>, DictionaryFileError> =

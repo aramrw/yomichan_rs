@@ -1717,8 +1717,8 @@ mod dbtests {
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [
-            tdcs.join("daijirin"),
-            //tdcs.join("oubunshakokugo"),
+            //tdcs.join("daijirin"),
+            tdcs.join("oubunshakokugo"),
             //tdcs.join("yonjijukugo"),
             //tdcs.join("daijirin_test_version"),
             //tdcs.join("ajdfreq"),
