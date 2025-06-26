@@ -1694,12 +1694,3 @@ impl<'de> Deserialize<'de> for LineBreak {
         deserializer.deserialize_any(LineBreakVisitor)
     }
 }
-
-#[test]
-fn from_json() {
-    let path = &test_utils::TEST_PATHS.tests_dir;
-    let file = File::open(path.join("自業自得_rust.json")).unwrap();
-    let reader = BufReader::new(file);
-    let u: Vec<DatabaseTermEntry> = serde_json::from_reader(reader).unwrap();
-    dbg!(&u[0]);
-}

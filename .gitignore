@@ -1,8 +1,4 @@
 /target
 *.svg
 *.yc
-tests/yomichan_rs/db.ycd
-tests/output.json
-tests/output.json
-tests/term_metas_rust.json
-tests/自業自得_rust.json
+tests
