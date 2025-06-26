@@ -53,15 +53,14 @@ impl<'de> Deserialize<'de> for ContentMatchType {
         // Step 1: Deserialize into a generic Value.
         let value = serde_json::Value::deserialize(deserializer).map_err(|e| {
             de::Error::custom(format!(
-                "Failed to deserialize into intermediate Value: {}",
-                e
+                "Failed to deserialize into intermediate Value: {e}",
             ))
         })?;
 
-        // We'll store errors from each attempt
+        // errors from each attempt
         let mut errors = Vec::new();
 
-        // Step 2: Try as Element (expects an object or array representing a tag).
+        // Try as Element (expects an object or array representing a tag).
         if value.is_object() || value.is_array() {
             match Element::deserialize(value.clone()) {
                 Ok(element) => return Ok(ContentMatchType::Element(Box::new(element))),
@@ -69,7 +68,7 @@ impl<'de> Deserialize<'de> for ContentMatchType {
             }
         }
 
-        // Step 3: Try as Vec<ContentMatchType> (expects an array).
+        // Try as Vec<ContentMatchType> (expects an array).
         if value.is_array() {
             match <Vec<ContentMatchType>>::deserialize(value.clone()) {
                 Ok(content_vec) => return Ok(ContentMatchType::Content(content_vec)),
@@ -77,7 +76,7 @@ impl<'de> Deserialize<'de> for ContentMatchType {
             }
         }
 
-        // Step 4: Try as String.
+        // Try as String.
         if value.is_string() {
             match String::deserialize(value.clone()) {
                 Ok(s) => return Ok(ContentMatchType::String(s)),
@@ -90,15 +89,19 @@ impl<'de> Deserialize<'de> for ContentMatchType {
             "Data did not match any variant of ContentMatchType (Element, Vec, or String).\n\
             Problematic value: {}\n\n\
             Errors:\n- {}",
-            serde_json::to_string_pretty(&value).unwrap_or_else(|_| format!("{:?}", value)),
+            value,
             errors.join("\n- ")
         )))
     }
 }
 
-// does not exist within yomitan (yomichan_rs unique struct)
-// the entire definition node tree parsed and
-// inserted with correct formatting in different ways for rendering
+/// `yomichan_rs` unique struct.
+/// The entire definition node tree parsed and inserted with correct formatting
+/// in different ways for rendering.
+///
+/// # Fields
+/// * `plain_text: String` - Usable in all programs for simple rendering of definitions
+/// * `html: Option<String>` - Node tree parsed as html
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct TermGlossaryContentGroup {
     // this is used for programs that cannot render html
@@ -130,9 +133,7 @@ impl From<TermGlossary> for TermGlossaryGroupType {
             TermGlossary::Content(ref c) => {
                 let plain_text = match value {
                     TermGlossary::Content(ref c) => c.to_plain_text(),
-                    _ => panic!(
-                        "TermGlossary::Deinflection cannot be turned into a TermGlossaryGroup"
-                    ),
+                    _ => unreachable!(),
                 };
                 let group = TermGlossaryContentGroup {
                     plain_text,
@@ -219,8 +220,10 @@ impl TermGlossaryContent {
                     | HtmlTag::Details
                     | HtmlTag::TableRow
             ),
-            Element::Unstyled(e) => matches!(e.tag, HtmlTag::TableRow | HtmlTag::Table), // Treat whole tables and rows as blocks
-            Element::Table(e) => matches!(e.tag, HtmlTag::TableRow), // Should be handled by parent, but for safety
+            // Treat whole tables and rows as blocks
+            Element::Unstyled(e) => matches!(e.tag, HtmlTag::TableRow | HtmlTag::Table),
+            // Should be handled by parent, but for safety
+            Element::Table(e) => matches!(e.tag, HtmlTag::TableRow),
             Element::LineBreak(_) => true,
             _ => false,
         };
@@ -321,16 +324,12 @@ impl<'de> Deserialize<'de> for TermGlossary {
 
                 // If the tie-breaker rule doesn't apply (e.g., it was some other
                 // ambiguous structure), we have to make a choice. Prioritizing
-                // Deinflection might be a reasonable default if such a case could exist.
-                // Or, you could panic here if this state is considered impossible.
-                // For now, let's assume the rule above is sufficient and prioritize Deinflection otherwise.
+                // Content might be a reasonable default if such a case could exist.
+                // a panic might be a better option
                 Ok(TermGlossary::Content(content))
             }
 
-            // Case 2: Only parsed as Deinflection.
             (Ok(deinflection), Err(_)) => Ok(TermGlossary::Deinflection(deinflection)),
-
-            // Case 3: Only parsed as Content. This is the normal, correct path for your JSON.
             (Err(_), Ok(content)) => Ok(TermGlossary::Content(content)),
 
             // Case 4: Failed to parse as either.
@@ -530,19 +529,6 @@ pub struct TermEntryItem {
     pub sequence: i128,
     pub term_tags: String,
 }
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-// This is now a tuple struct to match the JSON array `[...]`
-pub struct TermEntryItemTuple(
-    pub String,            // Corresponds to "expression"
-    pub String,            // Corresponds to "reading"
-    pub String,            // Corresponds to "definition_tags" (was def_tags)
-    pub String,            // Corresponds to "rules"
-    pub i128,              // Corresponds to "score"
-    pub Vec<TermGlossary>, // Corresponds to "glossary" (was structured_content)
-    pub i128,              // Corresponds to "sequence"
-    pub String,            // Corresponds to "term_tags"
-);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -1331,7 +1317,7 @@ impl<'de> Deserialize<'de> for StyledElement {
                             // This is a simplified conversion. You may need to make this more specific
                             // based on the exact format of the style array.
                             let mut style_map = serde_json::Map::new();
-                            if arr.len() > 0 {
+                            if !arr.is_empty() {
                                 style_map.insert("fontSize".to_string(), arr[0].clone());
                             }
                             if arr.len() > 1 {

@@ -3911,7 +3911,7 @@ impl TermType {
 }
 
 /// helper to not need to match on enum variants to get fields
-trait IsTermType {
+pub trait IsTermType {
     // TermDefinition sorting
     /// only exists on [TermDefinition]
     // TermFrequency/TermPronunciation sorting

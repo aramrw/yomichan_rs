@@ -14,7 +14,7 @@ use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
 };
 use crate::structured_content::{
-    ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem, TermEntryItemTuple,
+    ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
 };
 
 use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};

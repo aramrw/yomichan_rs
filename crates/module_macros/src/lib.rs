@@ -71,10 +71,10 @@ fn get_inner_type_if_simple_ref(ty: &Type) -> Option<&Type> {
 
             if type_name == "Option" || type_name == "Result" {
                 if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
-                    if let Some(GenericArgument::Type(inner_ty)) = args.args.first() {
-                        if let Type::Reference(inner_ref) = inner_ty {
-                            return Some(&*inner_ref.elem);
-                        }
+                    if let Some(GenericArgument::Type(Type::Reference(inner_ref))) =
+                        args.args.first()
+                    {
+                        return Some(&*inner_ref.elem);
                     }
                 }
             }

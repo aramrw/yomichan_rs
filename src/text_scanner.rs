@@ -40,11 +40,6 @@ impl SentenceParser {
     ///
     /// # Returns
     /// A vector of `TermSearchResultsSegment`s that represent the sentence, broken down
-    /// into clickable terms and plain text.
-    // In `impl SentenceParser`
-    // Add this import at the top of the file if it's not already there:
-    // use std::collections::HashSet;
-
     pub fn parse(results: TermSearchResults) -> Vec<TermSearchResultsSegment> {
         if results.dictionary_entries.is_empty() {
             return vec![TermSearchResultsSegment {
@@ -528,7 +523,6 @@ mod textscanner {
                         let mut file = OpenOptions::new()
                             .append(true)
                             .create(true)
-                            .write(true)
                             .open(path)
                             .unwrap();
                         file.write_all(content.plain_text.as_bytes()).unwrap();
