@@ -10,6 +10,8 @@ use language_transformer::{
 use native_db::transaction::RwTransaction;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "anki")]
+use crate::anki::DisplayAnki;
 use crate::{
     database::{
         dictionary_database::{DictionaryDatabase, DictionaryDatabaseError},
@@ -30,15 +32,18 @@ use crate::{
     Yomichan,
 };
 
+/// `yomichan_rs` private engine
 pub struct Backend<'a> {
     pub environment: EnvironmentInfo,
-    pub anki: AnkiClient,
+    #[cfg(feature = "anki")]
+    pub anki: DisplayAnki,
     pub text_scanner: TextScanner<'a>,
     pub db: Arc<DictionaryDatabase<'a>>,
     pub options: Options,
 }
 
 impl<'a> Backend<'a> {
+    #[cfg(not(feature = "anki"))]
     pub fn new(db: Arc<DictionaryDatabase<'a>>) -> Result<Self, Box<native_db::db_type::Error>> {
         let rtx = db.r_transaction()?;
         let opts: Option<Options> = rtx.get().primary("global_user_options")?;
@@ -48,8 +53,29 @@ impl<'a> Backend<'a> {
         };
         let backend = Self {
             environment: EnvironmentInfo::default(),
-            anki: AnkiClient::default(),
             text_scanner: TextScanner::new(db.clone()),
+            db,
+            options,
+        };
+        Ok(backend)
+    }
+
+    #[cfg(feature = "anki")]
+    pub fn default_sync(
+        db: Arc<DictionaryDatabase<'a>>,
+    ) -> Result<Self, Box<native_db::db_type::Error>> {
+        let rtx = db.r_transaction()?;
+        let opts: Option<Options> = rtx.get().primary("global_user_options")?;
+        let options = match opts {
+            Some(opts) => opts,
+            None => Options::new(),
+        };
+        let profile = options.get_current_profile();
+        let anki_options = profile.options.anki.clone();
+        let backend = Self {
+            environment: EnvironmentInfo::default(),
+            text_scanner: TextScanner::new(db.clone()),
+            anki: DisplayAnki::default_latest(anki_options),
             db,
             options,
         };

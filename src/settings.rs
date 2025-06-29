@@ -1,3 +1,15 @@
+use std::ops::Deref;
+use std::ops::DerefMut;
+use std::sync::Arc;
+use std::sync::RwLock;
+
+use crate::anki::DisplayAnki;
+use anki_direct::cache::ModelCache;
+use anki_direct::model::FullModelDetails;
+use better_default::Default;
+use getset::Getters;
+use getset::MutGetters;
+use getset::Setters;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use native_db::native_db;
@@ -109,16 +121,23 @@ pub struct ProfileCondition {
     pub value: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+/// A struct used for managing Profiles
+///
+/// # Usage
+/// Can be used for seperating profiles by language or user
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, derive_more::P)]
 pub struct ProfileOptions {
     pub general: GeneralOptions,
     pub popup_window: PopupWindowOptions,
+    /// should be moved to [crate::audio]
     pub audio: AudioOptions,
     pub scanning: ScanningOptions,
     pub translation: TranslationOptions,
     pub dictionaries: IndexMap<String, DictionaryOptions>,
     pub parsing: ParsingOptions,
-    pub anki: AnkiOptions,
+    /// a ptr for [DisplayAnki]
+    #[]
+    pub anki: Arc<RwLock<AnkiOptions>>,
     pub sentence_parsing: SentenceParsingOptions,
     pub inputs: InputsOptions,
     pub clipboard: ClipboardOptions,
@@ -388,23 +407,52 @@ pub struct ParsingOptions {
     pub reading_mode: ParsingReadingMode,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+/// `yomichan_rs`-unique struct for caching discovered models from Anki.
+/// # Fields
+/// * `selected`: an index in the map for the (note) model to use when creating notes.
+#[derive(
+    Clone, Serialize, Deserialize, Debug, PartialEq, Default, Setters, Getters, MutGetters,
+)]
+#[getset(get = "pub", set = "pub", get_mut = "pub")]
+pub struct NoteModelsMap {
+    map: IndexMap<String, FullModelDetails>,
+    selected: usize,
+}
+impl Deref for NoteModelsMap {
+    type Target = IndexMap<String, FullModelDetails>;
+    fn deref(&self) -> &Self::Target {
+        &self.map
+    }
+}
+impl DerefMut for NoteModelsMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.map
+    }
+}
+
+#[derive(
+    Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, Setters, MutGetters,
+)]
+#[getset(get = "pub", set = "pub")]
 pub struct AnkiOptions {
-    pub enable: bool,
-    pub server: String,
-    pub tags: Vec<String>,
-    pub screenshot: AnkiScreenshotOptions,
-    pub terms: AnkiNoteOptions,
-    pub kanji: AnkiNoteOptions,
-    pub duplicate_scope: AnkiDuplicateScope,
-    pub duplicate_scope_check_all_models: bool,
-    pub duplicate_behavior: AnkiDuplicateBehavior,
-    pub check_for_duplicates: bool,
-    pub field_templates: Vec<String>,
-    pub suspend_new_cards: bool,
-    pub display_tags: AnkiDisplayTags,
-    pub note_gui_mode: AnkiNoteGuiMode,
-    pub api_key: String,
+    enable: bool,
+    #[default("8765".into())]
+    server: String,
+    tags: Vec<String>,
+    screenshot: AnkiScreenshotOptions,
+    /// [IndexMap] of [Note Types](https://docs.ankiweb.net/getting-started.html#note-types)
+    #[getset(get_mut = "pub")]
+    note_models_map: NoteModelsMap,
+    duplicate_scope: AnkiDuplicateScope,
+    duplicate_scope_check_all_models: bool,
+    duplicate_behavior: AnkiDuplicateBehavior,
+    #[default(true)]
+    check_for_duplicates: bool,
+    field_templates: Vec<String>,
+    suspend_new_cards: bool,
+    display_tags: AnkiDisplayTags,
+    note_gui_mode: AnkiNoteGuiMode,
+    api_key: String,
     /// The maximum time _(in milliseconds)_ before an idle download will be cancelled;
     /// 0 = no limit.
     ///
@@ -412,20 +460,22 @@ pub struct AnkiOptions {
     /// and sometimes these downloads can stall due to server or internet connectivity issues.
     /// When this setting has a non-zero value, if a download has stalled for longer
     /// than the time specified, the download will be cancelled.
-    pub download_timeout: u32,
+    #[default(2000)]
+    download_timeout: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, Setters)]
+#[getset(get = "pub", set = "pub")]
+pub struct AnkiNoteOptions {
+    pub deck: String,
+    pub model: String,
+    pub fields: AnkiNoteFields,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct AnkiScreenshotOptions {
     pub format: AnkiScreenshotFormat,
     pub quality: u8,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct AnkiNoteOptions {
-    pub deck: String,
-    pub model: String,
-    pub fields: AnkiNoteFields,
 }
 
 pub type AnkiNoteFields = IndexMap<String, String>;
@@ -462,7 +512,7 @@ pub struct InputsHotkeyOptions {
     pub enabled: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ClipboardOptions {
     pub enable_background_monitor: bool,
     pub enable_search_page_monitor: bool,
@@ -471,12 +521,12 @@ pub struct ClipboardOptions {
     pub maximum_search_length: u16,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct AccessibilityOptions {
     pub force_google_docs_html_rendering: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PreventMiddleMouseOptions {
     pub on_web_pages: bool,
     pub on_popup_pages: bool,
@@ -492,7 +542,7 @@ pub struct PreventMiddleMouseOptions {
 /// related terms to be included from other dictionaries.
 ///
 /// _Not all dictionaries are able to be selected as the Primary dictionary_.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResultOutputMode {
     /// No grouping.
     ///
@@ -514,14 +564,14 @@ pub enum ResultOutputMode {
 /// The `Default` mode will position the popup relative to the scanned text.
 /// The `Full Width` mode will anchor the popup to the top or bottom of the screen and
 /// take up the full width of the screen, which can be useful on devices with touch screens.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupDisplayMode {
     #[default]
     Default,
     FullWidth,
 }
 /// Change where the popup is positioned relative to horizontal text.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupHorizontalTextPosition {
     #[default]
     Below,
@@ -529,7 +579,7 @@ pub enum PopupHorizontalTextPosition {
 }
 
 /// Change where the popup is positioned relative to vertical text.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupVerticalTextPosition {
     #[default]
     Before,
@@ -539,7 +589,7 @@ pub enum PopupVerticalTextPosition {
 }
 
 /// Adjust the main style.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupTheme {
     Light,
     #[default]
@@ -548,7 +598,7 @@ pub enum PopupTheme {
 }
 
 /// Control when the action bar is visible.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupActionBarVisibility {
     #[default]
     Auto,
@@ -556,7 +606,7 @@ pub enum PopupActionBarVisibility {
 }
 
 /// Control where the action bar is visible.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupActionBarLocation {
     #[default]
     Top,
@@ -566,7 +616,7 @@ pub enum PopupActionBarLocation {
 }
 
 /// Adjust the shadow style.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupShadow {
     /// Casts no shadow.
     Light,
@@ -577,7 +627,7 @@ pub enum PopupShadow {
 }
 
 /// Change how the selected definition entry is visually indicated.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupCurrentIndicatorMode {
     None,
     Asterisk,
@@ -590,7 +640,7 @@ pub enum PopupCurrentIndicatorMode {
 }
 
 /// Change how frequency information is presented.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum FrequencyDisplayStyle {
     Tags,
     TagsGrouped,
@@ -602,7 +652,7 @@ pub enum FrequencyDisplayStyle {
 }
 
 /// Change how terms and their readings are displayed.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TermDisplayStyle {
     #[default]
     Ruby,
@@ -622,7 +672,7 @@ pub enum TermDisplayStyle {
 /// - Smaller values indicate a more common term.
 ///
 /// _`Occurrence`-based frequency dictionaries are highly discouraged, do not use them!!_
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SortFrequencyDictionaryOrder {
     Occurance,
     #[default]
@@ -630,7 +680,7 @@ pub enum SortFrequencyDictionaryOrder {
 }
 
 /// Change the appearance of the window type.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupWindowType {
     Normal,
     #[default]
@@ -638,7 +688,7 @@ pub enum PopupWindowType {
 }
 
 /// Change the state of the window.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupWindowState {
     #[default]
     Normal,
@@ -648,7 +698,7 @@ pub enum PopupWindowState {
 
 /// When searching for audio, the sources are checked in order until the first valid source is found.
 /// This allows for selecting a fallback source if the first choice is not available.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AudioSourceType {
     #[default]
     Jpod101,
@@ -662,7 +712,7 @@ pub enum AudioSourceType {
     CustomJson,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TranslationConvertType {
     #[default]
     False,
@@ -670,7 +720,7 @@ pub enum TranslationConvertType {
     Variant,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TranslationCollapseEmphaticSequences {
     #[default]
     False,
@@ -699,7 +749,7 @@ pub enum DictionaryDefinitionsCollapsible {
 }
 
 /// Change what type of furigana is displayed for parsed text.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ParsingReadingMode {
     #[default]
     Hiragana,
@@ -710,7 +760,7 @@ pub enum ParsingReadingMode {
 }
 
 /// Adjust the format and quality of screenshots created for cards.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum AnkiScreenshotFormat {
     #[default]
     Png,
@@ -725,7 +775,7 @@ pub enum AnkiScreenshotFormat {
 /// The Deck root option will additionally check for duplicates in all child decks of the root deck.
 /// This allows adding cards that are unique for decks including a subdeck structure.
 /// For decks which don't have any parent-child hierarchy, both options function the same.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AnkiDuplicateScope {
     #[default]
     Collection,
@@ -734,7 +784,7 @@ pub enum AnkiDuplicateScope {
 }
 
 /// When a duplicate is detected.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AnkiDuplicateBehavior {
     #[default]
     Prevent,

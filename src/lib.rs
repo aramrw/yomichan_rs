@@ -1,4 +1,7 @@
 #![allow(unused)]
+#[cfg(feature = "anki")]
+pub mod anki;
+mod audio;
 mod backend;
 mod database;
 mod dictionary;
@@ -116,7 +119,10 @@ impl<'a> Yomichan<'a> {
         let path = path.as_ref().to_path_buf();
         let db_path = fmt_dbpath(path)?;
         let db = Arc::new(DictionaryDatabase::new(db_path));
+        #[cfg(not(feature = "anki"))]
         let backend = Backend::new(db.clone())?;
+        #[cfg(feature = "anki")]
+        let backend = Backend::default_sync(db.clone())?;
 
         Ok(Self { db, backend })
     }

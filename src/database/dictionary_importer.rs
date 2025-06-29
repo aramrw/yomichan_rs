@@ -20,7 +20,6 @@ use crate::structured_content::{
 use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
 use crate::{test_utils, Yomichan};
 
-use color_eyre::owo_colors::OwoColorize;
 use indexmap::IndexMap;
 use native_db::transaction::RwTransaction;
 use native_db::ToInput;

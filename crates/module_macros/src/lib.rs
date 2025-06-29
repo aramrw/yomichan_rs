@@ -24,11 +24,10 @@ fn to_snake_case(s: &str) -> String {
 /// A simple reference is `&'a T`, `Option<&'a T>`, or `Result<&'a T, E>`
 /// where `T` itself does not contain any borrowed data.
 fn is_simple_ref_to_owned(ret_type: &ReturnType) -> bool {
-    if let ReturnType::Type(_, ty) = ret_type {
-        if let Some(inner) = get_inner_type_if_simple_ref(ty) {
-            // It's a simple reference wrapper. Now, ensure the inner type `T` has no lifetimes.
-            return !contains_lifetime(inner);
-        }
+    if let ReturnType::Type(_, ty) = ret_type
+        && let Some(inner) = get_inner_type_if_simple_ref(ty)
+    {
+        return !contains_lifetime(inner);
     }
     false
 }
