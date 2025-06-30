@@ -64,7 +64,7 @@ impl<'de> Deserialize<'de> for ContentMatchType {
         if value.is_object() || value.is_array() {
             match Element::deserialize(value.clone()) {
                 Ok(element) => return Ok(ContentMatchType::Element(Box::new(element))),
-                Err(e) => errors.push(format!("[Attempted as Element] {}", e)),
+                Err(e) => errors.push(format!("[Attempted as Element] {e}")),
             }
         }
 
@@ -72,7 +72,7 @@ impl<'de> Deserialize<'de> for ContentMatchType {
         if value.is_array() {
             match <Vec<ContentMatchType>>::deserialize(value.clone()) {
                 Ok(content_vec) => return Ok(ContentMatchType::Content(content_vec)),
-                Err(e) => errors.push(format!("[Attempted as Vec<ContentMatchType>] {}", e)),
+                Err(e) => errors.push(format!("[Attempted as Vec<ContentMatchType>] {e}")),
             }
         }
 
@@ -80,7 +80,7 @@ impl<'de> Deserialize<'de> for ContentMatchType {
         if value.is_string() {
             match String::deserialize(value.clone()) {
                 Ok(s) => return Ok(ContentMatchType::String(s)),
-                Err(e) => errors.push(format!("[Attempted as String] {}", e)),
+                Err(e) => errors.push(format!("[Attempted as String] {e}")),
             }
         }
 
@@ -335,10 +335,9 @@ impl<'de> Deserialize<'de> for TermGlossary {
             // Case 4: Failed to parse as either.
             (Err(de), Err(co)) => Err(de::Error::custom(format!(
                 "Data did not match any variant of TermGlossary.\n\
-                    Deinflection Error: {}\n\
-                    Content Error: {}\n\
-                    Value: {:#?}",
-                de, co, value
+                    Deinflection Error: {de}\n\
+                    Content Error: {co}\n\
+                    Value: {value:#?}"
             ))),
         }
     }
@@ -384,7 +383,7 @@ impl<'de> Deserialize<'de> for TermGlossaryContent {
             Problematic value: {}\n\n\
             Attempt 1 (as TaggedContent) failed with: {}\n\
             Attempt 2 (as String) failed with: {}",
-            serde_json::to_string_pretty(&value).unwrap_or_else(|_| format!("{:?}", value)),
+            serde_json::to_string_pretty(&value).unwrap_or_else(|_| format!("{value:?}")),
             tagged_error,
             string_error
         )))
