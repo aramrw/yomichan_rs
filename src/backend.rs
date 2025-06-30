@@ -228,7 +228,7 @@ mod ycd_tests {
         // Print the decoded structure. This is the crucial output!
         // It will show you exactly what is being stored.
         println!("--- DECODED RMPV::VALUE ---");
-        println!("{:#?}", decoded_value);
+        println!("{decoded_value:#?}");
         println!("--- END DECODED RMPV::VALUE ---");
 
         // We still expect the final deserialization to fail, which is what we're debugging.
