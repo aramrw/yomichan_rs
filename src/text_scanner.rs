@@ -1,12 +1,20 @@
 use std::{cmp, collections::HashSet, sync::Arc};
 
+use anki_direct::{
+    decks::DeckConfig,
+    error::AnkiResult,
+    model::FullModelDetails,
+    notes::{Note, NoteBuilder},
+    ReqwestClient,
+};
 use indexmap::IndexMap;
+use parking_lot::{ArcRwLockReadGuard, RawRwLock};
 
 use crate::{
     backend::FindTermsDetails,
     database::dictionary_database::DictionaryDatabase,
     dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
-    settings::ProfileOptions,
+    settings::{AnkiOptions, DecksMap, ProfileOptions},
     translator::{FindTermsMode, FindTermsResult, Translator},
     Yomichan,
 };
@@ -136,6 +144,7 @@ impl SentenceParser {
 
 /// Represents the full sentence context for a search result.
 ///
+/// * text the full unchanged string looked up
 /// * offset: The character offset of the original search text within the full sentence text.
 #[derive(Debug, Clone)]
 pub struct Sentence {
@@ -154,6 +163,32 @@ pub struct Sentence {
 pub struct TermSearchResults {
     pub dictionary_entries: Vec<TermDictionaryEntry>,
     pub sentence: Sentence,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum BuildNoteError {
+    #[error("current profile has no anki deck selected")]
+    NoDeckSelected,
+}
+impl TermSearchResults {
+    /// Returns a Note future
+    pub async fn build_note(
+        &self,
+        model: &FullModelDetails,
+        deck_name: String,
+        anki_opts: ArcRwLockReadGuard<RawRwLock, AnkiOptions>,
+        tags: Vec<String>,
+        client: Option<&ReqwestClient>,
+    ) -> AnkiResult<Note> {
+        let fields = &model.fields;
+        NoteBuilder::default()
+            .model_name(model.name.clone())
+            .deck_name(deck_name)
+            .field(field_name, value)
+            .tags(tags)
+            .build(client)
+            .await
+    }
 }
 
 /// A simplified text scanner to find dictionary terms and sentence context,
@@ -497,6 +532,17 @@ mod textscanner {
         io::Write,
         sync::{LazyLock, RwLock},
     };
+
+    #[test]
+    fn search_dbg() {
+        let mut ycd = YCD.write().unwrap();
+        ycd.set_language("ja");
+        let res = ycd.search("晩餐会をやっているみたいですか");
+        let Some(res) = res else {
+            panic!("search test failed");
+        };
+        dbg!(res);
+    }
 
     #[test]
     fn search() {
