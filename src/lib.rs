@@ -22,7 +22,9 @@ mod translator;
 use backend::Backend;
 use database::dictionary_database::DictionaryDatabase;
 use database::dictionary_database::DB_MODELS;
+use derive_more::derive::DerefMut;
 use indexmap::IndexMap;
+use parking_lot::RwLock;
 use settings::Options;
 use settings::Profile;
 
@@ -49,6 +51,13 @@ pub use crate::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
 pub use crate::text_scanner::{TermSearchResults, TermSearchResultsSegment};
+// re-export parking lot cuz its too good
+use derive_more::Deref;
+pub use parking_lot;
+
+/// Simple abstraction over [parking_lot::RwLock]
+#[derive(Clone, Debug, Deref, DerefMut)]
+pub struct Ptr<T>(Arc<RwLock<T>>);
 
 /// A Yomichan Dictionary instance.
 ///
