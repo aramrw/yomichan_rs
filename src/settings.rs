@@ -1,12 +1,19 @@
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::sync::Arc;
-use std::sync::RwLock;
 
+#[cfg(feature = "anki")]
 use crate::anki::DisplayAnki;
-use anki_direct::cache::ModelCache;
+use crate::Ptr;
+use anki_direct::cache::model::ModelCache;
+use anki_direct::decks::DeckConfig;
 use anki_direct::model::FullModelDetails;
 use better_default::Default;
+use derivative::Derivative;
+use derive_more::derive::Deref;
+use derive_more::derive::DerefMut;
+use derive_more::derive::From;
+use derive_where::derive_where;
 use getset::Getters;
 use getset::MutGetters;
 use getset::Setters;
@@ -16,6 +23,9 @@ use native_db::native_db;
 use native_db::ToKey;
 use native_model::native_model;
 use native_model::Model;
+use parking_lot::ArcRwLockReadGuard;
+use parking_lot::ArcRwLockUpgradableReadGuard;
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -57,16 +67,13 @@ impl Options {
             global: GlobalOptions::default(),
         }
     }
-
     pub fn get_options_mut(&mut self) -> &mut Self {
         self
     }
-
     pub fn get_current_profile_mut(&mut self) -> &mut Profile {
         let index = self.current_profile;
         &mut self.profiles[index]
     }
-
     pub fn get_current_profile(&self) -> &Profile {
         let index = self.current_profile;
         &self.profiles[index]
@@ -121,11 +128,29 @@ pub struct ProfileCondition {
     pub value: String,
 }
 
+fn compare_prog_opts(a: &Arc<RwLock<AnkiOptions>>, b: &Arc<RwLock<AnkiOptions>>) -> bool {
+    // If the pointers are the same, they are equal.
+    if Arc::ptr_eq(a, b) {
+        return true;
+    }
+    // Otherwise, lock and compare the inner data.
+    // We use try_read() to avoid deadlocks in more complex scenarios,
+    // though unwrap() is fine if you're sure it won't deadlock.
+    if let (Some(a_lock), Some(b_lock)) = (a.try_read(), b.try_read()) {
+        *a_lock == *b_lock
+    } else {
+        // Handle the case where locking fails.
+        // maybe means they are not equal, (or want to panic).
+        false
+    }
+}
+
 /// A struct used for managing Profiles
 ///
 /// # Usage
 /// Can be used for seperating profiles by language or user
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, derive_more::P)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default, Derivative)]
+#[derivative(PartialEq)]
 pub struct ProfileOptions {
     pub general: GeneralOptions,
     pub popup_window: PopupWindowOptions,
@@ -136,7 +161,7 @@ pub struct ProfileOptions {
     pub dictionaries: IndexMap<String, DictionaryOptions>,
     pub parsing: ParsingOptions,
     /// a ptr for [DisplayAnki]
-    #[]
+    #[derivative(PartialEq(compare_with = "compare_prog_opts"))]
     pub anki: Arc<RwLock<AnkiOptions>>,
     pub sentence_parsing: SentenceParsingOptions,
     pub inputs: InputsOptions,
@@ -414,19 +439,72 @@ pub struct ParsingOptions {
     Clone, Serialize, Deserialize, Debug, PartialEq, Default, Setters, Getters, MutGetters,
 )]
 #[getset(get = "pub", set = "pub", get_mut = "pub")]
-pub struct NoteModelsMap {
-    map: IndexMap<String, FullModelDetails>,
+pub struct DecksMap {
+    map: IndexMap<String, Option<DeckConfig>>,
     selected: usize,
 }
-impl Deref for NoteModelsMap {
-    type Target = IndexMap<String, FullModelDetails>;
+impl DecksMap {
+    /// Returns currently selected [DeckConfig]
+    pub fn selected_deck(&self) -> Option<(usize, &str, &Option<DeckConfig>)> {
+        let i = self.selected;
+        let Some((name, config)) = self.map.get_index(i) else {
+            return None;
+        };
+        Some((i, name.as_str(), config))
+    }
+}
+impl Deref for DecksMap {
+    type Target = IndexMap<String, Option<DeckConfig>>;
     fn deref(&self) -> &Self::Target {
         &self.map
     }
 }
-impl DerefMut for NoteModelsMap {
+impl DerefMut for DecksMap {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.map
+    }
+}
+
+/// `yomichan_rs`-unique struct for caching discovered models from Anki.
+/// # Fields
+/// * `selected`: an index in the map for the (note) model to use when creating notes.
+#[derive(
+    Clone,
+    Serialize,
+    Deserialize,
+    Debug,
+    PartialEq,
+    Default,
+    Setters,
+    Getters,
+    MutGetters,
+    Deref,
+    From,
+    DerefMut,
+)]
+#[getset(get = "pub", set = "pub", get_mut = "pub")]
+pub struct NoteModelsMap {
+    #[deref]
+    #[deref_mut]
+    map: IndexMap<String, FullModelDetails>,
+    selected: usize,
+}
+impl<'n> From<(usize, &'n str, &'n FullModelDetails)> for NoteModelNode<'n> {
+    fn from(value: (usize, &'n str, &'n FullModelDetails)) -> Self {
+        NoteModelNode(value)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Getters, Setters, MutGetters, DerefMut, Deref)]
+struct NoteModelNode<'n>((usize, &'n str, &'n FullModelDetails));
+impl NoteModelsMap {
+    pub fn selected_note(&self) -> Option<NoteModelNode<'_>> {
+        let i = self.selected;
+        let Some((name, details)) = self.map.get_index(i) else {
+            return None;
+        };
+        let node: NoteModelNode<'_> = (i, name.as_str(), details).into();
+        Some(node)
     }
 }
 
@@ -440,9 +518,12 @@ pub struct AnkiOptions {
     server: String,
     tags: Vec<String>,
     screenshot: AnkiScreenshotOptions,
-    /// [IndexMap] of [Note Types](https://docs.ankiweb.net/getting-started.html#note-types)
+    /// [IndexMap] of [Note](https://docs.ankiweb.net/getting-started.html#note-types)
     #[getset(get_mut = "pub")]
     note_models_map: NoteModelsMap,
+    /// [IndexMap] of [Deck](https://docs.ankiweb.net/getting-started.html#note-types)
+    #[getset(get_mut = "pub")]
+    deck_models_map: DecksMap,
     duplicate_scope: AnkiDuplicateScope,
     duplicate_scope_check_all_models: bool,
     duplicate_behavior: AnkiDuplicateBehavior,
