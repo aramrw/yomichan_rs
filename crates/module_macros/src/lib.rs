@@ -69,12 +69,11 @@ fn get_inner_type_if_simple_ref(ty: &Type) -> Option<&Type> {
             let type_name = last_segment.ident.to_string();
 
             if type_name == "Option" || type_name == "Result" {
-                if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
-                    if let Some(GenericArgument::Type(Type::Reference(inner_ref))) =
+                if let PathArguments::AngleBracketed(args) = &last_segment.arguments
+                    && let Some(GenericArgument::Type(Type::Reference(inner_ref))) =
                         args.args.first()
-                    {
-                        return Some(&*inner_ref.elem);
-                    }
+                {
+                    return Some(&*inner_ref.elem);
                 }
             }
             None
@@ -121,18 +120,12 @@ pub fn ref_variant(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .strip_suffix("Mut")
         .unwrap_or_else(|| panic!("Struct name must end in 'Mut'."))
         .to_string();
-    let mut_struct_ident = Ident::new(
-        &format!("{}Mut", base_name),
-        mut_struct_ident_template.span(),
-    );
-    let ref_struct_ident = Ident::new(
-        &format!("{}Ref", base_name),
-        mut_struct_ident_template.span(),
-    );
+    let mut_struct_ident = Ident::new(&format!("{base_name}Mut"), mut_struct_ident_template.span());
+    let ref_struct_ident = Ident::new(&format!("{base_name}Ref"), mut_struct_ident_template.span());
     let method_base_name_str = to_snake_case(&base_name);
     let ref_accessor_ident = Ident::new(&method_base_name_str, mut_struct_ident_template.span());
     let mut_accessor_ident = Ident::new(
-        &format!("{}_mut", method_base_name_str),
+        &format!("{method_base_name_str}_mut"),
         mut_struct_ident_template.span(),
     );
     let yomichan_ident = Ident::new("Yomichan", mut_struct_ident_template.span());
