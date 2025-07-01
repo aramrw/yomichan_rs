@@ -19,17 +19,18 @@ use crate::{
     },
     dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchSource, TermSourceMatchType},
     environment::{EnvironmentInfo, CACHED_ENVIRONMENT_INFO},
+    errors::{DBError, YomichanError},
     settings::{
-        DictionaryOptions, GeneralOptions, Options, ProfileOptions, ScanningOptions,
-        SearchResolution, TranslationOptions, TranslationTextReplacementGroup,
-        TranslationTextReplacementOptions,
+        DictionaryOptions, GeneralOptions, ProfileError, ProfileOptions, ProfileResult,
+        ScanningOptions, SearchResolution, TranslationOptions, TranslationTextReplacementGroup,
+        TranslationTextReplacementOptions, YomichanOptions,
     },
     text_scanner::{TermSearchResults, TextScanner},
     translation::{
         FindTermDictionary, FindTermsMatchType, FindTermsOptions, TermEnabledDictionaryMap,
     },
     translator::{EnabledDictionaryMapType, FindTermsMode, FindTermsResult, Translator},
-    Yomichan,
+    Ptr, Yomichan,
 };
 
 /// `yomichan_rs` private engine
@@ -39,7 +40,7 @@ pub struct Backend<'a> {
     pub anki: DisplayAnki,
     pub text_scanner: TextScanner<'a>,
     pub db: Arc<DictionaryDatabase<'a>>,
-    pub options: Options,
+    pub options: Ptr<YomichanOptions>,
 }
 
 impl<'a> Backend<'a> {
@@ -59,41 +60,25 @@ impl<'a> Backend<'a> {
         };
         Ok(backend)
     }
-
-    #[cfg(feature = "anki")]
-    pub fn default_sync(
-        db: Arc<DictionaryDatabase<'a>>,
-    ) -> Result<Self, Box<native_db::db_type::Error>> {
-        let rtx = db.r_transaction()?;
-        let opts: Option<Options> = rtx.get().primary("global_user_options")?;
-        let options = match opts {
-            Some(opts) => opts,
-            None => Options::new(),
-        };
-        let profile = options.get_current_profile();
-        let anki_options = profile.options.anki.clone();
-        let backend = Self {
-            environment: EnvironmentInfo::default(),
-            text_scanner: TextScanner::new(db.clone()),
-            anki: DisplayAnki::default_latest(anki_options),
-            db,
-            options,
-        };
-        Ok(backend)
-    }
 }
 
 impl<'a> Backend<'a> {
     /// The internal impl to write global options to the database.
-    /// This takes a [Option<RwTransaction>] so rwtx's can be reused if necessary.
+    /// Takes a [Option<RwTransaction>] so rwtx's can be reused if necessary.
+    ///
+    /// # Returns
+    ///
+    /// * Option<YomichanOptions>: The previous [YomichanOptions] found in the db.
+    ///   [None] should only ever happen after [Yomichan] creates a brand new `ycd.db`.
     fn _update_options_internal(
         &self,
         rwtx: Option<RwTransaction>,
-    ) -> Result<(), Box<native_db::db_type::Error>> {
+    ) -> Result<Option<YomichanOptions>, Box<native_db::db_type::Error>> {
         let rwtx = rwtx.unwrap_or(self.db.rw_transaction()?);
-        rwtx.upsert(self.options.clone())?;
+        let clone = self.options.write().clone();
+        let stale: Option<YomichanOptions> = rwtx.upsert(clone)?;
         rwtx.commit()?;
-        Ok(())
+        Ok(stale)
     }
 }
 
@@ -108,39 +93,52 @@ impl<'a> Yomichan<'a> {
 
     /// Sets the current profile's main language.
     ///
-    /// Only updates the language in Yomichan's memory (ie. does not persist);
+    /// Only updates the language in memory;
     /// To save the set language to the db, call [Self::update_options] after.
-    pub fn set_language(&mut self, language_iso: &str) {
-        let cprof = self.backend.options.get_current_profile_mut();
-        cprof.options.general.language = language_iso.to_string();
+    ///
+    /// # Example
+    ///
+    /// Returns [ProfileError::SelectedOutOfBounds] if the language len is out of bounds.
+    ///
+    /// ```no_run
+    /// fn persist_language() -> Option<()> {
+    ///    set_language("es").ok()
+    /// }
+    ///
+    /// ```
+    pub fn set_language(&mut self, language_iso: &str) -> ProfileResult<()> {
+        let res: ProfileResult<()> = self.backend.options.with_ptr(|global| {
+            let current_profile = global.get_current_profile()?;
+            Ok(())
+        });
+        res
     }
 
-    /// Deletes dictionaries from the database and options by name.
-    /// This function automatically saves, so no need to call `update_options`.
-    pub fn delete_dictionaries_by_names(
+    /// Deletes dictionaries from the database and options by name, in memory only.
+    pub fn delete_dictionaries_by_names_in_memory(
         &mut self,
         names: &[impl AsRef<str>],
-    ) -> Result<(), Box<native_db::db_type::Error>> {
-        let current_profile = self.backend.options.get_current_profile_mut();
-        let dictionaries = &mut current_profile.options.dictionaries;
-        for name in names {
-            let name = name.as_ref();
-            dictionaries.swap_remove(name);
-        }
+    ) -> Result<(), DBError> {
+        let current_profile = self.backend.get_current_profile()?;
+        current_profile.with_ptr_mut(|prof| {
+            let dictionaries = prof.dictionaries_mut();
+            for name in names {
+                let name = name.as_ref();
+                dictionaries.swap_remove(name);
+            }
+        });
         self.update_options()?;
-
         Ok(())
     }
 
-    pub fn delete_dictionaries_by_indexes(
-        &mut self,
-        indexes: &[usize],
-    ) -> Result<(), Box<native_db::db_type::Error>> {
-        let current_profile = self.backend.options.get_current_profile_mut();
-        let dictionaries = &mut current_profile.options.dictionaries;
-        for i in indexes {
-            dictionaries.swap_remove_index(*i);
-        }
+    pub fn delete_dictionaries_by_indexes(&mut self, indexes: &[usize]) -> Result<(), DBError> {
+        let current_profile = self.backend.get_current_profile()?;
+        current_profile.with_ptr_mut(|prof| {
+            let dictionaries = prof.dictionaries_mut();
+            for i in indexes {
+                dictionaries.swap_remove_index(*i);
+            }
+        });
         self.update_options()?;
 
         Ok(())
@@ -148,7 +146,6 @@ impl<'a> Yomichan<'a> {
 
     /// Gets all dictionary summaries from the database.
     /// [DictionarySummary] is different from [DictionaryOptions]
-    /// If you need [DictionaryOptions], use `dictionary_summaries`
     pub fn dictionary_summaries(
         &self,
     ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {

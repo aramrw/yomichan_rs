@@ -1,7 +1,12 @@
 [package]
 name = "kanji_processor"
-version = "0.1.0"
+version = "0.0.11"
+description = "Convert 異体字 to 親字 for yomichan_rs. Source: 三省堂 全訳 漢辞海 第四版"
 edition = "2024"
+authors = ["aramrw"]
+repository = "https://github.com/kanji_processor"
+license = "MIT"
+keywords = ["yomichan_rs", "yomitan"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -23,13 +23,23 @@ use backend::Backend;
 use database::dictionary_database::DictionaryDatabase;
 use database::dictionary_database::DB_MODELS;
 use derive_more::derive::DerefMut;
+use icu::time::scaffold::IntoOption;
 use indexmap::IndexMap;
+use parking_lot::ArcRwLockReadGuard;
+use parking_lot::ArcRwLockWriteGuard;
+use parking_lot::RawRwLock;
 use parking_lot::RwLock;
-use settings::Options;
-use settings::Profile;
+use serde::Deserialize;
+use serde::Serialize;
+use settings::{YomichanOptions, YomichanProfile};
 
 use native_db::*;
 use native_model::{native_model, Model};
+use std::cmp::Ordering;
+use std::fmt;
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::hash::Hasher;
 use text_scanner::TextScanner;
 use transaction::RTransaction;
 use translation::FindTermsOptions;
@@ -45,6 +55,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::anki::DisplayAnkiError;
 // public exports:
 pub use crate::database::dictionary_importer;
 pub use crate::dictionary::{
@@ -55,9 +66,140 @@ pub use crate::text_scanner::{TermSearchResults, TermSearchResultsSegment};
 use derive_more::Deref;
 pub use parking_lot;
 
+/// type alias for a [ArcRwLockReadGuard];
+pub type PtrRGaurd<T> = ArcRwLockReadGuard<RawRwLock, T>;
+pub type PtrWGaurd<T> = ArcRwLockWriteGuard<RawRwLock, T>;
 /// Simple abstraction over [parking_lot::RwLock]
-#[derive(Clone, Debug, Deref, DerefMut)]
+#[derive(Deref, DerefMut)]
 pub struct Ptr<T>(Arc<RwLock<T>>);
+
+impl<T: ToKey> ToKey for Ptr<T> {
+    fn to_key(&self) -> Key {
+        // get exclusive read & write access before writing to the database
+        let ptr = &*self.clone().write_arc();
+        ptr.to_key()
+    }
+    fn key_names() -> Vec<String> {
+        vec!["Ptr".into(), "YomichanPtr".into()]
+    }
+}
+
+impl<T> Ptr<T> {
+    pub fn new(val: T) -> Self {
+        Ptr(Arc::new(RwLock::new(val)))
+    }
+    /// Executes a closure with an immutable reference to the inner data.
+    /// Used for quick reads to the inner `&T`
+    ///
+    /// # Example
+    /// ```
+    /// let name = my_ptr.with(|data| data.name.clone());
+    /// ```
+    pub fn with_ptr<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&T) -> R,
+    {
+        let guard = self.0.read();
+        f(&*guard)
+    }
+
+    /// Acquires a write lock, runs the closure, and releases the lock.
+    /// Used for quick writes to the inner `&mut T`
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// my_ptr.with_ptr_mut(|data| {
+    ///     data.counter += 1;
+    /// });
+    /// ```
+    pub fn with_ptr_mut<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&mut T) -> R,
+    {
+        let mut guard = self.0.write();
+        f(&mut *guard)
+    }
+}
+
+impl<T> From<T> for Ptr<T> {
+    fn from(value: T) -> Self {
+        Self(Arc::new(parking_lot::RwLock::new(value)))
+    }
+}
+impl<T> Clone for Ptr<T> {
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+}
+impl<T: PartialEq> PartialEq for Ptr<T> {
+    fn eq(&self, other: &Self) -> bool {
+        // Lock both for reading and then compare the values.
+        // The locks are short-lived and dropped at the end of the statement.
+        let self_guard = self.0.read();
+        let other_guard = other.0.read();
+        *self_guard == *other_guard
+    }
+}
+// 2. Eq: A marker trait. If T is Eq, Ptr<T> is also Eq.
+impl<T: Eq> Eq for Ptr<T> {}
+
+// 3. PartialOrd: Compare the inner values.
+impl<T: PartialOrd> PartialOrd for Ptr<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.read().partial_cmp(&*other.0.read())
+    }
+}
+// 4. Ord: The full ordering trait.
+impl<T: Ord> Ord for Ptr<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.read().cmp(&*other.0.read())
+    }
+}
+// 5. Hash: Allow Ptr<T> to be used in HashMaps and HashSets.
+impl<T: Hash> Hash for Ptr<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.read().hash(state);
+    }
+}
+// 6. Debug: Display the inner value for debugging.
+impl<T: fmt::Debug> fmt::Debug for Ptr<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // You can decide if you want to show the lock status or just the data.
+        // Just showing the data is usually most helpful.
+        f.debug_tuple("Ptr").field(&*self.0.read()).finish()
+    }
+}
+// 7. Default: Create a Ptr<T> from T's default value.
+impl<T: Default> Default for Ptr<T> {
+    fn default() -> Self {
+        Self(Arc::new(RwLock::new(T::default())))
+    }
+}
+impl<'de, T> Deserialize<'de> for Ptr<T>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value: T = T::deserialize(deserializer)?;
+        Ok(Ptr::from(value))
+    }
+}
+impl<T> Serialize for Ptr<T>
+where
+    T: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let guard = self.0.read();
+        T::serialize(&*guard, serializer)
+    }
+}
 
 /// A Yomichan Dictionary instance.
 ///
@@ -102,10 +244,11 @@ pub struct Yomichan<'a> {
 }
 
 impl<'a> Yomichan<'a> {
-    /// Initializes _(or if one already exists, opens)_ a Yomichan Dictionary Database.
-    ///
-    /// # Arguments
-    /// * `db_path` - The location where the `yomichan/data.db` will be created/opened.
+    // this new function should match redb exactly below later
+    /// Opens the specified file as a yomichan database.
+    /// * if the file does not exist, or is an empty file, a new database will be initialized in it
+    /// * if the file is a valid yomichan database, it will be opened
+    /// * otherwise this function will return an error
     ///
     /// # Examples
     /// ```
@@ -124,7 +267,7 @@ impl<'a> Yomichan<'a> {
     /// // `~/desktop/yomichan_rs/data.db` was created above, so it makes a connection
     /// let mut ycd = Yomichan::new("c:/users/one/desktop/yomichan/data.db");
     /// ```
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, InitError> {
+    pub fn new(path: impl AsRef<Path>) -> Result<Self, Box<InitError>> {
         let path = path.as_ref().to_path_buf();
         let db_path = fmt_dbpath(path)?;
         let db = Arc::new(DictionaryDatabase::new(db_path));
@@ -163,14 +306,14 @@ fn find_ydict_file(p: &Path) -> Option<PathBuf> {
 /// # Returns
 /// A valid PathBuf ending in `.ycd`
 /// ...can be opened or created with [`native_db::Builder::open`]
-fn fmt_dbpath(p: PathBuf) -> Result<PathBuf, InitError> {
+fn fmt_dbpath(p: PathBuf) -> Result<PathBuf, Box<InitError>> {
     let fname = p.display().to_string();
     if p.is_file() && fname.ends_with(".ycd") {
         if p.exists() {
             return Ok(p);
         }
         if p.parent().map(|p| p.exists()).unwrap_or(false) {
-            return Err(InitError::MissingParent { p });
+            return Err(InitError::MissingParent { p }.into());
         }
         return Ok(p);
     };
@@ -182,10 +325,10 @@ fn fmt_dbpath(p: PathBuf) -> Result<PathBuf, InitError> {
         // path exists && is dir &&
         // yomichan_rs cannot exist
         let p = p.join("yomichan_rs");
-        std::fs::create_dir_all(&p)?;
+        std::fs::create_dir_all(&p).map_err(|e| Box::new(InitError::Io(e)))?;
         return Ok(p.join("db.ycd"));
     }
-    Err(InitError::InvalidPath { p })
+    Err(InitError::InvalidPath { p }.into())
 }
 
 #[derive(thiserror::Error)]
@@ -203,8 +346,19 @@ pub enum InitError {
     DatabaseConnectionFailed(#[from] Box<db_type::Error>),
     #[error("io err: {0}")]
     Io(#[from] std::io::Error),
+    #[error("display anki: {0}")]
+    DisplayAnki(#[from] DisplayAnkiError),
 }
-
+impl From<Box<DisplayAnkiError>> for InitError {
+    fn from(e: Box<DisplayAnkiError>) -> Self {
+        InitError::DisplayAnki(*e)
+    }
+}
+impl From<Box<DisplayAnkiError>> for Box<InitError> {
+    fn from(e: Box<DisplayAnkiError>) -> Self {
+        Box::new(InitError::DisplayAnki(*e))
+    }
+}
 impl From<native_db::db_type::Error> for InitError {
     fn from(e: native_db::db_type::Error) -> Self {
         InitError::DatabaseConnectionFailed(Box::new(e))

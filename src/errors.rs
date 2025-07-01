@@ -1,3 +1,4 @@
+use crate::{database::dictionary_importer::DictionarySummaryError, settings::ProfileError};
 use native_db::db_type;
 use snafu::Snafu;
 use std::{
@@ -6,13 +7,28 @@ use std::{
 };
 use thiserror::Error;
 
-use crate::database::dictionary_importer::DictionarySummaryError;
+/// Abstraction over results for
+pub enum YomichanResult<T> {
+    Result(T),
+    Err(YomichanError),
+}
+
+/// All possible `yomichan_rs` [Error] paths
+#[derive(Error, Debug)]
+pub enum YomichanError {
+    #[error("(-)[yc_error::import] -> \n{0}")]
+    Import(#[from] ImportError),
+    #[error("(-)[yc_error::db]")]
+    Database(#[from] DBError),
+    #[error("(-)[yc_error::profile]")]
+    Profile(#[from] ProfileError),
+}
 
 #[derive(Error, Debug)]
 pub enum ImportZipError {
     #[error("the zip path: `{0}` does not exist")]
     DoesNotExist(PathBuf),
-    #[error("`zip` crate error: {0}")]
+    #[error("zip crate error: {0}")]
     ZipCrate(#[from] zip::result::ZipError),
     #[error("filesystemIO error: {0}")]
     Io(#[from] std::io::Error),
@@ -70,6 +86,8 @@ pub enum ImportError {
     InvalidJson { file: PathBuf, e: Option<String> },
     #[error("failed to create summary: {0}")]
     Summary(#[from] DictionarySummaryError),
+    #[error("profile error: {0}")]
+    Profile(#[from] ProfileError),
 }
 
 impl From<native_db::db_type::Error> for ImportError {
@@ -88,8 +106,8 @@ pub enum DBError {
     NoneFound(String),
     #[error("import err: {0}")]
     Import(#[from] ImportError),
-    //#[error("token err: {0}")]
-    //Token(#[from] lindera::LinderaError),
+    #[error("(-)[yc_error::profile]")]
+    Profile(#[from] ProfileError),
 }
 
 impl From<native_db::db_type::Error> for DBError {
@@ -126,4 +144,25 @@ impl From<(u32, serde_json::error::Error)> for ImportError {
     fn from(err: (u32, serde_json::error::Error)) -> ImportError {
         ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
     }
+}
+
+pub mod error_helpers {
+    /// # Example
+    ///
+    /// ```
+    /// #[error("[error::{}]", fmterr_module(vec!["main", "database"]))]
+    /// // [error::main::database]
+    /// ```
+    pub fn fmterr_module(mods: Vec<&str>) -> String {
+        mods.join("::")
+    }
+
+    /// A helper macro to create a standard module error message attribute.
+    #[macro_export]
+    macro_rules! fmt_mod_error {
+    ( $($path_part:literal),* ) => {
+        // This macro expands to the full #[error(...)] attribute
+        #[error("[{}]", error_helpers::fmterr_module(&[ $($path_part),* ]))]
+    };
+}
 }

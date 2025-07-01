@@ -1,53 +1,32 @@
+use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
 use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
     DictionaryDataTag, MetaDataMatchType, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
     TermMetaModeType, TermMetaPitch, TermMetaPitchData,
 };
+use crate::errors::{DBError, DictionaryFileError, ImportError};
+use crate::settings::{DictionaryOptions, YomichanOptions, YomichanProfile};
 use crate::structured_content::{StructuredContent, TermGlossary, TermGlossaryGroupType};
 use crate::test_utils::TEST_PATHS;
 use crate::translator::TagTargetItem;
 use serde_with::skip_serializing_none;
 use serde_with::{serde_as, NoneAsEmptyString};
 
-use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
-// KANA_MAP is unused, consider removing if not used elsewhere in this module or submodules
-// use crate::dictionary_data::KANA_MAP;
-use crate::errors::{DBError, DictionaryFileError, ImportError};
-use crate::settings::{DictionaryOptions, Options, Profile};
-// Yomichan is unused, consider removing if not used elsewhere in this module or submodules
-// use crate::Yomichan;
-
-//use lindera::{LinderaError, Token, Tokenizer};
-
 use db_type::{KeyOptions, ToKeyDefinition};
 use indexmap::{IndexMap, IndexSet};
 use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
-use native_model::{native_model, Model as NativeModelTrait}; // Renamed to avoid conflict if Model is used for DB Model
+// Renamed to avoid conflict if Model is used for DB Model
+use native_model::{native_model, Model as NativeModelTrait};
 
-// rayon::collections::hash_set is unused
-// use rayon::collections::hash_set;
 use serde::{Deserialize, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
-
-// RTransaction is unused directly in this snippet, but likely used by self.db.r_transaction()
-// use transaction::RTransaction;
-//use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 use uuid::Uuid;
 
-// std::cell::LazyCell is unused
-// use std::cell::LazyCell;
-// std::error::Error is unused directly
-// use std::error::Error;
 use std::ffi::OsString;
-// std::fmt::{Debug, Display} are unused directly, but derived often
-// use std::fmt::{Debug, Display};
-// std::hash::Hash is unused directly, but derived often
-// use std::hash::Hash;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
-// std::sync::{Arc, LazyLock} - LazyLock is used, Arc is not
 use std::sync::{Arc, LazyLock};
-use std::{fs, marker}; // marker is unused
+use std::{fs, marker};
 
 // Helper macro for creating enum variants like NativeDbQueryInfo::Exact(value)
 // Exporting in case it's useful in other modules of this crate.
@@ -82,7 +61,7 @@ impl<V: Send + Sync> DictionarySet for &IndexMap<String, V> {
 
 pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     let mut models = Models::new();
-    models.define::<Options>().unwrap();
+    models.define::<YomichanOptions>().unwrap();
     models.define::<DictionarySummary>().unwrap();
     models.define::<DatabaseTermEntry>().unwrap();
     /// in js, freq, pitch, and phonetic are grouped under an enum

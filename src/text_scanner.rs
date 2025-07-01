@@ -14,14 +14,16 @@ use crate::{
     backend::FindTermsDetails,
     database::dictionary_database::DictionaryDatabase,
     dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
-    settings::{AnkiOptions, DecksMap, ProfileOptions},
+    settings::{AnkiOptions, DecksMap, ProfileOptions, YomichanProfile},
     translator::{FindTermsMode, FindTermsResult, Translator},
-    Yomichan,
+    Ptr, Yomichan,
 };
 
-impl<'a> Yomichan<'a> {
+impl Yomichan<'_> {
     pub fn search(&mut self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
-        let opts = &self.backend.options.get_current_profile().options;
+        let profile = self.backend.get_current_profile().ok()?;
+        let profile = profile.read();
+        let opts = profile.options();
         let res = self.backend.text_scanner.search_sentence(text, opts)?;
         Some(SentenceParser::parse(res))
     }
@@ -171,33 +173,33 @@ pub enum BuildNoteError {
     NoDeckSelected,
 }
 impl TermSearchResults {
-    /// Returns a Note future
-    pub async fn build_note(
-        &self,
-        model: &FullModelDetails,
-        deck_name: String,
-        anki_opts: ArcRwLockReadGuard<RawRwLock, AnkiOptions>,
-        tags: Vec<String>,
-        client: Option<&ReqwestClient>,
-    ) -> AnkiResult<Note> {
-        let fields = &model.fields;
-        NoteBuilder::default()
-            .model_name(model.name.clone())
-            .deck_name(deck_name)
-            .field(field_name, value)
-            .tags(tags)
-            .build(client)
-            .await
-    }
+    //Returns a Note future
+    // pub async fn build_note(
+    //     &self,
+    //     model: &FullModelDetails,
+    //     deck_name: String,
+    //     anki_opts: ArcRwLockReadGuard<RawRwLock, AnkiOptions>,
+    //     tags: Vec<String>,
+    //     client: Option<&ReqwestClient>,
+    // ) -> AnkiResult<Note> {
+    //     let fields = &model.fields;
+    //     NoteBuilder::default()
+    //         .model_name(model.name.clone())
+    //         .deck_name(deck_name)
+    //         .field(field_name, value)
+    //         .tags(tags)
+    //         .build(client)
+    //         .await
+    // }
 }
 
-/// A simplified text scanner to find dictionary terms and sentence context,
-/// inspired by Yomitan's core logic.
+/// Scans text to find dictionary terms and sentence context.
+/// Inspired by [YomitanJS's TextScanner](https://github.com/yomidevs/yomitan/blob/2fc09f9b2d2f130ea18ae117be15f5683bc13440/ext/js/language/text-scanner.js#L33)
 pub struct TextScanner<'a> {
     /// A mutable reference to the core translator engine.
     translator: Translator<'a>,
 
-    /// The maximum number of characters to scan for terms initially.
+    /// The max number of characters to scan (initially).
     /// Corresponds to `_scanLength` in JS.
     scan_len: usize,
 
@@ -218,7 +220,7 @@ pub struct TextScanner<'a> {
 
 impl<'a> TextScanner<'a> {
     /// Creates a new TextScanner with default or provided configuration.
-    pub fn new(db: Arc<DictionaryDatabase<'a>>) -> Self {
+    pub fn new(db: &Arc<DictionaryDatabase<'a>>) -> Self {
         TextScanner {
             translator: Translator::new(db.clone()),
             scan_len: 20,

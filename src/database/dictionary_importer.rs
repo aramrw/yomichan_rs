@@ -11,14 +11,15 @@ use crate::dictionary_data::{
     TermV3, TermV4,
 };
 use crate::settings::{
-    self, DictionaryDefinitionsCollapsible, DictionaryOptions, Options, Profile,
+    self, DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, ProfileResult,
+    YomichanOptions, YomichanProfile,
 };
 use crate::structured_content::{
     ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
 };
 
 use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
-use crate::{test_utils, Yomichan};
+use crate::{test_utils, Ptr, Yomichan};
 
 use indexmap::IndexMap;
 use native_db::transaction::RwTransaction;
@@ -70,28 +71,39 @@ impl Backend<'_> {
         &mut self,
         zip_paths: &[P],
     ) -> Result<(), ImportError> {
-        let settings = self.options.get_options_mut();
         let db = &self.db;
+        let current_profile = self.get_current_profile()?;
         ImportZipError::check_zip_paths(zip_paths)?;
 
         let options: Vec<DictionaryOptions> = zip_paths
             .par_iter()
-            .map(|path| import_dictionary(path, settings, db))
+            .map(|path| import_dictionary(path, db, current_profile.clone()))
             .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
 
-        let mut options: IndexMap<String, DictionaryOptions> = options
+        let mut dictionary_opts: IndexMap<String, DictionaryOptions> = options
             .into_iter()
             .map(|opt| (opt.name.clone(), opt))
             .collect();
 
-        let current_profile = settings.get_current_profile_mut();
-        let mut main_dictionary = &mut current_profile.options.general.main_dictionary;
-        if main_dictionary.is_empty() {
-            *main_dictionary = options[0].name.clone();
-        }
-        current_profile.options.dictionaries.extend(options);
+        let global_options = self.options.clone();
+        let res: Result<(), ProfileError> = global_options.with_ptr_mut(|gopts| {
+            let current_profile_ptr: Ptr<YomichanProfile> = gopts.get_current_profile()?;
+            current_profile_ptr.with_ptr_mut(|current_profile| {
+                let mut main_dictionary = current_profile.get_main_dictionary();
+                if main_dictionary.is_empty() {
+                    let name = dictionary_opts
+                        .get_index(0)
+                        .expect("[unexpected] dictionary options created but len is 0");
+                    current_profile.set_main_dictionary(name.0.to_string());
+                }
+                current_profile.extend_dictionaries(dictionary_opts);
+            });
+            Ok(())
+        });
+        res?;
+
         let rwtx = db.rw_transaction()?;
-        db_rwriter(&rwtx, vec![settings.to_owned()]);
+        db_rwriter(&rwtx, vec![global_options.read().clone()]);
         rwtx.commit()?;
 
         Ok(())
@@ -446,10 +458,10 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
 
 pub fn import_dictionary<P: AsRef<Path>>(
     zip_path: P,
-    settings: &Options,
     db: &DictionaryDatabase,
+    current_profile: Ptr<YomichanProfile>,
 ) -> Result<DictionaryOptions, ImportError> {
-    let data: DatabaseDictData = prepare_dictionary(zip_path, settings)?;
+    let data: DatabaseDictData = prepare_dictionary(zip_path, current_profile)?;
     let rwtx = db.rw_transaction()?;
     db_rwriter(&rwtx, data.term_list)?;
     db_rwriter(&rwtx, data.kanji_list)?;
@@ -482,7 +494,7 @@ fn db_rwriter<L: ToInput>(
 
 pub fn prepare_dictionary<P: AsRef<Path>>(
     zip_path: P,
-    settings: &Options,
+    current_profile: Ptr<YomichanProfile>,
 ) -> Result<DatabaseDictData, ImportError> {
     //let instant = Instant::now();
     //let temp_dir_path = extract_dict_zip(zip_path)?;
@@ -507,8 +519,11 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
     let index: Index = convert_index_file(index_path)?;
     let dict_name = index.title.clone();
     // check if dict exists before continuing
-    let cprof = settings.get_current_profile();
-    if cprof.options.dictionaries.get(&dict_name).is_some() {
+    if current_profile
+        .read()
+        .get_dictionary_options_from_name(&dict_name)
+        .is_some()
+    {
         return Err(ImportError::DictionaryAlreadyExists(dict_name));
     }
 
@@ -606,21 +621,18 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
     );
 
     let yomitan_version = env!("CARGO_PKG_VERSION").to_string();
+    let prefix_wildcard_supported =
+        current_profile.with_ptr(|prof| prof.options.general().prefix_wildcard_supported);
     let summary_details = SummaryDetails {
-        prefix_wildcard_supported: settings.global.database.prefix_wildcards_supported,
+        prefix_wildcard_supported,
         counts,
         /// this is incorrect, it parses a 'styles.css' file
         /// need to do this later
         styles: "".to_string(),
         yomitan_version,
     };
-    let summary = DictionarySummary::new(
-        index,
-        settings.global.database.prefix_wildcards_supported,
-        summary_details,
-    )?;
-
-    let dictionary_options = DictionaryOptions::new(settings, dict_name);
+    let summary = DictionarySummary::new(index, prefix_wildcard_supported, summary_details)?;
+    let dictionary_options = DictionaryOptions::new(dict_name);
 
     Ok(DatabaseDictData {
         tag_list,
@@ -881,7 +893,7 @@ mod importer_tests {
             dictionary_database::Queries,
             dictionary_importer::{self, prepare_dictionary},
         },
-        settings::Options,
+        settings::YomichanOptions,
         test_utils, Yomichan,
     };
 
@@ -894,9 +906,10 @@ mod importer_tests {
             .build()
             .unwrap();
 
-        let options = Options::default();
+        let options = YomichanOptions::default();
+        let current_profile = options.get_current_profile().unwrap();
         let path = std::path::Path::new("./test_dicts/daijisen");
-        prepare_dictionary(path, &options).unwrap();
+        prepare_dictionary(path, current_profile).unwrap();
 
         #[cfg(target_os = "linux")]
         if let Ok(report) = guard.report().build() {

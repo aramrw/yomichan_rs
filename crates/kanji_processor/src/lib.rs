@@ -3,7 +3,6 @@ use regex::Regex;
 use serde::Deserialize;
 use std::sync::LazyLock;
 
-// Define a struct to match your KanjiMapping type
 #[derive(Deserialize, Debug, Clone)]
 struct KanjiMapping {
     oyaji: String,
@@ -39,7 +38,6 @@ impl KanjiProcessor {
 
         let mut conversion_map = IndexMap::new();
         for mapping in mappings {
-            // Assume oyaji is a single char for the map value
             let oyaji_char = mapping
                 .oyaji
                 .chars()
@@ -47,7 +45,6 @@ impl KanjiProcessor {
                 .expect("Oyaji should be a single character");
 
             for itaiji in mapping.itaiji {
-                // Assume itaiji are single chars for the map key
                 let itaiji_char = itaiji
                     .chars()
                     .next()

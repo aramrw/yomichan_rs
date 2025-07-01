@@ -1753,7 +1753,7 @@ dependencies = [
 
 [[package]]
 name = "kanji_processor"
-version = "0.1.0"
+version = "0.0.11"
 dependencies = [
  "indexmap 2.10.0",
  "regex",
@@ -1780,7 +1780,7 @@ dependencies = [
  "derive_more 2.0.1",
  "fancy-regex",
  "indexmap 2.10.0",
- "kanji_processor 0.1.0 (git+https://github.com/aramrw/yomichan_rs.git?branch=master)",
+ "kanji_processor 0.1.0",
  "phf",
  "pretty_assertions",
  "serde",
@@ -3858,6 +3858,7 @@ dependencies = [
  "getset",
  "icu",
  "indexmap 2.10.0",
+ "kanji_processor 0.0.11",
  "language_transformer",
  "module_macros",
  "native_db",

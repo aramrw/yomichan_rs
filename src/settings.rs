@@ -4,10 +4,14 @@ use std::sync::Arc;
 
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnki;
+use crate::backend::Backend;
 use crate::Ptr;
+use crate::PtrRGaurd;
+use crate::PtrWGaurd;
 use anki_direct::cache::model::ModelCache;
 use anki_direct::decks::DeckConfig;
 use anki_direct::model::FullModelDetails;
+use anki_direct::notes::MediaSource;
 use better_default::Default;
 use derivative::Derivative;
 use derive_more::derive::Deref;
@@ -25,8 +29,11 @@ use native_model::native_model;
 use native_model::Model;
 use parking_lot::ArcRwLockReadGuard;
 use parking_lot::ArcRwLockUpgradableReadGuard;
+use parking_lot::RawRwLock;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use serde_with::SerializeDisplay;
+use url::form_urlencoded::Target;
 
 use crate::{
     database::dictionary_importer::DictionarySummary, translation::FindTermsSortOrder,
@@ -46,48 +53,67 @@ pub struct GlobalDatabaseOptions {
 /// Global Yomichan Settings.
 #[native_model(id = 20, version = 1)]
 #[native_db]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct Options {
+#[derive(
+    Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters, Setters,
+)]
+#[getset(get = "pub", get_mut = "pub", set = "pub")]
+pub struct YomichanOptions {
     #[primary_key]
     id: String,
-    // should get it from crates / rust somehow
     pub version: String,
-    pub profiles: Vec<Profile>,
+    pub profiles: Vec<Ptr<YomichanProfile>>,
     pub current_profile: usize,
     pub global: GlobalOptions,
+    pub anki: GlobalAnkiOptions,
 }
 
-impl Options {
+impl YomichanOptions {
     pub fn new() -> Self {
         Self {
             id: "global_user_options".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            profiles: vec![Profile::default()],
+            profiles: vec![YomichanProfile::default().into()],
             current_profile: 0,
             global: GlobalOptions::default(),
+            anki: GlobalAnkiOptions::default(),
         }
     }
-    pub fn get_options_mut(&mut self) -> &mut Self {
-        self
-    }
-    pub fn get_current_profile_mut(&mut self) -> &mut Profile {
-        let index = self.current_profile;
-        &mut self.profiles[index]
-    }
-    pub fn get_current_profile(&self) -> &Profile {
-        let index = self.current_profile;
-        &self.profiles[index]
+    /// Gets a [Ptr] to the currently selected profile.
+    /// Returns None if the index is out of bounds.
+    pub fn get_current_profile(&self) -> ProfileResult<Ptr<YomichanProfile>> {
+        let Some(pf) = self.profiles.get(self.current_profile) else {
+            return Err(ProfileError::SelectedOutofBounds {
+                selected: *self.current_profile(),
+                len: self.profiles.len(),
+            });
+        };
+        Ok(pf.clone())
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct Profile {
+impl Backend<'_> {
+    pub fn get_current_profile(&self) -> ProfileResult<Ptr<YomichanProfile>> {
+        let opts = self.options.read_arc();
+        opts.get_current_profile()
+    }
+}
+
+/// Returns `T` or  [ProfileError]
+pub type ProfileResult<T> = Result<T, ProfileError>;
+#[derive(thiserror::Error, Debug)]
+pub enum ProfileError {
+    #[error("tried to index selected_profile[selected], but profiles.len() = {len}")]
+    SelectedOutofBounds { selected: usize, len: usize },
+}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters)]
+pub struct YomichanProfile {
     pub name: String,
     pub condition_groups: Vec<ProfileConditionGroup>,
+    #[getset(get = "pub")]
     pub options: ProfileOptions,
 }
 
-impl Profile {
+impl YomichanProfile {
     pub fn new(
         name: String,
         condition_groups: Vec<ProfileConditionGroup>,
@@ -98,6 +124,23 @@ impl Profile {
             condition_groups,
             options,
         }
+    }
+
+    /// Sets the current [YomichanProfile]'s language to the iso
+    // TODO: use an enum instead of `&'str`
+    pub fn set_language(&mut self, iso: &str) {
+        self.options.general.language = iso.to_string();
+    }
+
+    pub fn extend_dictionaries(
+        &mut self,
+        new: impl IntoIterator<Item = (String, DictionaryOptions)>,
+    ) {
+        self.options.dictionaries.extend(new);
+    }
+
+    pub fn get_dictionary_options_from_name(&self, find: &str) -> Option<&DictionaryOptions> {
+        self.options.dictionaries.get(find)
     }
 }
 
@@ -149,24 +192,54 @@ fn compare_prog_opts(a: &Arc<RwLock<AnkiOptions>>, b: &Arc<RwLock<AnkiOptions>>)
 ///
 /// # Usage
 /// Can be used for seperating profiles by language or user
-#[derive(Clone, Debug, Serialize, Deserialize, Default, Derivative)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default, Derivative, Getters, MutGetters)]
 #[derivative(PartialEq)]
 pub struct ProfileOptions {
+    #[getset(get = "pub", get_mut = "pub")]
     pub general: GeneralOptions,
     pub popup_window: PopupWindowOptions,
     /// should be moved to [crate::audio]
     pub audio: AudioOptions,
     pub scanning: ScanningOptions,
     pub translation: TranslationOptions,
+    #[getset(get = "pub", get_mut = "pub")]
     pub dictionaries: IndexMap<String, DictionaryOptions>,
     pub parsing: ParsingOptions,
     /// a ptr for [DisplayAnki]
-    #[derivative(PartialEq(compare_with = "compare_prog_opts"))]
-    pub anki: Arc<RwLock<AnkiOptions>>,
+    //#[derivative(PartialEq(compare_with = "compare_prog_opts"))]
+    pub anki: AnkiOptions,
     pub sentence_parsing: SentenceParsingOptions,
     pub inputs: InputsOptions,
     pub clipboard: ClipboardOptions,
     pub accessibility: AccessibilityOptions,
+}
+impl ProfileOptions {
+    /// Gets the main dictionary for this [YomichanProfile] from it's [ProfileOptions]
+    pub fn main_dictionary(&self) -> &str {
+        self.general.main_dictionary.as_str()
+    }
+    /// Updates the current dictionary and returns the previous one
+    pub fn set_main_dictionary(&mut self, new: String) -> String {
+        let old = self.general.main_dictionary.as_mut_string();
+        std::mem::replace(old, new)
+    }
+}
+impl YomichanProfile {
+    /// Gets the main dictionary for this [YomichanProfile]
+    pub fn get_main_dictionary(&self) -> &str {
+        self.options.main_dictionary()
+    }
+    /// Updates the main dictionary and returns the previous one
+    pub fn set_main_dictionary(&mut self, new: String) -> String {
+        self.options.set_main_dictionary(new)
+    }
+    /// Gets a ref to this profiles dictionaries
+    pub fn dictionaries(&self) -> &IndexMap<String, DictionaryOptions> {
+        self.options.dictionaries()
+    }
+    pub fn dictionaries_mut(&mut self) -> &mut IndexMap<String, DictionaryOptions> {
+        self.options.dictionaries_mut()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -174,6 +247,7 @@ pub struct GeneralOptions {
     pub enable: bool,
     pub language: String,
     pub result_output_mode: FindTermsMode,
+    pub prefix_wildcard_supported: bool,
     pub debug_info: bool,
     pub max_results: u8,
     pub show_advanced: bool,
@@ -405,10 +479,7 @@ pub struct DictionaryOptions {
 }
 
 impl DictionaryOptions {
-    pub fn new(settings: &Options, dict_name: String) -> Self {
-        let profile = settings.get_current_profile();
-        let p_len = profile.options.dictionaries.len();
-
+    pub fn new(dict_name: String) -> Self {
         DictionaryOptions {
             name: dict_name.clone(),
             alias: dict_name,
@@ -443,13 +514,17 @@ pub struct DecksMap {
     map: IndexMap<String, Option<DeckConfig>>,
     selected: usize,
 }
+impl From<IndexMap<String, Option<DeckConfig>>> for DecksMap {
+    fn from(map: IndexMap<String, Option<DeckConfig>>) -> Self {
+        Self { map, selected: 0 }
+    }
+}
+
 impl DecksMap {
     /// Returns currently selected [DeckConfig]
     pub fn selected_deck(&self) -> Option<(usize, &str, &Option<DeckConfig>)> {
         let i = self.selected;
-        let Some((name, config)) = self.map.get_index(i) else {
-            return None;
-        };
+        let (name, config) = self.map.get_index(i)?;
         Some((i, name.as_str(), config))
     }
 }
@@ -462,6 +537,62 @@ impl Deref for DecksMap {
 impl DerefMut for DecksMap {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.map
+    }
+}
+
+/// Defines Anki fields types that correspond to a [DictionaryTermEntry] for making notes
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum AnkiTermFieldType {
+    Term(String),
+    Reading(String),
+    Sentence(String),
+    Definition(String),
+    TermAudio(MediaSource),
+    SentenceAudio(MediaSource),
+    Image(MediaSource),
+    Frequency(String),
+}
+impl AnkiTermFieldType {
+    /// Constructs a new [AnkiTermFieldType] from a `T`
+    /// Helper function to construct a variant from a value and a constructor function.
+    ///
+    /// This generic function avoids repetitive code by taking a value of any type `T`
+    /// and a `constructor` (like `TermFieldType::Term` or `TermFieldType::Image`)
+    /// and applying the constructor to the value.
+    ///
+    /// # Type Parameters
+    /// * `T`: The type of the value to be wrapped in the enum (e.g., `String`, `MediaSource`).
+    /// * `F`: A function or closure that takes `T` and returns `Self`.
+    fn from_value<T, F>(value: T, constructor: F) -> Self
+    where
+        F: FnOnce(T) -> Self,
+    {
+        constructor(value)
+    }
+
+    /// Constructs a new [AnkiTermFieldType] from a field index and a string value.
+    ///
+    /// Uses a `match` statement to determine which field to create,
+    /// and then calls the [Self::from_value] helper to perform the construction.
+    pub fn from_index_and_value(index: usize, value: &str) -> Option<Self> {
+        match index {
+            // String-based fields
+            0 => Some(Self::from_value(value.to_string(), Self::Term)),
+            1 => Some(Self::from_value(value.to_string(), Self::Reading)),
+            2 => Some(Self::from_value(value.to_string(), Self::Sentence)),
+            3 => Some(Self::from_value(value.to_string(), Self::Definition)),
+            7 => Some(Self::from_value(value.to_string(), Self::Frequency)),
+
+            // Media-based fields
+            // Here, we first convert the `&str` into a `MediaSource` using `.into()`,
+            // and then pass that `MediaSource` to our generic helper.
+            4 => Some(Self::from_value(value.into(), Self::TermAudio)),
+            5 => Some(Self::from_value(value.into(), Self::SentenceAudio)),
+            6 => Some(Self::from_value(value.into(), Self::Image)),
+
+            // Invalid index
+            _ => None,
+        }
     }
 }
 
@@ -489,23 +620,53 @@ pub struct NoteModelsMap {
     map: IndexMap<String, FullModelDetails>,
     selected: usize,
 }
+impl From<IndexMap<String, FullModelDetails>> for NoteModelsMap {
+    fn from(map: IndexMap<String, FullModelDetails>) -> Self {
+        Self { map, selected: 0 }
+    }
+}
+
 impl<'n> From<(usize, &'n str, &'n FullModelDetails)> for NoteModelNode<'n> {
     fn from(value: (usize, &'n str, &'n FullModelDetails)) -> Self {
         NoteModelNode(value)
     }
 }
-
 #[derive(Clone, Debug, PartialEq, Getters, Setters, MutGetters, DerefMut, Deref)]
-struct NoteModelNode<'n>((usize, &'n str, &'n FullModelDetails));
+pub struct NoteModelNode<'n>((usize, &'n str, &'n FullModelDetails));
 impl NoteModelsMap {
     pub fn selected_note(&self) -> Option<NoteModelNode<'_>> {
         let i = self.selected;
-        let Some((name, details)) = self.map.get_index(i) else {
-            return None;
-        };
+        let (name, details) = self.map.get_index(i)?;
         let node: NoteModelNode<'_> = (i, name.as_str(), details).into();
         Some(node)
     }
+}
+
+/// Struct for [Options] that caches note models and decks from Anki
+#[derive(
+    Clone, Debug, Getters, Setters, MutGetters, Serialize, Deserialize, PartialEq, Default,
+)]
+pub struct GlobalAnkiOptions {
+    /// [IndexMap] of [Note](https://docs.ankiweb.net/getting-started.html#note-types)
+    #[getset(get_mut = "pub")]
+    note_models_map: NoteModelsMap,
+    /// [IndexMap] of [Deck](https://docs.ankiweb.net/getting-started.html#note-types)
+    #[getset(get_mut = "pub")]
+    deck_models_map: DecksMap,
+}
+
+/// Type to cache Anki note creation options
+#[derive(
+    Clone, Default, Debug, PartialEq, Serialize, Deserialize, Getters, Setters, MutGetters,
+)]
+#[getset(get = "pub", get_mut = "pub", set = "pub")]
+struct AnkiFields {
+    /// field that maps term result info to selected model fields
+    fields: Vec<AnkiTermFieldType>,
+    /// selected note model create notes with
+    selected_model: usize,
+    /// selected deck to add notes to
+    selected_deck: usize,
 }
 
 #[derive(
@@ -518,12 +679,9 @@ pub struct AnkiOptions {
     server: String,
     tags: Vec<String>,
     screenshot: AnkiScreenshotOptions,
-    /// [IndexMap] of [Note](https://docs.ankiweb.net/getting-started.html#note-types)
-    #[getset(get_mut = "pub")]
-    note_models_map: NoteModelsMap,
-    /// [IndexMap] of [Deck](https://docs.ankiweb.net/getting-started.html#note-types)
-    #[getset(get_mut = "pub")]
-    deck_models_map: DecksMap,
+    // Pre-mapped fields that specify which Anki field to insert term data
+    #[cfg(feature = "anki")]
+    anki_fields: Option<AnkiFields>,
     duplicate_scope: AnkiDuplicateScope,
     duplicate_scope_check_all_models: bool,
     duplicate_behavior: AnkiDuplicateBehavior,

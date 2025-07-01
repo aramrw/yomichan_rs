@@ -358,8 +358,7 @@ impl<'de> Deserialize<'de> for TermGlossaryContent {
         // Step 1: Deserialize into a generic Value.
         let value = serde_json::Value::deserialize(deserializer).map_err(|e| {
             de::Error::custom(format!(
-                "Failed to deserialize into intermediate Value: {}",
-                e
+                "Failed to deserialize into intermediate Value: {e}"
             ))
         })?;
 
@@ -760,8 +759,7 @@ fn deserialize_element_from_value(value: Value) -> Result<Element, String> {
             .ok_or("First element of Element array must be a tag string".to_string())?
     } else {
         return Err(format!(
-            "Element must be a map or an array, but was: {:?}",
-            value
+            "Element must be a map or an array, but was: {value:?}"
         ));
     };
 
@@ -787,8 +785,7 @@ fn deserialize_element_from_value(value: Value) -> Result<Element, String> {
             // We need to return a `Result<_, serde_json::Error>` to match the other arms.
             // A simple way is to create an `io::Error`.
             return Err(format!(
-                "unknown variant `{}`, expected one of {:?}",
-                unknown_tag, known_variants
+                "unknown variant `{unknown_tag}`, expected one of {known_variants:?}"
             ));
         }
     };
@@ -796,8 +793,7 @@ fn deserialize_element_from_value(value: Value) -> Result<Element, String> {
     // Add the detailed final error message, which is very helpful for debugging.
     result.map_err(|e| {
         format!(
-            "Failed to deserialize Element with tag '{}'. Error: {}. Original value was: {}",
-            tag_str, e, value
+            "Failed to deserialize Element with tag '{tag_str}'. Error: {e}. Original value was: {value}"
         )
     })
 }

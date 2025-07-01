@@ -24,7 +24,7 @@ unicode-segmentation = "=1.12.0"
 unicode-normalization = "=0.1.24"
 wana_kana = "=3.0.0"
 derive_more = { version = "=1.0.0", features = ["debug", "from", "deref", "deref_mut"] }
-indexmap = { version = "2.7.0", features = ["serde"] }
+indexmap = { version = "2.10.0", features = ["serde"] }
 language_transformer = { git = "https://github.com/aramrw/ycrs_language_transformer", branch = "update" }
 icu = "=2.0.0"
 fancy-regex = "=0.14.0"
@@ -39,13 +39,14 @@ better_default = "=1.0.5"
 parking_lot = { version = "0.12.4", features = ["arc_lock", "deadlock_detection", "serde"] }
 derive-where = { version = "1.5.0", features = ["serde"] }
 derivative = { version = "2.2.0", features = ["use_core"] }
+kanji_processor = { version = "*", path = "crates/kanji_processor" }
 
 [dev-dependencies]
 pretty_assertions = "=1.4.1"
 tokio-macros = "=2.5.0"
 
 [workspace]
-members = ["crates/kanji_processor", "crates/module_macros"]
+# members = ["crates/module_macros"]
 
 # https://www.reddit.com/r/rust/comments/gaeiwm/how_to_optionally_run_certain_tests/
 [features]
