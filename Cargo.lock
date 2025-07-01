@@ -73,14 +73,16 @@ dependencies = [
 
 [[package]]
 name = "anki_direct"
-version = "0.1.0"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bbb02d03ddc658652cb16d9d1fad38f9e83f6062062055a3280abdea69059b1"
 dependencies = [
  "base64",
  "derive-where",
  "derive_builder",
  "futures",
  "getset",
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
  "num-traits",
  "reqwest",
  "serde",
@@ -520,6 +522,28 @@ name = "deflate64"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da692b8d1080ea3045efaab14434d40468c3d8657e42abddfffca87b428f4c1b"
+
+[[package]]
+name = "deinflector"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccfa881643441631118c99963c64afb857f223a227eb0eeb08caac8fa549911f"
+dependencies = [
+ "derivative",
+ "derive_more 2.0.1",
+ "fancy-regex",
+ "indexmap 2.7.1",
+ "kanji_processor 0.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "snafu",
+ "thiserror 2.0.12",
+ "unicode-normalization",
+ "unicode-segmentation",
+ "wana_kana 4.0.0",
+]
 
 [[package]]
 name = "deranged"
@@ -985,7 +1009,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "http",
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
  "slab",
  "tokio",
  "tokio-util",
@@ -1644,9 +1668,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.10.0"
+version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
+checksum = "8c9c992b02b5b4c94ea26e32fe5bccb7aa7d9f390ab5c1221ff895bc7ea8b652"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.4",
@@ -1660,7 +1684,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "232929e1d75fe899576a3d5c7416ad0d88dbfbb3c3d6aa00873a7408a50ddb88"
 dependencies = [
  "ahash",
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
  "is-terminal",
  "itoa",
  "log",
@@ -1755,7 +1779,7 @@ dependencies = [
 name = "kanji_processor"
 version = "0.0.11"
 dependencies = [
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
  "regex",
  "serde",
  "serde_json",
@@ -1763,33 +1787,14 @@ dependencies = [
 
 [[package]]
 name = "kanji_processor"
-version = "0.1.0"
-source = "git+https://github.com/aramrw/yomichan_rs.git?branch=master#c78780f6182d9ddeaca0763682bf14084a34a2aa"
+version = "0.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "204bb444f5deac80a0257be164559486322a546bc42e388c480646f4ce0c351a"
 dependencies = [
+ "indexmap 2.7.1",
  "regex",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "language_transformer"
-version = "0.0.1"
-source = "git+https://github.com/aramrw/ycrs_language_transformer?branch=update#a20cd578b6284e8e3b61cddb7f4f5db441574c0f"
-dependencies = [
- "derivative",
- "derive_more 2.0.1",
- "fancy-regex",
- "indexmap 2.10.0",
- "kanji_processor 0.1.0",
- "phf",
- "pretty_assertions",
- "serde",
- "serde_json",
- "snafu",
- "thiserror 2.0.12",
- "unicode-normalization",
- "unicode-segmentation",
- "wana_kana 4.0.0",
 ]
 
 [[package]]
@@ -1911,14 +1916,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "module_macros"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn 2.0.104",
-]
-
-[[package]]
 name = "native-tls"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1938,26 +1935,43 @@ dependencies = [
 [[package]]
 name = "native_db"
 version = "0.8.1"
-source = "git+https://github.com/vincent-herlemont/native_db?rev=03ab5a3#03ab5a3b2e37a4d23cbd9e3c207beb00bf367e69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db7c6b50f9889052a3c1bbd3aa70cc33b76ec1761092aeb0ec0e1ac3cfdb881a"
 dependencies = [
  "native_db_macro",
- "native_model",
+ "native_model 0.4.20",
  "redb 1.5.1",
  "redb 2.6.0",
  "semver",
  "serde",
  "skeptic",
- "thiserror 2.0.12",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
 name = "native_db_macro"
 version = "0.8.1"
-source = "git+https://github.com/vincent-herlemont/native_db?rev=03ab5a3#03ab5a3b2e37a4d23cbd9e3c207beb00bf367e69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "434acde56fc4485e0b62533bb2fbc08155ee7e47408b1358348acff556c31b3c"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.104",
+]
+
+[[package]]
+name = "native_model"
+version = "0.4.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c10f4542302b7fa69ef18b49d93106e27f20b59d695555121d9ed22fe5d716a8"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "native_model_macro 0.4.20",
+ "serde",
+ "skeptic",
+ "thiserror 1.0.69",
+ "zerocopy",
 ]
 
 [[package]]
@@ -1969,12 +1983,23 @@ dependencies = [
  "anyhow",
  "bincode",
  "doc-comment",
- "native_model_macro",
+ "native_model_macro 0.6.2",
  "postcard",
  "rmp-serde",
  "serde",
  "thiserror 2.0.12",
  "zerocopy",
+]
+
+[[package]]
+name = "native_model_macro"
+version = "0.4.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f385f3d57adaea8d8868e65a0bc821bcb8ba2228bbf87a1c3c6144ac48f3791"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
 ]
 
 [[package]]
@@ -2168,7 +2193,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4c5cc86750666a3ed20bdaf5ca2a0344f9c67674cae0515bec2da16fbaa47db"
 dependencies = [
  "fixedbitset",
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
 ]
 
 [[package]]
@@ -2732,9 +2757,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.219"
+version = "1.0.217"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f0e2c6ed6606019b4e29e69dbaba95b11854410e5347d525002456dbbb786b6"
+checksum = "02fc4265df13d6fa1d00ecff087228cc0a2b5f3c0e87e258d8b94a156e984c70"
 dependencies = [
  "serde_derive",
 ]
@@ -2761,9 +2786,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.219"
+version = "1.0.217"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b0276cf7f2c73365f7157c8123c21cd9a50fbbd844757af28ca1f5925fc2a00"
+checksum = "5a9bf7cf98d04a2b28aead066b7496853d4779c9cc183c440dbac457641e19a0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2772,11 +2797,11 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.140"
+version = "1.0.138"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20068b6e96dc6c9bd23e01df8827e6c7e1f2fddd43c21810382803c136b99373"
+checksum = "d434192e7da787e94a6ea7e9670b26a036d0ca41e0b7efb2676dd32bae872949"
 dependencies = [
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
  "itoa",
  "memchr",
  "ryu",
@@ -2805,7 +2830,7 @@ dependencies = [
  "chrono",
  "hex",
  "indexmap 1.9.3",
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
  "schemars",
  "serde",
  "serde_derive",
@@ -2893,9 +2918,9 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "snafu"
-version = "0.8.6"
+version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "320b01e011bf8d5d7a4a4a4be966d9160968935849c83b918827f6a435e7f627"
+checksum = "223891c85e2a29c3fe8fb900c1fae5e69c2e42415e3177752e8718475efa5019"
 dependencies = [
  "snafu-derive",
 ]
@@ -3845,24 +3870,23 @@ dependencies = [
 
 [[package]]
 name = "yomichan_rs"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anki_direct",
  "better_default",
  "bimap",
  "chrono",
+ "deinflector",
  "derivative",
  "derive-where",
  "derive_more 1.0.0",
  "fancy-regex",
  "getset",
  "icu",
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
  "kanji_processor 0.0.11",
- "language_transformer",
- "module_macros",
  "native_db",
- "native_model",
+ "native_model 0.6.2",
  "parking_lot",
  "pprof",
  "pretty_assertions",
@@ -3996,7 +4020,7 @@ dependencies = [
  "flate2",
  "getrandom 0.3.3",
  "hmac",
- "indexmap 2.10.0",
+ "indexmap 2.7.1",
  "lzma-rs",
  "memchr",
  "pbkdf2",
