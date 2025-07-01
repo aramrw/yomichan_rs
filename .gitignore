@@ -1,5 +1,5 @@
 /target
 *.svg
 *.yc
-tests/yomichan_rs/**.*
+tests/yomichan_rs/*
 db.ycd
