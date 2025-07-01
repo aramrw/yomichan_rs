@@ -1,12 +1,12 @@
 use std::{cmp::Ordering, collections::VecDeque, path::Path, sync::Arc};
 
 use anki_direct::AnkiClient;
-use fancy_regex::Regex;
-use indexmap::{IndexMap, IndexSet};
-use language_transformer::{
+use deinflector::{
     ja::japanese::{distribute_furigana_inflected, is_code_point_japanese, FuriganaSegment},
     language_d::FindTermsTextReplacement,
 };
+use fancy_regex::Regex;
+use indexmap::{IndexMap, IndexSet};
 use native_db::transaction::RwTransaction;
 use serde::{Deserialize, Serialize};
 

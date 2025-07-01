@@ -155,9 +155,9 @@ pub enum FrequencyMode {
 }
 
 // Final details about the Dictionary and it's import process.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[native_db]
 #[native_model(id = 1, version = 1)]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DictionarySummary {
     /// Name of the dictionary.
     #[primary_key]
