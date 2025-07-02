@@ -1,7 +1,34 @@
 ## `yomichan-rs`  
-
+Rust library based off [Yomitan](https://github.com/yomidevs/yomitan) 
 > [!CAUTION]
 > **This library is highly unstable and will have breaking changes**
+
+### Features/Roadmap
+- [ ] **Dictionary Imports**
+    - [x] Basic Dictionary Importing
+        - [x] Index
+        - [x] Tags
+        - [x] Term
+        - [x] TermMeta
+        - [x] Kanji
+        - [x] KanjiMeta
+    - [ ] Advanced Importing
+        - [ ] Dictionaries with Images/Media
+
+- [ ] [**Anki (Issue Tracker)**](https://github.com/aramrw/yomichan_rs/issues/18)     
+    - [ ] Note creation
+        - [ ]  Basic Features
+            - [ ] Notes 
+                - [x] Create new from search
+                - [ ] Edit Existing
+                - [ ] Delete Existing
+                - [ ] Overwrite Existing
+        - [ ] Customization
+
+- [ ] **Deserialization**
+    - [ ] Definitions
+        - [x] Plain Text (String)
+        - [ ] Html
 
 ### Examples
 ```rust
