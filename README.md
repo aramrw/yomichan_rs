@@ -7,9 +7,8 @@ ycd.set_language("ja");
 let res = ycd.search("今勉強中です");
 dbg!(res);
 ```
-simplified output for brevity:
+// Output of `dbg!(res);` (simplified for brevity)
 ```rust
-// Output of `dbg!(res);` (abbreviated for clarity)
 [
     TermSearchResultsSegment {
         text: "今",
