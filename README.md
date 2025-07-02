@@ -1,5 +1,5 @@
 ## `yomichan-rs`  
-Rust library based off [Yomitan](https://github.com/yomidevs/yomitan) 
+_Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan_](https://github.com/FooSoft/yomichan)_
 > [!CAUTION]
 > **This library is highly unstable and will have breaking changes**
 
