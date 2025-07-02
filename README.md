@@ -1,5 +1,8 @@
 ## `yomichan-rs`  
 
+> [!CAUTION]
+> **This library is highly unstable and will have breaking changes**
+
 ### Examples
 ```rust
 let mut ycd = Yomichan::new("db.ycd");
