@@ -38,9 +38,9 @@
 
 ### Misc
 - [ ] **`Entry Definitions`**
-      - [x] Plain Text (String)
-      - [ ] Html
-      - [ ] styles.css
+    - [x] Plain Text (String)
+    - [ ] Html
+    - [ ] styles.css
 
 ## Examples
 ```rust
