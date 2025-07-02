@@ -1,7 +1,7 @@
-## `yomichan-rs` ![Crates.io](https://img.shields.io/crates/v/yomichan_rs.svg)(https://crates.io/crates/yomichan_rs) 
-_Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan_](https://github.com/FooSoft/yomichan)_
-> [!CAUTION]
-> **This library is highly unstable and will have breaking changes**
+## `yomichan-rs` [![Crates.io](https://img.shields.io/crates/v/yomichan_rs.svg)](https://crates.io/crates/yomichan_rs)
+#### Rust library based off _[Yomitan](https://github.com/yomidevs/yomitan) & [Yomichan](https://github.com/FooSoft/yomichan)_
+> [!CAUTION] 
+> This library is unstable and **will have breaking changes**
 
 ### Features/Roadmap
 - [ ] **`Dictionary Imports`**
@@ -16,22 +16,31 @@ _Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan
         - [ ] Dictionaries with Images/Media
 
 ### Multi-Language Deinflector [![github](https://img.shields.io/badge/github%20-blue.svg)](https://github.com/aramrw/deinflector) [![Crates.io](https://img.shields.io/crates/v/deinflector.svg)](https://crates.io/crates/deinflector) 
+- [ ] [Yomitan Supported Languages](https://github.com/yomidevs/yomitan/tree/HEAD/ext/js/language)
+    - [x] Japanese
+    - [x] Spanish
+    - [x] English
+    - [ ] Chinese
+    - [ ] Korean
+    - [ ] Arabic
+    - ... _more_
 
 ### [Anki (Issue Tracker)](https://github.com/aramrw/yomichan_rs/issues/18)  
 
- - [ ] **`Note creation`**
-       - [ ]  Basic Features
-       - [ ] Notes 
-       - [x] Create new from search
-       - [ ] Edit Existing
-       - [ ] Delete Existing
-       - [ ] Overwrite Existing
-- [ ] Customization
+- [ ] **`Note creation`**
+    - [ ]  Basic Features
+    - [ ] Notes 
+    - [x] Create new from search
+    - [ ] Edit Existing
+    - [ ] Delete Existing
+    - [ ] Overwrite Existing
+- [ ] **`Styling`**
 
 ### Misc
 - [ ] **`Entry Definitions`**
       - [x] Plain Text (String)
       - [ ] Html
+      - [ ] styles.css
 
 ## Examples
 ```rust
