@@ -1,4 +1,4 @@
-## `yomichan-rs` ![Crates.io](https://img.shields.io/crates/v/yomichan_rs.svg) 
+## `yomichan-rs` ![Crates.io](https://img.shields.io/crates/v/yomichan_rs.svg)(https://crates.io/crates/yomichan_rs) 
 _Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan_](https://github.com/FooSoft/yomichan)_
 > [!CAUTION]
 > **This library is highly unstable and will have breaking changes**
