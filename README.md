@@ -1,4 +1,4 @@
-## `yomichan-rs`  
+## `yomichan-rs` ![Crates.io](https://img.shields.io/crates/v/yomichan_rs.svg) 
 _Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan_](https://github.com/FooSoft/yomichan)_
 > [!CAUTION]
 > **This library is highly unstable and will have breaking changes**
@@ -16,21 +16,22 @@ _Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan
         - [ ] Dictionaries with Images/Media
 
 ### Multi-Language Deinflector [![github](https://img.shields.io/badge/github%20-blue.svg)](https://github.com/aramrw/deinflector) [![Crates.io](https://img.shields.io/crates/v/deinflector.svg)](https://crates.io/crates/deinflector) 
-- [ ] [](https://github.com/aramrw/deinflector) 
-- [ ] [**`Anki (Issue Tracker)`**](https://github.com/aramrw/yomichan_rs/issues/18)  
-    - [ ] Note creation
-        - [ ]  Basic Features
-            - [ ] Notes 
-                - [x] Create new from search
-                - [ ] Edit Existing
-                - [ ] Delete Existing
-                - [ ] Overwrite Existing
-        - [ ] Customization
 
-- [ ] **`Misc`**
-    - [ ] Definitions
-        - [x] Plain Text (String)
-        - [ ] Html
+### [Anki (Issue Tracker)](https://github.com/aramrw/yomichan_rs/issues/18)  
+
+ - [ ] **`Note creation`**
+       - [ ]  Basic Features
+       - [ ] Notes 
+       - [x] Create new from search
+       - [ ] Edit Existing
+       - [ ] Delete Existing
+       - [ ] Overwrite Existing
+- [ ] Customization
+
+### Misc
+- [ ] **`Entry Definitions`**
+      - [x] Plain Text (String)
+      - [ ] Html
 
 ## Examples
 ```rust
@@ -40,7 +41,7 @@ let res = ycd.search("今勉強中です");
 dbg!(res);
 ```
 ### Output example
-* See the full type at [TermSearchResultSemgent](https://github.com/aramrw/yomichan_rs/blob/80156bee29e36c07f01018f7f33d1ee98fa965be/src/text_scanner.rs#L36)
+* See the full type at [TermSearchResultSegment](https://github.com/aramrw/yomichan_rs/blob/HEAD/src/text_scanner.rs#L36)
 ```rust
 [
     TermSearchResultsSegment {
