@@ -519,7 +519,7 @@ mod textscanner {
     fn search_dbg() {
         let mut ycd = YCD.write();
         ycd.set_language("ja");
-        let res = ycd.search("晩餐会をやっているみたいですか");
+        let res = ycd.search("今勉強中です");
         let Some(res) = res else {
             panic!("search test failed");
         };

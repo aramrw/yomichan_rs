@@ -236,33 +236,38 @@ pub struct Yomichan<'a> {
 }
 
 impl<'a> Yomichan<'a> {
-    // this new function should match redb exactly below later
-    /// Opens the specified file as a yomichan database.
-    /// * if the file does not exist, or is an empty file, a new database will be initialized in it
-    /// * if the file is a valid yomichan database, it will be opened
-    /// * otherwise this function will return an error
+    /// Opens or creates a Yomichan database at the specified path.
+    ///
+    /// - **If `path` ends in `.ycd`**: Opens a ycd database.
+    ///     - The file will be created if it doesn't exist, but its parent directory must exist.
+    /// - **If `path` is a directory**: See [resolve_db_path] for detailed behavior.
     ///
     /// # Examples
-    /// ```
+    /// ```no_run
     /// use yomichan_rs::Yomichan;
     ///
-    /// // creates a database at `~/desktop/yomichan_rs/data.db`
-    /// // desktop is not an empty folder, so it creates a sub folder
-    /// let mut ycd = Yomichan::new("c:/users/one/desktop");
-    /// ```
-    /// ```
-    /// // `~/dev/empty_dir/data.db`
-    /// // "empty_dir" is an empty folder, so it doesn't create a sub folder
-    /// let mut ycd = Yomichan::new("c:/users/one/dev/empty_dir");
-    /// ```
-    /// ```
-    /// // `~/desktop/yomichan_rs/data.db` was created above, so it makes a connection
-    /// let mut ycd = Yomichan::new("c:/users/one/desktop/yomichan/data.db");
+    /// // Example 1: Explicitly name the database file.
+    /// // Creates or opens `/path/to/my_database.ycd`.
+    /// let ycd1 = Yomichan::new("/path/to/my_database.ycd").unwrap();
+    ///
+    /// // Example 2: Point to an empty directory.
+    /// // Creates `/path/to/empty_dir/db.ycd`.
+    /// let ycd2 = Yomichan::new("/path/to/empty_dir").unwrap();
+    ///
+    /// // Example 3: Point to a non-empty directory (e.g., your Desktop).
+    /// // Creates a subdirectory: `/path/to/desktop/yomichan_rs/db.ycd`.
+    /// let ycd3 = Yomichan::new("/path/to/desktop").unwrap();
+    ///
+    /// // Example 4: Open an existing database created by a previous run.
+    /// // This will successfully open the database created in Example 3.
+    /// let ycd4 = Yomichan::new("/path/to/desktop").unwrap();
     /// ```
     pub fn new(path: impl AsRef<Path>) -> Result<Self, Box<InitError>> {
         let path = path.as_ref().to_path_buf();
-        let db_path = fmt_dbpath(path)?;
+        // Use the new, consolidated path resolution logic.
+        let db_path = resolve_db_path(path)?;
         let db = Arc::new(DictionaryDatabase::new(db_path));
+
         #[cfg(not(feature = "anki"))]
         let backend = Backend::new(db.clone())?;
         #[cfg(feature = "anki")]
@@ -272,54 +277,84 @@ impl<'a> Yomichan<'a> {
     }
 }
 
-/// # Returns
-/// Terms for valid PathBuf ending in `.ycd`:
-/// - dir is empty (assumes you wants db here)
-/// - contains yomichan_rs folder (appends `.ycd` to the path)
-/// - already contains a .ycd file
-fn find_ydict_file(p: &Path) -> Option<PathBuf> {
-    let mut valid_path: Option<PathBuf> = None;
-    let rdir: HashSet<PathBuf> = std::fs::read_dir(p)
-        .unwrap()
-        .flatten()
-        .map(|e| e.path())
-        .collect();
-    // if empty db.ycd will b created directly
-    if rdir.is_empty() {
-        return Some(p.join("db.ycd"));
-    }
-    if let Some(p) = rdir.get(Path::new("yomichan_rs")) {
-        return Some(p.join("db.ycd"));
-    }
-    rdir.into_iter()
-        .find(|p| p.display().to_string().ends_with(".ycd"))
-}
+/// Determines the correct database file path based on the user's input.
+///
+/// This function mimics the robust path handling of libraries like `redb`:
+///
+/// 1.  **Explicit `.ycd` File Path**: If the path ends with `.ycd`, it's used directly.
+///     - The parent directory must exist.
+///     - The database file itself doesn't need to exist; it will be created.
+///     - Example: `Yomichan::new("path/to/my_db.ycd")`
+///
+/// 2.  **Directory Path**: If the path is an existing directory, the function will search for or
+///     determine the location of the database file inside it.
+///     - It first looks for an existing `*.ycd` file within the directory.
+///     - If not found, it looks for a `yomichan_rs` subdirectory to use.
+///     - If neither is found, it decides where to create the database:
+///         - If the directory is **empty**, it creates `db.ycd` directly inside it.
+///           (e.g., `/path/to/empty_dir/` -> `/path/to/empty_dir/db.ycd`)
+///         - If the directory is **not empty**, it creates a `yomichan_rs` subdirectory
+///           and places the database inside.
+///           (e.g., `/path/to/non_empty_dir/` -> `/path/to/non_empty_dir/yomichan_rs/db.ycd`)
+///
+/// 3.  **Invalid Paths**: Any other case, such as pointing to an existing file that is not
+///     a `.ycd` file, or a path that doesn't exist and isn't a valid `.ycd` target,
+///     will result in an error.
+fn resolve_db_path(p: PathBuf) -> Result<PathBuf, Box<InitError>> {
+    const DB_FILENAME: &str = "db.ycd";
+    const DB_SUBDIR: &str = "yomichan_rs";
 
-/// # Returns
-/// A valid PathBuf ending in `.ycd`
-/// ...can be opened or created with [`native_db::Builder::open`]
-fn fmt_dbpath(p: PathBuf) -> Result<PathBuf, Box<InitError>> {
-    let fname = p.display().to_string();
-    if p.is_file() && fname.ends_with(".ycd") {
-        if p.exists() {
-            return Ok(p);
-        }
-        if p.parent().map(|p| p.exists()).unwrap_or(false) {
-            return Err(InitError::MissingParent { p }.into());
+    // Rule 1: Path is explicitly a .ycd file.
+    if p.extension() == Some(OsStr::new("ycd")) {
+        // Ensure the parent directory exists, so the DB file can be created.
+        if let Some(parent) = p.parent() {
+            if !parent.is_dir() {
+                // If parent is a file or doesn't exist, it's an error.
+                return Err(InitError::MissingParent { p }.into());
+            }
         }
         return Ok(p);
-    };
-    if p.is_dir() {
-        if let Some(p) = find_ydict_file(&p) {
-            return Ok(p);
-        }
-        // ok bcz find_ydict_file garuntees:
-        // path exists && is dir &&
-        // yomichan_rs cannot exist
-        let p = p.join("yomichan_rs");
-        std::fs::create_dir_all(&p).map_err(|e| Box::new(InitError::Io(e)))?;
-        return Ok(p.join("db.ycd"));
     }
+
+    // If the path points to an existing file that is NOT a .ycd file, it's invalid.
+    if p.is_file() {
+        return Err(InitError::InvalidPath { p }.into());
+    }
+
+    // Rule 2: Path is a directory.
+    if p.is_dir() {
+        let entries: Vec<DirEntry> = fs::read_dir(&p)
+            .map_err(|e| Box::new(InitError::Io(e)))?
+            .filter_map(Result::ok)
+            .collect();
+
+        // Search for an existing .ycd file in the directory.
+        if let Some(entry) = entries
+            .iter()
+            .find(|e| e.path().is_file() && e.path().extension() == Some(OsStr::new("ycd")))
+        {
+            return Ok(entry.path());
+        }
+
+        // Check for an existing `yomichan_rs` subdirectory.
+        let subdir_path = p.join(DB_SUBDIR);
+        if subdir_path.is_dir() {
+            return Ok(subdir_path.join(DB_FILENAME));
+        }
+
+        // Decide where to create the new database.
+        let db_path = if entries.is_empty() {
+            // Directory is empty, create DB file directly inside.
+            p.join(DB_FILENAME)
+        } else {
+            // Directory is not empty, create a subdirectory for the DB.
+            fs::create_dir(&subdir_path).map_err(|e| Box::new(InitError::Io(e)))?;
+            subdir_path.join(DB_FILENAME)
+        };
+        return Ok(db_path);
+    }
+
+    // Rule 3: Path doesn't exist and is not a .ycd file path. It's invalid.
     Err(InitError::InvalidPath { p }.into())
 }
 

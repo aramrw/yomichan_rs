@@ -294,7 +294,7 @@ impl DisplayAnki {
         field_mappings: &[FieldIndex],
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Step 1: Ensure all Anki data is up-to-date.
-        self.update_all_anki_maps().await?;
+        //self.update_all_anki_maps().await?;
 
         // Step 2: Resolve names to indices and get model details.
         // This is done in a scoped block to release the read lock quickly.
