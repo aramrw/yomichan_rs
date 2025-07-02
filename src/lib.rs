@@ -55,6 +55,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(feature = "anki")]
 use crate::anki::DisplayAnkiError;
 // public exports:
 pub use crate::database::dictionary_importer;
@@ -141,36 +142,27 @@ impl<T: PartialEq> PartialEq for Ptr<T> {
         *self_guard == *other_guard
     }
 }
-// 2. Eq: A marker trait. If T is Eq, Ptr<T> is also Eq.
 impl<T: Eq> Eq for Ptr<T> {}
-
-// 3. PartialOrd: Compare the inner values.
 impl<T: PartialOrd> PartialOrd for Ptr<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.0.read().partial_cmp(&*other.0.read())
     }
 }
-// 4. Ord: The full ordering trait.
 impl<T: Ord> Ord for Ptr<T> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.read().cmp(&*other.0.read())
     }
 }
-// 5. Hash: Allow Ptr<T> to be used in HashMaps and HashSets.
 impl<T: Hash> Hash for Ptr<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.read().hash(state);
     }
 }
-// 6. Debug: Display the inner value for debugging.
 impl<T: fmt::Debug> fmt::Debug for Ptr<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // You can decide if you want to show the lock status or just the data.
-        // Just showing the data is usually most helpful.
         f.debug_tuple("Ptr").field(&*self.0.read()).finish()
     }
 }
-// 7. Default: Create a Ptr<T> from T's default value.
 impl<T: Default> Default for Ptr<T> {
     fn default() -> Self {
         Self(Arc::new(RwLock::new(T::default())))
@@ -331,7 +323,7 @@ fn fmt_dbpath(p: PathBuf) -> Result<PathBuf, Box<InitError>> {
     Err(InitError::InvalidPath { p }.into())
 }
 
-#[derive(thiserror::Error)]
+#[derive(thiserror::Error, Debug)]
 #[error("could not create yomichan_rs dictionary database:")]
 pub enum InitError {
     #[error(
@@ -346,27 +338,41 @@ pub enum InitError {
     DatabaseConnectionFailed(#[from] Box<db_type::Error>),
     #[error("io err: {0}")]
     Io(#[from] std::io::Error),
+    #[cfg(feature = "anki")]
     #[error("display anki: {0}")]
     DisplayAnki(#[from] DisplayAnkiError),
 }
-impl From<Box<DisplayAnkiError>> for InitError {
-    fn from(e: Box<DisplayAnkiError>) -> Self {
-        InitError::DisplayAnki(*e)
-    }
-}
-impl From<Box<DisplayAnkiError>> for Box<InitError> {
-    fn from(e: Box<DisplayAnkiError>) -> Self {
-        Box::new(InitError::DisplayAnki(*e))
-    }
-}
-impl From<native_db::db_type::Error> for InitError {
-    fn from(e: native_db::db_type::Error) -> Self {
-        InitError::DatabaseConnectionFailed(Box::new(e))
-    }
-}
+mod init_err_impls {
+    use crate::InitError;
 
-impl std::fmt::Debug for InitError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self}")
+    #[cfg(feature = "anki")]
+    mod anki {
+        use crate::{anki::DisplayAnkiError, InitError};
+
+        impl From<Box<DisplayAnkiError>> for InitError {
+            fn from(e: Box<DisplayAnkiError>) -> Self {
+                InitError::DisplayAnki(*e)
+            }
+        }
+        impl From<Box<DisplayAnkiError>> for Box<InitError> {
+            fn from(e: Box<DisplayAnkiError>) -> Self {
+                Box::new(InitError::DisplayAnki(*e))
+            }
+        }
+    }
+    impl From<native_db::db_type::Error> for InitError {
+        fn from(e: native_db::db_type::Error) -> Self {
+            InitError::DatabaseConnectionFailed(Box::new(e))
+        }
+    }
+    impl From<native_db::db_type::Error> for Box<InitError> {
+        fn from(e: native_db::db_type::Error) -> Self {
+            Box::new(InitError::DatabaseConnectionFailed(Box::new(e)))
+        }
+    }
+    impl From<Box<native_db::db_type::Error>> for Box<InitError> {
+        fn from(e: Box<native_db::db_type::Error>) -> Self {
+            Box::new(InitError::DatabaseConnectionFailed(e))
+        }
     }
 }

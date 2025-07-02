@@ -64,18 +64,19 @@ pub struct YomichanOptions {
     pub profiles: Vec<Ptr<YomichanProfile>>,
     pub current_profile: usize,
     pub global: GlobalOptions,
-    pub anki: GlobalAnkiOptions,
+    pub anki: Ptr<GlobalAnkiOptions>,
 }
 
 impl YomichanOptions {
     pub fn new() -> Self {
+        let global_anki_options = Ptr::new(GlobalAnkiOptions::default());
         Self {
             id: "global_user_options".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            profiles: vec![YomichanProfile::default().into()],
+            profiles: vec![YomichanProfile::new_default(&global_anki_options).into()],
             current_profile: 0,
             global: GlobalOptions::default(),
-            anki: GlobalAnkiOptions::default(),
+            anki: global_anki_options,
         }
     }
     /// Gets a [Ptr] to the currently selected profile.
@@ -105,15 +106,20 @@ pub enum ProfileError {
     #[error("tried to index selected_profile[selected], but profiles.len() = {len}")]
     SelectedOutofBounds { selected: usize, len: usize },
 }
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters)]
 pub struct YomichanProfile {
     pub name: String,
     pub condition_groups: Vec<ProfileConditionGroup>,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", get_mut = "pub")]
     pub options: ProfileOptions,
 }
 
 impl YomichanProfile {
+    pub fn new_default(global_anki_options: &Ptr<GlobalAnkiOptions>) -> Self {
+        let mut default = Self::default();
+        default.options = ProfileOptions::new_default(global_anki_options.clone());
+        default
+    }
     pub fn new(
         name: String,
         condition_groups: Vec<ProfileConditionGroup>,
@@ -141,6 +147,13 @@ impl YomichanProfile {
 
     pub fn get_dictionary_options_from_name(&self, find: &str) -> Option<&DictionaryOptions> {
         self.options.dictionaries.get(find)
+    }
+
+    pub fn anki_options(&self) -> &AnkiOptions {
+        &self.options().anki
+    }
+    pub fn anki_options_mut(&mut self) -> &mut AnkiOptions {
+        &mut self.options_mut().anki
     }
 }
 
@@ -214,6 +227,12 @@ pub struct ProfileOptions {
     pub accessibility: AccessibilityOptions,
 }
 impl ProfileOptions {
+    fn new_default(global_anki_options: Ptr<GlobalAnkiOptions>) -> Self {
+        let mut default = Self::default();
+        let mut anki_opts = &mut default.anki;
+        anki_opts.global_anki_options = global_anki_options;
+        default
+    }
     /// Gets the main dictionary for this [YomichanProfile] from it's [ProfileOptions]
     pub fn main_dictionary(&self) -> &str {
         self.general.main_dictionary.as_str()
@@ -540,6 +559,18 @@ impl DerefMut for DecksMap {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum FieldIndex {
+    Term(usize),
+    Reading(usize),
+    Sentence(usize),
+    Definition(usize),
+    TermAudio(usize),
+    SentenceAudio(usize),
+    Image(usize),
+    Frequency(usize),
+}
+
 /// Defines Anki fields types that correspond to a [DictionaryTermEntry] for making notes
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum AnkiTermFieldType {
@@ -547,12 +578,86 @@ pub enum AnkiTermFieldType {
     Reading(String),
     Sentence(String),
     Definition(String),
-    TermAudio(MediaSource),
-    SentenceAudio(MediaSource),
-    Image(MediaSource),
+    TermAudio(String),
+    SentenceAudio(String),
+    Image(String),
     Frequency(String),
 }
 impl AnkiTermFieldType {
+    /// Converts a slice of user-provided `FieldIndex` mappings into a persistent,
+    /// name-based `Vec<AnkiTermFieldType>`.
+    ///
+    /// This function acts as the bridge between a simple, user-friendly input format
+    /// (mapping by index) and a robust internal storage format (mapping by field name).
+    /// It validates that each index provided by the user is valid for the given Anki model.
+    ///
+    /// # Arguments
+    ///
+    /// * `mappings`: A slice of `FieldIndex` enums provided by the user.
+    /// * `model`: The specific `FullModelDetails` for the Anki note type being configured.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<AnkiTermFieldType>)`: A vector of the successfully resolved field types.
+    /// * `Err(usize)`: The first invalid index encountered that was out of bounds for the model.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let model = FullModelDetails {
+    ///     name: "MyModel".into(),
+    ///     fields: vec!["Expression".into(), "Meaning".into(), "Reading".into()],
+    ///     // ... other details
+    /// };
+    ///
+    /// let user_mappings = &[FieldIndex::Term(0), FieldIndex::Definition(1)];
+    ///
+    /// let persistent_fields = AnkiTermFieldType::from_field_indices(user_mappings, &model).unwrap();
+    ///
+    /// assert_eq!(persistent_fields, vec![
+    ///     AnkiTermFieldType::Term("Expression".to_string()),
+    //      AnkiTermFieldType::Definition("Meaning".to_string()),
+    /// ]);
+    /// ```
+    pub fn from_field_indices(
+        mappings: &[FieldIndex],
+        model: &FullModelDetails,
+    ) -> Result<Vec<AnkiTermFieldType>, AnkiFieldsError> {
+        let anki_model_fields = &model.fields;
+        let mut resolved_fields = Vec::with_capacity(mappings.len());
+
+        for mapping in mappings {
+            // 1. Deconstruct the user's mapping to get the index and the constructor function.
+            let (index, constructor): (usize, fn(String) -> AnkiTermFieldType) = match *mapping {
+                FieldIndex::Term(i) => (i, AnkiTermFieldType::Term),
+                FieldIndex::Reading(i) => (i, AnkiTermFieldType::Reading),
+                FieldIndex::Sentence(i) => (i, AnkiTermFieldType::Sentence),
+                FieldIndex::Definition(i) => (i, AnkiTermFieldType::Definition),
+                FieldIndex::TermAudio(i) => (i, AnkiTermFieldType::TermAudio),
+                FieldIndex::SentenceAudio(i) => (i, AnkiTermFieldType::SentenceAudio),
+                FieldIndex::Image(i) => (i, AnkiTermFieldType::Image),
+                FieldIndex::Frequency(i) => (i, AnkiTermFieldType::Frequency),
+            };
+
+            // 2. Use the index to look up the field name from the model.
+            //    If the index is out of bounds, return an error with the invalid index.
+            let field_name = match anki_model_fields.get(index) {
+                Some(name) => name.clone(),
+                None => {
+                    return Err(AnkiFieldsError::ModelFieldsOutOfBounds {
+                        model: model.name.clone(),
+                        index,
+                        fields_len: anki_model_fields.len(),
+                    })
+                }
+            };
+
+            // 3. Call the constructor with the now-validated field name and add it to the result.
+            resolved_fields.push(constructor(field_name));
+        }
+
+        Ok(resolved_fields)
+    }
     /// Constructs a new [AnkiTermFieldType] from a `T`
     /// Helper function to construct a variant from a value and a constructor function.
     ///
@@ -568,31 +673,6 @@ impl AnkiTermFieldType {
         F: FnOnce(T) -> Self,
     {
         constructor(value)
-    }
-
-    /// Constructs a new [AnkiTermFieldType] from a field index and a string value.
-    ///
-    /// Uses a `match` statement to determine which field to create,
-    /// and then calls the [Self::from_value] helper to perform the construction.
-    pub fn from_index_and_value(index: usize, value: &str) -> Option<Self> {
-        match index {
-            // String-based fields
-            0 => Some(Self::from_value(value.to_string(), Self::Term)),
-            1 => Some(Self::from_value(value.to_string(), Self::Reading)),
-            2 => Some(Self::from_value(value.to_string(), Self::Sentence)),
-            3 => Some(Self::from_value(value.to_string(), Self::Definition)),
-            7 => Some(Self::from_value(value.to_string(), Self::Frequency)),
-
-            // Media-based fields
-            // Here, we first convert the `&str` into a `MediaSource` using `.into()`,
-            // and then pass that `MediaSource` to our generic helper.
-            4 => Some(Self::from_value(value.into(), Self::TermAudio)),
-            5 => Some(Self::from_value(value.into(), Self::SentenceAudio)),
-            6 => Some(Self::from_value(value.into(), Self::Image)),
-
-            // Invalid index
-            _ => None,
-        }
     }
 }
 
@@ -646,21 +726,77 @@ impl NoteModelsMap {
 #[derive(
     Clone, Debug, Getters, Setters, MutGetters, Serialize, Deserialize, PartialEq, Default,
 )]
+#[getset(get = "pub", get_mut = "pub")]
 pub struct GlobalAnkiOptions {
     /// [IndexMap] of [Note](https://docs.ankiweb.net/getting-started.html#note-types)
-    #[getset(get_mut = "pub")]
     note_models_map: NoteModelsMap,
     /// [IndexMap] of [Deck](https://docs.ankiweb.net/getting-started.html#note-types)
-    #[getset(get_mut = "pub")]
     deck_models_map: DecksMap,
 }
+impl GlobalAnkiOptions {
+    pub fn get_selected_model(
+        &self,
+        i: usize,
+    ) -> Result<(&str, &FullModelDetails), AnkiFieldsError> {
+        let map = self.note_models_map();
+        map.get_index(i)
+            .map(|(k, v)| (k.as_str(), v))
+            .ok_or(AnkiFieldsError::ModelOutOfBounds(i))
+    }
+    pub fn get_selected_deck(
+        &self,
+        i: usize,
+    ) -> Result<(&str, &Option<DeckConfig>), AnkiFieldsError> {
+        let map = self.deck_models_map();
+        map.get_index(i)
+            .map(|(k, v)| (k.as_str(), v))
+            .ok_or(AnkiFieldsError::ModelOutOfBounds(i))
+    }
+    pub fn find_model_by_name(
+        &self,
+        name: &str,
+    ) -> Result<(usize, &str, &FullModelDetails), AnkiFieldsError> {
+        let map = self.note_models_map();
+        map.get_full(name)
+            .map(|(i, k, v)| (i, k.as_str(), v))
+            .ok_or(AnkiFieldsError::ModelNotFound(name.to_string()))
+    }
+    pub fn find_deck_by_name(
+        &self,
+        name: &str,
+    ) -> Result<(usize, &str, &Option<DeckConfig>), AnkiFieldsError> {
+        let map = self.deck_models_map();
+        map.get_full(name)
+            .map(|(i, k, v)| (i, k.as_str(), v))
+            .ok_or(AnkiFieldsError::DeckNotFound(name.to_string()))
+    }
+}
 
+#[derive(thiserror::Error, Debug)]
+pub enum AnkiFieldsError {
+    #[error("unitialized yomichan anki fields")]
+    Uninitialized,
+    #[error("global anki models at index [{0}] is out of bounds")]
+    ModelOutOfBounds(usize),
+    #[error("global anki decks at index [{0}] is out of bounds")]
+    DeckOutOfBounds(usize),
+    #[error("GlobalAnkiOptions.note_models_map doesn't contain a note with name: {0}")]
+    ModelNotFound(String),
+    #[error("GlobalAnkiOptions.deck_models_map doesn't contain a deck with name: {0}")]
+    DeckNotFound(String),
+    #[error("[ankimodel::{model}] attempted to index field [{index}], but model only has {fields_len} fields")]
+    ModelFieldsOutOfBounds {
+        model: String,
+        index: usize,
+        fields_len: usize,
+    },
+}
 /// Type to cache Anki note creation options
 #[derive(
     Clone, Default, Debug, PartialEq, Serialize, Deserialize, Getters, Setters, MutGetters,
 )]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
-struct AnkiFields {
+pub struct AnkiFields {
     /// field that maps term result info to selected model fields
     fields: Vec<AnkiTermFieldType>,
     /// selected note model create notes with
@@ -679,8 +815,8 @@ pub struct AnkiOptions {
     server: String,
     tags: Vec<String>,
     screenshot: AnkiScreenshotOptions,
+    global_anki_options: Ptr<GlobalAnkiOptions>,
     // Pre-mapped fields that specify which Anki field to insert term data
-    #[cfg(feature = "anki")]
     anki_fields: Option<AnkiFields>,
     duplicate_scope: AnkiDuplicateScope,
     duplicate_scope_check_all_models: bool,

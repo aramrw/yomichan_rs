@@ -1,10 +1,11 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, LazyLock, RwLock},
+    sync::{Arc, LazyLock},
 };
 use tempfile::{tempdir_in, TempDir};
 
 use crate::{database::dictionary_database::DictionaryDatabase, Yomichan};
+use parking_lot::RwLock;
 
 pub(crate) struct TestPaths {
     pub tests_dir: PathBuf,

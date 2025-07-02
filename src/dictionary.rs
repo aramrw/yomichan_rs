@@ -6,10 +6,10 @@ use crate::{
     translation_internal::TextProcessorRuleChainCandidate,
     translator::TermType,
 };
+use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
 use derive_more::derive::From;
 use getset::MutGetters;
 use indexmap::IndexMap;
-use language_transformer::transformer::{InflectionRuleChainCandidate, InflectionSource};
 use serde::{Deserialize, Serialize};
 
 /// Dictionary InflectionRuleChainCandidate

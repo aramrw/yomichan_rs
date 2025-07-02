@@ -47,16 +47,16 @@ impl<'a> Backend<'a> {
     #[cfg(not(feature = "anki"))]
     pub fn new(db: Arc<DictionaryDatabase<'a>>) -> Result<Self, Box<native_db::db_type::Error>> {
         let rtx = db.r_transaction()?;
-        let opts: Option<Options> = rtx.get().primary("global_user_options")?;
+        let opts: Option<YomichanOptions> = rtx.get().primary("global_user_options")?;
         let options = match opts {
             Some(opts) => opts,
-            None => Options::new(),
+            None => YomichanOptions::new(),
         };
         let backend = Self {
             environment: EnvironmentInfo::default(),
-            text_scanner: TextScanner::new(db.clone()),
+            text_scanner: TextScanner::new(&db),
             db,
-            options,
+            options: Ptr::new(options),
         };
         Ok(backend)
     }
@@ -108,7 +108,8 @@ impl<'a> Yomichan<'a> {
     /// ```
     pub fn set_language(&mut self, language_iso: &str) -> ProfileResult<()> {
         let res: ProfileResult<()> = self.backend.options.with_ptr(|global| {
-            let current_profile = global.get_current_profile()?;
+            let mut current_profile = global.get_current_profile()?;
+            current_profile.write().set_language(language_iso);
             Ok(())
         });
         res

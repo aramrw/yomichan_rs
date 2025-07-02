@@ -172,26 +172,6 @@ pub enum BuildNoteError {
     #[error("current profile has no anki deck selected")]
     NoDeckSelected,
 }
-impl TermSearchResults {
-    //Returns a Note future
-    // pub async fn build_note(
-    //     &self,
-    //     model: &FullModelDetails,
-    //     deck_name: String,
-    //     anki_opts: ArcRwLockReadGuard<RawRwLock, AnkiOptions>,
-    //     tags: Vec<String>,
-    //     client: Option<&ReqwestClient>,
-    // ) -> AnkiResult<Note> {
-    //     let fields = &model.fields;
-    //     NoteBuilder::default()
-    //         .model_name(model.name.clone())
-    //         .deck_name(deck_name)
-    //         .field(field_name, value)
-    //         .tags(tags)
-    //         .build(client)
-    //         .await
-    // }
-}
 
 /// Scans text to find dictionary terms and sentence context.
 /// Inspired by [YomitanJS's TextScanner](https://github.com/yomidevs/yomitan/blob/2fc09f9b2d2f130ea18ae117be15f5683bc13440/ext/js/language/text-scanner.js#L33)
@@ -537,7 +517,7 @@ mod textscanner {
 
     #[test]
     fn search_dbg() {
-        let mut ycd = YCD.write().unwrap();
+        let mut ycd = YCD.write();
         ycd.set_language("ja");
         let res = ycd.search("晩餐会をやっているみたいですか");
         let Some(res) = res else {
@@ -548,7 +528,7 @@ mod textscanner {
 
     #[test]
     fn search() {
-        let mut ycd = YCD.write().unwrap();
+        let mut ycd = YCD.write();
         ycd.set_language("ja");
         let res = ycd.search("晩餐");
         let Some(res) = res else {

@@ -12,8 +12,8 @@ keywords = ["yomichan", "yomitan", "yomichan_rs", "language"]
 serde = { version = "1.0", features = ["rc"] }
 serde_json = "1.0"
 thiserror = "=2.0.12"
-native_db = { version = "0.8.1" }
-native_model = { version = "0.4.2", features = [
+native_db = { git = "https://github.com/vincent-herlemont/native_db", rev = "03ab5a3" }
+native_model = { version = "0.6.2", features = [
 	"rmp_serde_1_3",
 	"postcard_1_0",
 ] }
@@ -48,7 +48,7 @@ kanji_processor = { version = "*", path = "crates/kanji_processor" }
 
 [dev-dependencies]
 pretty_assertions = "=1.4.1"
-tokio-macros = "=2.5.0"
+tokio = { version = "=1.45.1", features = ["rt", "macros"]}
 
 [workspace]
 # members = ["crates/module_macros"]

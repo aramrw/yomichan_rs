@@ -7,7 +7,7 @@
 
 use fancy_regex::Regex;
 use indexmap::{IndexMap, IndexSet};
-use language_transformer::language_d::FindTermsTextReplacements;
+use deinflector::language_d::FindTermsTextReplacements;
 use serde::{Deserialize, Serialize};
 
 use crate::{

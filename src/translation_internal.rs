@@ -1,11 +1,11 @@
 // Import necessary collections
 use std::any::Any;
 
-use indexmap::{IndexMap, IndexSet};
-use language_transformer::language_d::TextProcessorSetting;
-use language_transformer::transformer::{
+use deinflector::language_d::TextProcessorSetting;
+use deinflector::transformer::{
     InflectionRuleChainCandidate, InternalInflectionRuleChainCandidate,
 };
+use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
 use crate::database::dictionary_database::TermEntry;

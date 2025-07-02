@@ -40,18 +40,10 @@ use crate::{
         VariantAndTextProcessorRuleChainCandidatesMap,
     },
 };
-use derive_more::From;
-use fancy_regex::Regex;
-use icu::{
-    collator::{options::CollatorOptions, Collator, CollatorBorrowed},
-    datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
-    locale::locale,
-};
-use indexmap::{IndexMap, IndexSet};
-use language_transformer::transformer::{
+use deinflector::transformer::{
     InflectionRuleChainCandidate, InflectionSource, InternalInflectionRuleChainCandidate,
 };
-use language_transformer::{
+use deinflector::{
     descriptors::{PreAndPostProcessors, PreAndPostProcessorsWithId},
     ja::japanese::is_code_point_japanese,
     language_d::{
@@ -64,6 +56,14 @@ use language_transformer::{
     transformer::{InflectionRule, LanguageTransformer, TransformedText},
     zh::chinese::is_code_point_chinese,
 };
+use derive_more::From;
+use fancy_regex::Regex;
+use icu::{
+    collator::{options::CollatorOptions, Collator, CollatorBorrowed},
+    datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
+    locale::locale,
+};
+use indexmap::{IndexMap, IndexSet};
 use native_db::*;
 use native_model::{native_model, Model};
 use serde::{Deserialize, Serialize};
