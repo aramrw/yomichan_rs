@@ -129,54 +129,7 @@ _Example output, excluded some fields for brevity_
             },
         ),
     },
-    TermSearchResultsSegment {
-        text: "中",
-        results: Some(
-            TermSearchResults {
-                dictionary_entries: [
-                    TermDictionaryEntry {
-                        dictionary_alias: "旺文社国語辞典 第十一版 画像無し",
-                        headwords: [
-                            TermHeadword { term: "中", reading: "ちゅう" },
-                        ],
-                        definitions: [
-                            TermDefinition {
-                                entries: [
-                                    TermGlossaryContentGroup {
-                                        plain_text: "ちゅう【中】\n\
-                                                     〔教１〕\n\
-                                                     チュウ・ジュウ\n\
-                                                     なか・あたる・うち\n\
-                                                     筆順：\n\n\
-                                                     （字義）\n\
-                                                     ① なか。うち。\n\
-                                                     ㋐ まんなか。「中央・中心・正中」\n\
-                                                     ㋑ 内部。「胸中・市中・車中・腹中」\n\
-                                                     ㋒ ある時期の間。物事のまだ終わりきらないうち。「寒中・忌中・最中・道中」\n\
-                                                     ㋓ 距離・時間などのなかほど。「中間・中秋・中旬・中途・中腹・中路」\n\
-                                                     ㋔ なかま。「講中（こうじゆう）・連中」\n\
-                                                     ㋕ 並み。ふつう。「中型・中流」\n\
-                                                     ② ほどよい。かたよらない。「中正・中道・中庸・中立・中和」\n\
-
-                                                     ③ あたる。\n\
-                                                     ㋐ まとにあたる。「必中・命中・百発百中」\n\
-                                                     ㋑ 予想と事実とが一致する。「的中・適中」\n\
-                                                     ㋒ 体をそこなう。「中毒」\n\
-                                                     ④ 「中国」の略。「米中仏」\n\
-                                                     ⑤ 「中学校」の略。「中二」\n\
-                                                     中心（なかご）・中稲（なかて）・中山道（なかせんどう）\n\
-                                                     あつる・かなめ・すなお・ただ・ただし・な・なかば・のり・ひとし・まさ・みつ・みつる・よし",
-                                    },
-                                ],
-                            },
-                            // ... other definitions for "ちゅう"
-                        ],
-                    },
-                    // ... other entries for "じゅう", "なか", etc.
-                ],
-            },
-        ),
-    },
+   ../ "中"
     TermSearchResultsSegment {
         text: "です",
         results: Some(
