@@ -15,6 +15,8 @@ _Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan
     - [ ] Advanced Importing
         - [ ] Dictionaries with Images/Media
 
+### Multi-Language Deinflector [![github](https://img.shields.io/badge/github%20-blue.svg)](https://github.com/aramrw/deinflector) [![Crates.io](https://img.shields.io/crates/v/deinflector.svg)](https://crates.io/crates/deinflector) 
+- [ ] [](https://github.com/aramrw/deinflector) 
 - [ ] [**`Anki (Issue Tracker)`**](https://github.com/aramrw/yomichan_rs/issues/18)  
     - [ ] Note creation
         - [ ]  Basic Features
@@ -25,21 +27,21 @@ _Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan
                 - [ ] Overwrite Existing
         - [ ] Customization
 
-- [ ] **`Deserialization`**
+- [ ] **`Misc`**
     - [ ] Definitions
         - [x] Plain Text (String)
         - [ ] Html
 
-### Examples
+## Examples
 ```rust
 let mut ycd = Yomichan::new("db.ycd");
 ycd.set_language("ja");
 let res = ycd.search("今勉強中です");
 dbg!(res);
 ```
-_Example output, excluded some fields for brevity_
+### Output example
+* See the full type at [TermSearchResultSemgent](https://github.com/aramrw/yomichan_rs/blob/80156bee29e36c07f01018f7f33d1ee98fa965be/src/text_scanner.rs#L36)
 ```rust
-// Example output (abbreviated for clarity)
 [
     TermSearchResultsSegment {
         text: "今",
@@ -106,10 +108,8 @@ _Example output, excluded some fields for brevity_
             TermSearchResults {
                 dictionary_entries: [
                     TermDictionaryEntry {
-                        dictionary_alias: "旺文社国語辞典 第十一版 画像無し",
-                        headwords: [
-                            TermHeadword { term: "勉強", reading: "べんきょう" },
-                        ],
+                        // ../ dictionary,
+                        // ../ headwords,
                         definitions: [
                             TermDefinition {
                                 entries: [
@@ -129,35 +129,12 @@ _Example output, excluded some fields for brevity_
             },
         ),
     },
-   ../ "中"
-    TermSearchResultsSegment {
-        text: "です",
-        results: Some(
-            TermSearchResults {
-                dictionary_entries: [
-                    TermDictionaryEntry {
-                        dictionary_alias: "旺文社国語辞典 第十一版 画像無し",
-                        headwords: [
-                            TermHeadword { term: "です", reading: "です" },
-                        ],
-                        definitions: [
-                            TermDefinition {
-                                entries: [
-                                    TermGlossaryContentGroup {
-                                        plain_text: "です\n\
-                                                     （助動－特殊型）《デシヨ・デシ・デス・（デス）・○・○》\n\
-                                                     丁寧な断定の意を表す。「ここは学校―よ」「今晩は寒い―ね」\n\
-                                                     形容詞の丁寧形は連用形に「ございます」を付けた「高うございます」の形が用いられたが、現在は「高いです」の形も用いられる。\n\
-                                                     名詞および助詞（の・ほど・から・など・まで・だけ・くらい・ばかり、など）に付く。未然形「でしょ」に限り、動詞・形容詞・動詞型の助動詞・形容詞型の助動詞・特殊型の助動詞（ます・た・ぬ）の連体形に付く。連体形「です」は、ふつう助詞「ので」「のに」を伴い、「ですので」「ですのに」となる場合にだけ用いられる。\n\
-                                                     【変遷】「でござります」→「でござんす」→「であんす」→「でんす」→「でえす」→「です」と変化したとする説、「で候（そうろう）」を略した「で候（そう）」の転とする説など諸説ある。動詞の終止形につく「～するです」などの形は、古い言い方や方言で用いられるが、現在の共通語では避けられ、「行くです」は「行きます」という。",
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            },
-        ),
-    },
+   ../ "中",
+    ../ "です",
 ]
 ```
+
+### Other Examples
+1. [yomichan_rs_gui](http://github.com/aramrw/yomichan_rs_gui) (wip):
+<img src="https://github.com/user-attachments/assets/b32cc484-8aa0-49e9-a68b-d2730ea173ea" width=350/>
+
