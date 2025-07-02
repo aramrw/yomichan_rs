@@ -4,7 +4,7 @@ Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)
 > **This library is highly unstable and will have breaking changes**
 
 ### Features/Roadmap
-- [ ] **Dictionary Imports**
+- [ ] `**Dictionary Imports**`
     - [x] Basic Dictionary Importing
         - [x] Index
         - [x] Tags
@@ -15,7 +15,7 @@ Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)
     - [ ] Advanced Importing
         - [ ] Dictionaries with Images/Media
 
-- [ ] [**Anki (Issue Tracker)**](https://github.com/aramrw/yomichan_rs/issues/18)     
+- [ ] [`**Anki (Issue Tracker)**`](https://github.com/aramrw/yomichan_rs/issues/18)  
     - [ ] Note creation
         - [ ]  Basic Features
             - [ ] Notes 
@@ -25,7 +25,7 @@ Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)
                 - [ ] Overwrite Existing
         - [ ] Customization
 
-- [ ] **Deserialization**
+- [ ] `**Deserialization**`
     - [ ] Definitions
         - [x] Plain Text (String)
         - [ ] Html
