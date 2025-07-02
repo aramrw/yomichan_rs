@@ -1,8 +1,3 @@
-[
-    ["E1", "default", 0, "example tag 1", 0],
-    ["E2", "default", 0, "example tag 2", 0],
-    ["P", "popular", 0, "popular term", 0],
-    ["n", "partOfSpeech", 0, "noun", 0],
-    ["vt", "partOfSpeech", 0, "transitive verb", 0],
-    ["abbr", "default", 0, "abbreviation", 0]
-]
+version https://git-lfs.github.com/spec/v1
+oid sha256:76b9d74f92ef94a539ba7682ac33aadcda3787b668275789ec2b4365867d9a98
+size 280

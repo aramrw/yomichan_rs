@@ -1,19 +1,30 @@
-use crate::dictionary_data::TermGlossaryContent;
+use std::sync::Arc;
+
+use crate::{
+    database::dictionary_database::{Pronunciation, TermPronunciationMatchType},
+    structured_content::{TermGlossaryContent, TermGlossaryContentGroup},
+    translation_internal::TextProcessorRuleChainCandidate,
+    translator::TermType,
+};
+use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
+use derive_more::derive::From;
+use getset::MutGetters;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum InflectionSource {
-    Algorithm,
-    Dictionary,
-    Both,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct InflectionRuleChainCandidate {
+/// Dictionary InflectionRuleChainCandidate
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct DictionaryInflectionRuleChainCandidate {
     pub source: InflectionSource,
     pub inflection_rules: Vec<String>,
+}
+
+/// Dictionary InflectionRuleChainCandidateKey
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct EntryInflectionRuleChainCandidatesKey {
+    pub term: String,
+    pub reading: String,
+    pub inflection_rule_chain_candidates: Vec<DictionaryInflectionRuleChainCandidate>,
 }
 
 /// Helper enum to match expected schema types more accurately.
@@ -23,33 +34,47 @@ pub enum NumOrStr {
     Str(String),
 }
 
-/// Helper enum to match expected schema types more accurately.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Helper enum to match [TermMetaPitchAccent] data more accurately.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum VecNumOrNum {
-    Vec(u8),
-    Str(String),
+    Vec(Vec<u8>),
+    Num(u8),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 /// A tag represents some brief information about part of a dictionary entry.
-pub struct Tag {
+pub struct DictionaryTag {
     /// The name of the tag.
-    name: String,
+    pub name: String,
     /// The category of the tag.
-    category: String,
+    pub category: String,
     /// A number indicating the sorting order of the tag.
-    order: u16,
+    pub order: usize,
     /// A score value for the tag.
-    score: u16,
+    pub score: usize,
     /// An array of descriptions for the tag. If there are multiple entries,
     /// the values will typically have originated from different dictionaries.
     /// However, there is no correlation between the length of this array and
     /// the length of the `dictionaries` field, as duplicates are removed.
-    content: Vec<String>,
+    pub content: Vec<String>,
     /// An array of dictionary names that contained a tag with this name and category.
-    dictionaries: Vec<String>,
+    pub dictionaries: Vec<String>,
     /// Whether or not this tag is redundant with previous tags.
-    redundant: bool,
+    pub redundant: bool,
+}
+impl DictionaryTag {
+    /// sets the category to "default"
+    pub fn new_default(name: String, dictionary: String) -> Self {
+        Self {
+            name,
+            category: "default".to_string(),
+            order: 0,
+            score: 0,
+            content: vec![],
+            dictionaries: vec![dictionary],
+            redundant: false,
+        }
+    }
 }
 
 /*************** Kanji ***************/
@@ -99,7 +124,7 @@ pub struct KanjiFrequency {
 }
 
 /// An object with groups of stats about a kanji character.
-pub type KanjiStatGroups = HashMap<String, Vec<KanjiStat>>;
+pub type KanjiStatGroups = IndexMap<String, Vec<KanjiStat>>;
 
 /// A dictionary entry for a kanji character.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -116,7 +141,7 @@ pub struct KanjiDictionaryEntry {
     /// Kunyomi readings for the kanji character.
     kunyomi: Vec<String>,
     /// Tags for the kanji character.
-    tags: Vec<Tag>,
+    tags: Vec<DictionaryTag>,
     /// An object containing stats about the kanji character.
     stats: KanjiStatGroups,
     /// Definitions for the kanji character.
@@ -134,7 +159,7 @@ pub struct DictionaryOrder {
 /*************** Term ***************/
 
 /// Enum representing what database field was used to match the source term.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchSource {
     Term,
@@ -143,7 +168,7 @@ pub enum TermSourceMatchSource {
 }
 
 /// Enum representing how the search term relates to the final term.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchType {
     Exact,
@@ -153,183 +178,146 @@ pub enum TermSourceMatchType {
 
 /// Frequency information corresponds to how frequently a term appears in a corpus,
 /// which can be a number of occurrences or an overall rank.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TermFrequency {
     /// The original order of the frequency, which is usually used for sorting.
-    index: u32,
+    pub index: usize,
     /// Which headword this frequency corresponds to.
-    headword_index: u32,
+    pub headword_index: usize,
     /// The name of the dictionary that the frequency information originated from.
-    dictionary: String,
+    pub dictionary: String,
     /// The index of the dictionary in the original list of dictionaries used for the lookup.
-    dictionary_index: u16,
-    /// The priority of the dictionary.
-    dictionary_priority: u16,
+    pub dictionary_index: usize,
+    /// The alias for the dictionary
+    pub dictionary_alias: String,
     /// Whether or not the frequency had an explicit reading specified.
-    has_reading: bool,
+    pub has_reading: bool,
     /// The frequency for the term, as a number of occurrences or an overall rank.
-    frequency: u32,
+    pub frequency: i128,
     /// A display value to show to the user.
-    display_value: Option<String>,
+    pub display_value: Option<String>,
     /// Whether or not the displayValue string was parsed to determine the frequency value.
-    display_value_parsed: bool,
+    pub display_value_parsed: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// A term headword is a combination of a term, reading, and auxiliary information.
 pub struct TermHeadword {
     /// The original order of the headword, which is usually used for sorting.
-    index: u16,
+    pub index: usize,
     /// The text for the term.
-    term: String,
+    pub term: String,
     /// The reading of the term.
-    reading: String,
+    pub reading: String,
     /// The sources of the term.
-    sources: Vec<TermSource>,
+    pub sources: Vec<TermSource>,
     /// Tags for the headword.
-    tags: Vec<Tag>,
+    pub tags: Vec<DictionaryTag>,
     /// List of word classes (part of speech) for the headword.
-    word_classes: Vec<String>,
+    pub word_classes: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A dictionary entry for a term or group of terms.
 pub struct TermDefinition {
-    /// The original order of the definition, which is usually used for sorting.
-    index: u16,
-    /// A list of headwords that this definition corresponds to.
-    headword_indices: Vec<u16>,
-    /// The name of the dictionary that the definition information originated from.
-    dictionary: String,
-    /// The index of the dictionary in the original list of dictionaries used for the lookup.
-    dictionary_index: u16,
-    /// The priority of the dictionary.
-    dictionary_priority: u16,
     /// Database ID for the definition.
-    id: u128,
+    pub id: String,
+    /// The original order of the definition, which is usually used for sorting.
+    pub index: usize,
+    /// A list of headwords that this definition corresponds to.
+    pub headword_indices: Vec<usize>,
+    /// The name of the dictionary that the definition information originated from.
+    pub dictionary: String,
+    /// The index of the dictionary in the original list of dictionaries used for the lookup.
+    pub dictionary_index: usize,
+    pub dictionary_alias: String,
     /// A score for the definition.
-    score: u16,
+    pub score: i128,
     /// The sorting value based on the determined term frequency.
-    frequency_order: u16,
-    /// A list of database sequence numbers for the term. A value of `-1` corresponds to no sequence.
-    /// The list can have multiple values if multiple definitions with different sequences have been merged.
+    pub frequency_order: i128,
+    /// A list of database sequence numbers for the term.
+    /// A value of `-1` corresponds to no sequence.
+    /// The list can have multiple values if multiple definitions with
+    /// different sequences have been merged.
     /// The list should always have at least one item.
-    sequences: Vec<i64>,
+    pub sequences: Vec<i128>,
     /// Whether or not any of the sources is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
-    is_primary: bool,
-    /// Tags for the definition.
-    tags: Vec<Tag>,
+    pub is_primary: bool,
+    pub tags: Vec<DictionaryTag>,
     /// The definition entries.
-    entries: Vec<TermGlossaryContent>,
+    pub entries: Vec<TermGlossaryContentGroup>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 /// A term pronunciation represents different ways to pronounce one of the headwords.
 pub struct TermPronunciation {
     /// The original order of the pronunciation, which is usually used for sorting.
-    index: u16,
+    pub index: usize,
     /// Which headword this pronunciation corresponds to.
-    headword_index: u64,
+    pub headword_index: usize,
     /// The name of the dictionary that the pronunciation information originated from.
-    dictionary: String,
+    pub dictionary: String,
     /// The index of the dictionary in the original list of dictionaries used for the lookup.
-    dictionary_index: u16,
-    /// The priority of the dictionary.
-    dictionary_priority: u16,
+    pub dictionary_index: usize,
+    /// The alias of the dictionary
+    pub dictionary_alias: String,
     /// The pronunciations for the term.
-    pronunciations: Vec<Pronunciation>,
+    pub pronunciations: Vec<Pronunciation>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Source information represents how the original text was transformed to get to the final term.
 pub struct TermSource {
     /// The original text that was searched.
-    original_text: String,
+    pub original_text: String,
     /// The original text after being transformed, but before applying deinflections.
-    transformed_text: String,
+    pub transformed_text: String,
     /// The final text after applying deinflections.
-    deinflected_text: String,
+    pub deinflected_text: String,
     /// How the deinflected text matches the value from the database.
-    match_type: TermSourceMatchType,
+    pub match_type: TermSourceMatchType,
     /// Which field was used to match the database entry.
-    match_source: TermSourceMatchSource,
+    pub match_source: TermSourceMatchSource,
     /// Whether or not this source is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
-    is_primary: bool,
+    pub is_primary: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A dictionary entry for a term or group of terms.
 pub struct TermDictionaryEntry {
-    /// The type of the entry.
-    entry_type: TermSourceMatchSource,
+    /// This should always be [TermSourceMatchSource::Term]
+    pub entry_type: TermSourceMatchSource,
     /// Whether or not any of the sources is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
-    is_primary: bool,
+    pub is_primary: bool,
+    /// Ways that a looked-up word might be an transformed into this term.
+    pub text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
     /// Ways that a looked-up word might be an inflected form of this term.
-    inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
+    pub inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
     /// A score for the dictionary entry.
-    score: i32,
+    pub score: i128,
     /// The sorting value based on the determined term frequency.
-    frequency_order: u32,
+    pub frequency_order: i128,
+    /// The alias of the dictionary.
+    pub dictionary_alias: String,
     /// The index of the dictionary in the original list of dictionaries used for the lookup.
-    dictionary_index: u32,
-    /// The priority of the dictionary.
-    dictionary_priority: u32,
+    pub dictionary_index: usize,
     /// The number of primary sources that had an exact text match for the term.
-    source_term_exact_match_count: u32,
+    pub source_term_exact_match_count: usize,
+    /// Whether the term reading matched the primary reading.
+    pub match_primary_reading: bool,
     /// The maximum length of the original text for all primary sources.
-    max_original_text_length: u32,
+    pub max_original_text_length: usize,
     /// Headwords for the entry.
-    headwords: Vec<TermHeadword>,
+    pub headwords: Vec<TermHeadword>,
     /// Definitions for the entry.
-    definitions: Vec<TermDefinition>,
+    pub definitions: Vec<TermDefinition>,
     /// Pronunciations for the entry.
-    pronunciations: Vec<TermPronunciation>,
+    pub pronunciations: Vec<TermPronunciation>,
     /// Frequencies for the entry.
-    frequencies: Vec<TermFrequency>,
+    pub frequencies: Vec<TermFrequency>,
 }
 
 /*************** Pitch Accent & Pronunciation ***************/
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum TermPronunciationMatchType {
-    #[serde(rename = "lowercase")]
-    PitchAccent,
-    #[serde(rename = "phonetic-transcription")]
-    PhoneticTranscription,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Pronunciation {
-    PitchAccent(PitchAccent),
-    PhoneticTranscription(PhoneticTranscription),
-}
-
-/// Pitch accent information for a term, represented as the position of the downstep.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PitchAccent {
-    /// Type of the pronunciation, for disambiguation between union type members.
-    /// Should be `"pitch-accent"` in the json.
-    term: TermPronunciationMatchType,
-    /// Position of the downstep, as a number of mora.
-    position: u8,
-    /// Positions of morae with a nasal sound.
-    nasal_positions: Vec<u8>,
-    /// Positions of morae with a devoiced sound.
-    devoic_positions: Vec<u8>,
-    /// Tags for the pitch accent.
-    tags: Vec<Tag>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PhoneticTranscription {
-    /// Type of the pronunciation, for disambiguation between union type members.
-    /// Should be `"phonetic-transcription"` in the json.
-    match_type: TermPronunciationMatchType,
-    /// IPA transcription for the term.
-    ipa: String,
-    /// List of tags for this IPA transcription.
-    tags: Vec<Tag>,
-}

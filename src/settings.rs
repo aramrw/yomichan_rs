@@ -1,5 +1,44 @@
+use std::ops::Deref;
+use std::ops::DerefMut;
+use std::sync::Arc;
+
+#[cfg(feature = "anki")]
+use crate::anki::DisplayAnki;
+use crate::backend::Backend;
+use crate::Ptr;
+use crate::PtrRGaurd;
+use crate::PtrWGaurd;
+use anki_direct::cache::model::ModelCache;
+use anki_direct::decks::DeckConfig;
+use anki_direct::model::FullModelDetails;
+use anki_direct::notes::MediaSource;
+use better_default::Default;
+use derivative::Derivative;
+use derive_more::derive::Deref;
+use derive_more::derive::DerefMut;
+use derive_more::derive::From;
+use derive_where::derive_where;
+use getset::Getters;
+use getset::MutGetters;
+use getset::Setters;
+use indexmap::IndexMap;
+use indexmap::IndexSet;
+use native_db::native_db;
+use native_db::ToKey;
+use native_model::native_model;
+use native_model::Model;
+use parking_lot::ArcRwLockReadGuard;
+use parking_lot::ArcRwLockUpgradableReadGuard;
+use parking_lot::RawRwLock;
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use serde_with::SerializeDisplay;
+use url::form_urlencoded::Target;
+
+use crate::{
+    database::dictionary_importer::DictionarySummary, translation::FindTermsSortOrder,
+    translator::FindTermsMode,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct GlobalOptions {
@@ -12,53 +51,75 @@ pub struct GlobalDatabaseOptions {
 }
 
 /// Global Yomichan Settings.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct Options {
-    // should get it from crates / rust somehow
-    pub version: u8,
-    pub profiles: Vec<Profile>,
+#[native_model(id = 20, version = 1)]
+#[native_db]
+#[derive(
+    Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters, Setters,
+)]
+#[getset(get = "pub", get_mut = "pub", set = "pub")]
+pub struct YomichanOptions {
+    #[primary_key]
+    id: String,
+    pub version: String,
+    pub profiles: Vec<Ptr<YomichanProfile>>,
     pub current_profile: usize,
     pub global: GlobalOptions,
+    pub anki: Ptr<GlobalAnkiOptions>,
 }
 
-impl Options {
-    fn new(
-        version: u8,
-        profiles: Vec<Profile>,
-        current_profile: usize,
-        global: GlobalOptions,
-    ) -> Self {
+impl YomichanOptions {
+    pub fn new() -> Self {
+        let global_anki_options = Ptr::new(GlobalAnkiOptions::default());
         Self {
-            version,
-            profiles,
-            current_profile,
-            global,
+            id: "global_user_options".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            profiles: vec![YomichanProfile::new_default(&global_anki_options).into()],
+            current_profile: 0,
+            global: GlobalOptions::default(),
+            anki: global_anki_options,
         }
     }
-
-    pub fn get_options_mut(&mut self) -> &mut Self {
-        self
-    }
-
-    pub fn get_current_profile_mut(&mut self) -> &mut Profile {
-        let index = self.current_profile;
-        &mut self.profiles[index]
-    }
-
-    pub fn get_current_profile(&self) -> &Profile {
-        let index = self.current_profile;
-        &self.profiles[index]
+    /// Gets a [Ptr] to the currently selected profile.
+    /// Returns None if the index is out of bounds.
+    pub fn get_current_profile(&self) -> ProfileResult<Ptr<YomichanProfile>> {
+        let Some(pf) = self.profiles.get(self.current_profile) else {
+            return Err(ProfileError::SelectedOutofBounds {
+                selected: *self.current_profile(),
+                len: self.profiles.len(),
+            });
+        };
+        Ok(pf.clone())
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct Profile {
+impl Backend<'_> {
+    pub fn get_current_profile(&self) -> ProfileResult<Ptr<YomichanProfile>> {
+        let opts = self.options.read_arc();
+        opts.get_current_profile()
+    }
+}
+
+/// Returns `T` or  [ProfileError]
+pub type ProfileResult<T> = Result<T, ProfileError>;
+#[derive(thiserror::Error, Debug)]
+pub enum ProfileError {
+    #[error("tried to index selected_profile[selected], but profiles.len() = {len}")]
+    SelectedOutofBounds { selected: usize, len: usize },
+}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters)]
+pub struct YomichanProfile {
     pub name: String,
     pub condition_groups: Vec<ProfileConditionGroup>,
+    #[getset(get = "pub", get_mut = "pub")]
     pub options: ProfileOptions,
 }
 
-impl Profile {
+impl YomichanProfile {
+    pub fn new_default(global_anki_options: &Ptr<GlobalAnkiOptions>) -> Self {
+        let mut default = Self::default();
+        default.options = ProfileOptions::new_default(global_anki_options.clone());
+        default
+    }
     pub fn new(
         name: String,
         condition_groups: Vec<ProfileConditionGroup>,
@@ -69,6 +130,30 @@ impl Profile {
             condition_groups,
             options,
         }
+    }
+
+    /// Sets the current [YomichanProfile]'s language to the iso
+    // TODO: use an enum instead of `&'str`
+    pub fn set_language(&mut self, iso: &str) {
+        self.options.general.language = iso.to_string();
+    }
+
+    pub fn extend_dictionaries(
+        &mut self,
+        new: impl IntoIterator<Item = (String, DictionaryOptions)>,
+    ) {
+        self.options.dictionaries.extend(new);
+    }
+
+    pub fn get_dictionary_options_from_name(&self, find: &str) -> Option<&DictionaryOptions> {
+        self.options.dictionaries.get(find)
+    }
+
+    pub fn anki_options(&self) -> &AnkiOptions {
+        &self.options().anki
+    }
+    pub fn anki_options_mut(&mut self) -> &mut AnkiOptions {
+        &mut self.options_mut().anki
     }
 }
 
@@ -99,27 +184,89 @@ pub struct ProfileCondition {
     pub value: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+fn compare_prog_opts(a: &Arc<RwLock<AnkiOptions>>, b: &Arc<RwLock<AnkiOptions>>) -> bool {
+    // If the pointers are the same, they are equal.
+    if Arc::ptr_eq(a, b) {
+        return true;
+    }
+    // Otherwise, lock and compare the inner data.
+    // We use try_read() to avoid deadlocks in more complex scenarios,
+    // though unwrap() is fine if you're sure it won't deadlock.
+    if let (Some(a_lock), Some(b_lock)) = (a.try_read(), b.try_read()) {
+        *a_lock == *b_lock
+    } else {
+        // Handle the case where locking fails.
+        // maybe means they are not equal, (or want to panic).
+        false
+    }
+}
+
+/// A struct used for managing Profiles
+///
+/// # Usage
+/// Can be used for seperating profiles by language or user
+#[derive(Clone, Debug, Serialize, Deserialize, Default, Derivative, Getters, MutGetters)]
+#[derivative(PartialEq)]
 pub struct ProfileOptions {
+    #[getset(get = "pub", get_mut = "pub")]
     pub general: GeneralOptions,
     pub popup_window: PopupWindowOptions,
+    /// should be moved to [crate::audio]
     pub audio: AudioOptions,
     pub scanning: ScanningOptions,
     pub translation: TranslationOptions,
-    pub dictionaries: Vec<DictionaryOptions>,
+    #[getset(get = "pub", get_mut = "pub")]
+    pub dictionaries: IndexMap<String, DictionaryOptions>,
     pub parsing: ParsingOptions,
+    /// a ptr for [DisplayAnki]
+    //#[derivative(PartialEq(compare_with = "compare_prog_opts"))]
     pub anki: AnkiOptions,
     pub sentence_parsing: SentenceParsingOptions,
     pub inputs: InputsOptions,
     pub clipboard: ClipboardOptions,
     pub accessibility: AccessibilityOptions,
 }
+impl ProfileOptions {
+    fn new_default(global_anki_options: Ptr<GlobalAnkiOptions>) -> Self {
+        let mut default = Self::default();
+        let mut anki_opts = &mut default.anki;
+        anki_opts.global_anki_options = global_anki_options;
+        default
+    }
+    /// Gets the main dictionary for this [YomichanProfile] from it's [ProfileOptions]
+    pub fn main_dictionary(&self) -> &str {
+        self.general.main_dictionary.as_str()
+    }
+    /// Updates the current dictionary and returns the previous one
+    pub fn set_main_dictionary(&mut self, new: String) -> String {
+        let old = self.general.main_dictionary.as_mut_string();
+        std::mem::replace(old, new)
+    }
+}
+impl YomichanProfile {
+    /// Gets the main dictionary for this [YomichanProfile]
+    pub fn get_main_dictionary(&self) -> &str {
+        self.options.main_dictionary()
+    }
+    /// Updates the main dictionary and returns the previous one
+    pub fn set_main_dictionary(&mut self, new: String) -> String {
+        self.options.set_main_dictionary(new)
+    }
+    /// Gets a ref to this profiles dictionaries
+    pub fn dictionaries(&self) -> &IndexMap<String, DictionaryOptions> {
+        self.options.dictionaries()
+    }
+    pub fn dictionaries_mut(&mut self) -> &mut IndexMap<String, DictionaryOptions> {
+        self.options.dictionaries_mut()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct GeneralOptions {
     pub enable: bool,
     pub language: String,
-    pub result_output_mode: ResultOutputMode,
+    pub result_output_mode: FindTermsMode,
+    pub prefix_wildcard_supported: bool,
     pub debug_info: bool,
     pub max_results: u8,
     pub show_advanced: bool,
@@ -161,7 +308,7 @@ pub struct GeneralOptions {
     pub frequency_display_mode: FrequencyDisplayStyle,
     pub term_display_mode: TermDisplayStyle,
     pub sort_frequency_dictionary: Option<String>,
-    pub sort_frequency_dictionary_order: SortFrequencyDictionaryOrder,
+    pub sort_frequency_dictionary_order: FindTermsSortOrder,
     pub sticky_search_header: bool,
 }
 
@@ -271,7 +418,7 @@ pub struct TranslationOptions {
     pub search_resolution: SearchResolution,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 /// # Example
 ///
 /// `Letter`: A dog → _"A dog"_ | _"A do"_ | _"A d"_ | _"A"_.
@@ -296,12 +443,13 @@ pub struct TranslationTextReplacementGroup {
     pub replacement: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub struct DictionaryOptions {
     /// The title of the dictionary.
     pub name: String,
-    /// What order the dictionary's results get returned.
-    pub priority: usize,
+    pub alias: String,
+    // /// What order the dictionary's results get returned.
+    // pub priority: usize,
     /// Whether or not the dictionary will be used.
     pub enabled: bool,
     /// If you have two dictionaries, `Dict 1` and `Dict 2`:
@@ -350,17 +498,15 @@ pub struct DictionaryOptions {
 }
 
 impl DictionaryOptions {
-    pub fn new(settings: &Options, dict_name: String) -> Self {
-        let profile = settings.get_current_profile();
-        let p_len = profile.options.dictionaries.len();
-
+    pub fn new(dict_name: String) -> Self {
         DictionaryOptions {
-            name: dict_name,
-            priority: p_len,
+            name: dict_name.clone(),
+            alias: dict_name,
+            //priority: p_len,
             enabled: true,
             allow_secondary_searches: false,
             definitions_collapsible: DictionaryDefinitionsCollapsible::Expanded,
-            parts_of_speech_filter: true,
+            parts_of_speech_filter: false,
             use_deinflections: true,
             styles: None,
         }
@@ -376,23 +522,312 @@ pub struct ParsingOptions {
     pub reading_mode: ParsingReadingMode,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+/// `yomichan_rs`-unique struct for caching discovered models from Anki.
+/// # Fields
+/// * `selected`: an index in the map for the (note) model to use when creating notes.
+#[derive(
+    Clone, Serialize, Deserialize, Debug, PartialEq, Default, Setters, Getters, MutGetters,
+)]
+#[getset(get = "pub", set = "pub", get_mut = "pub")]
+pub struct DecksMap {
+    map: IndexMap<String, Option<DeckConfig>>,
+    selected: usize,
+}
+impl From<IndexMap<String, Option<DeckConfig>>> for DecksMap {
+    fn from(map: IndexMap<String, Option<DeckConfig>>) -> Self {
+        Self { map, selected: 0 }
+    }
+}
+
+impl DecksMap {
+    /// Returns currently selected [DeckConfig]
+    pub fn selected_deck(&self) -> Option<(usize, &str, &Option<DeckConfig>)> {
+        let i = self.selected;
+        let (name, config) = self.map.get_index(i)?;
+        Some((i, name.as_str(), config))
+    }
+}
+impl Deref for DecksMap {
+    type Target = IndexMap<String, Option<DeckConfig>>;
+    fn deref(&self) -> &Self::Target {
+        &self.map
+    }
+}
+impl DerefMut for DecksMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.map
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum FieldIndex {
+    Term(usize),
+    Reading(usize),
+    Sentence(usize),
+    Definition(usize),
+    TermAudio(usize),
+    SentenceAudio(usize),
+    Image(usize),
+    Frequency(usize),
+}
+
+/// Defines Anki fields types that correspond to a [DictionaryTermEntry] for making notes
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum AnkiTermFieldType {
+    Term(String),
+    Reading(String),
+    Sentence(String),
+    Definition(String),
+    TermAudio(String),
+    SentenceAudio(String),
+    Image(String),
+    Frequency(String),
+}
+impl AnkiTermFieldType {
+    /// Converts a slice of user-provided `FieldIndex` mappings into a persistent,
+    /// name-based `Vec<AnkiTermFieldType>`.
+    ///
+    /// This function acts as the bridge between a simple, user-friendly input format
+    /// (mapping by index) and a robust internal storage format (mapping by field name).
+    /// It validates that each index provided by the user is valid for the given Anki model.
+    ///
+    /// # Arguments
+    ///
+    /// * `mappings`: A slice of `FieldIndex` enums provided by the user.
+    /// * `model`: The specific `FullModelDetails` for the Anki note type being configured.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<AnkiTermFieldType>)`: A vector of the successfully resolved field types.
+    /// * `Err(usize)`: The first invalid index encountered that was out of bounds for the model.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let model = FullModelDetails {
+    ///     name: "MyModel".into(),
+    ///     fields: vec!["Expression".into(), "Meaning".into(), "Reading".into()],
+    ///     // ... other details
+    /// };
+    ///
+    /// let user_mappings = &[FieldIndex::Term(0), FieldIndex::Definition(1)];
+    ///
+    /// let persistent_fields = AnkiTermFieldType::from_field_indices(user_mappings, &model).unwrap();
+    ///
+    /// assert_eq!(persistent_fields, vec![
+    ///     AnkiTermFieldType::Term("Expression".to_string()),
+    //      AnkiTermFieldType::Definition("Meaning".to_string()),
+    /// ]);
+    /// ```
+    pub fn from_field_indices(
+        mappings: &[FieldIndex],
+        model: &FullModelDetails,
+    ) -> Result<Vec<AnkiTermFieldType>, AnkiFieldsError> {
+        let anki_model_fields = &model.fields;
+        let mut resolved_fields = Vec::with_capacity(mappings.len());
+
+        for mapping in mappings {
+            // 1. Deconstruct the user's mapping to get the index and the constructor function.
+            let (index, constructor): (usize, fn(String) -> AnkiTermFieldType) = match *mapping {
+                FieldIndex::Term(i) => (i, AnkiTermFieldType::Term),
+                FieldIndex::Reading(i) => (i, AnkiTermFieldType::Reading),
+                FieldIndex::Sentence(i) => (i, AnkiTermFieldType::Sentence),
+                FieldIndex::Definition(i) => (i, AnkiTermFieldType::Definition),
+                FieldIndex::TermAudio(i) => (i, AnkiTermFieldType::TermAudio),
+                FieldIndex::SentenceAudio(i) => (i, AnkiTermFieldType::SentenceAudio),
+                FieldIndex::Image(i) => (i, AnkiTermFieldType::Image),
+                FieldIndex::Frequency(i) => (i, AnkiTermFieldType::Frequency),
+            };
+
+            // 2. Use the index to look up the field name from the model.
+            //    If the index is out of bounds, return an error with the invalid index.
+            let field_name = match anki_model_fields.get(index) {
+                Some(name) => name.clone(),
+                None => {
+                    return Err(AnkiFieldsError::ModelFieldsOutOfBounds {
+                        model: model.name.clone(),
+                        index,
+                        fields_len: anki_model_fields.len(),
+                    })
+                }
+            };
+
+            // 3. Call the constructor with the now-validated field name and add it to the result.
+            resolved_fields.push(constructor(field_name));
+        }
+
+        Ok(resolved_fields)
+    }
+    /// Constructs a new [AnkiTermFieldType] from a `T`
+    /// Helper function to construct a variant from a value and a constructor function.
+    ///
+    /// This generic function avoids repetitive code by taking a value of any type `T`
+    /// and a `constructor` (like `TermFieldType::Term` or `TermFieldType::Image`)
+    /// and applying the constructor to the value.
+    ///
+    /// # Type Parameters
+    /// * `T`: The type of the value to be wrapped in the enum (e.g., `String`, `MediaSource`).
+    /// * `F`: A function or closure that takes `T` and returns `Self`.
+    fn from_value<T, F>(value: T, constructor: F) -> Self
+    where
+        F: FnOnce(T) -> Self,
+    {
+        constructor(value)
+    }
+}
+
+/// `yomichan_rs`-unique struct for caching discovered models from Anki.
+/// # Fields
+/// * `selected`: an index in the map for the (note) model to use when creating notes.
+#[derive(
+    Clone,
+    Serialize,
+    Deserialize,
+    Debug,
+    PartialEq,
+    Default,
+    Setters,
+    Getters,
+    MutGetters,
+    Deref,
+    From,
+    DerefMut,
+)]
+#[getset(get = "pub", set = "pub", get_mut = "pub")]
+pub struct NoteModelsMap {
+    #[deref]
+    #[deref_mut]
+    map: IndexMap<String, FullModelDetails>,
+    selected: usize,
+}
+impl From<IndexMap<String, FullModelDetails>> for NoteModelsMap {
+    fn from(map: IndexMap<String, FullModelDetails>) -> Self {
+        Self { map, selected: 0 }
+    }
+}
+
+impl<'n> From<(usize, &'n str, &'n FullModelDetails)> for NoteModelNode<'n> {
+    fn from(value: (usize, &'n str, &'n FullModelDetails)) -> Self {
+        NoteModelNode(value)
+    }
+}
+#[derive(Clone, Debug, PartialEq, Getters, Setters, MutGetters, DerefMut, Deref)]
+pub struct NoteModelNode<'n>((usize, &'n str, &'n FullModelDetails));
+impl NoteModelsMap {
+    pub fn selected_note(&self) -> Option<NoteModelNode<'_>> {
+        let i = self.selected;
+        let (name, details) = self.map.get_index(i)?;
+        let node: NoteModelNode<'_> = (i, name.as_str(), details).into();
+        Some(node)
+    }
+}
+
+/// Struct for [Options] that caches note models and decks from Anki
+#[derive(
+    Clone, Debug, Getters, Setters, MutGetters, Serialize, Deserialize, PartialEq, Default,
+)]
+#[getset(get = "pub", get_mut = "pub")]
+pub struct GlobalAnkiOptions {
+    /// [IndexMap] of [Note](https://docs.ankiweb.net/getting-started.html#note-types)
+    note_models_map: NoteModelsMap,
+    /// [IndexMap] of [Deck](https://docs.ankiweb.net/getting-started.html#note-types)
+    deck_models_map: DecksMap,
+}
+impl GlobalAnkiOptions {
+    pub fn get_selected_model(
+        &self,
+        i: usize,
+    ) -> Result<(&str, &FullModelDetails), AnkiFieldsError> {
+        let map = self.note_models_map();
+        map.get_index(i)
+            .map(|(k, v)| (k.as_str(), v))
+            .ok_or(AnkiFieldsError::ModelOutOfBounds(i))
+    }
+    pub fn get_selected_deck(
+        &self,
+        i: usize,
+    ) -> Result<(&str, &Option<DeckConfig>), AnkiFieldsError> {
+        let map = self.deck_models_map();
+        map.get_index(i)
+            .map(|(k, v)| (k.as_str(), v))
+            .ok_or(AnkiFieldsError::ModelOutOfBounds(i))
+    }
+    pub fn find_model_by_name(
+        &self,
+        name: &str,
+    ) -> Result<(usize, &str, &FullModelDetails), AnkiFieldsError> {
+        let map = self.note_models_map();
+        map.get_full(name)
+            .map(|(i, k, v)| (i, k.as_str(), v))
+            .ok_or(AnkiFieldsError::ModelNotFound(name.to_string()))
+    }
+    pub fn find_deck_by_name(
+        &self,
+        name: &str,
+    ) -> Result<(usize, &str, &Option<DeckConfig>), AnkiFieldsError> {
+        let map = self.deck_models_map();
+        map.get_full(name)
+            .map(|(i, k, v)| (i, k.as_str(), v))
+            .ok_or(AnkiFieldsError::DeckNotFound(name.to_string()))
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum AnkiFieldsError {
+    #[error("unitialized yomichan anki fields")]
+    Uninitialized,
+    #[error("global anki models at index [{0}] is out of bounds")]
+    ModelOutOfBounds(usize),
+    #[error("global anki decks at index [{0}] is out of bounds")]
+    DeckOutOfBounds(usize),
+    #[error("GlobalAnkiOptions.note_models_map doesn't contain a note with name: {0}")]
+    ModelNotFound(String),
+    #[error("GlobalAnkiOptions.deck_models_map doesn't contain a deck with name: {0}")]
+    DeckNotFound(String),
+    #[error("[ankimodel::{model}] attempted to index field [{index}], but model only has {fields_len} fields")]
+    ModelFieldsOutOfBounds {
+        model: String,
+        index: usize,
+        fields_len: usize,
+    },
+}
+/// Type to cache Anki note creation options
+#[derive(
+    Clone, Default, Debug, PartialEq, Serialize, Deserialize, Getters, Setters, MutGetters,
+)]
+#[getset(get = "pub", get_mut = "pub", set = "pub")]
+pub struct AnkiFields {
+    /// field that maps term result info to selected model fields
+    fields: Vec<AnkiTermFieldType>,
+    /// selected note model create notes with
+    selected_model: usize,
+    /// selected deck to add notes to
+    selected_deck: usize,
+}
+
+#[derive(
+    Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, Setters, MutGetters,
+)]
+#[getset(get = "pub", set = "pub")]
 pub struct AnkiOptions {
-    pub enable: bool,
-    pub server: String,
-    pub tags: Vec<String>,
-    pub screenshot: AnkiScreenshotOptions,
-    pub terms: AnkiNoteOptions,
-    pub kanji: AnkiNoteOptions,
-    pub duplicate_scope: AnkiDuplicateScope,
-    pub duplicate_scope_check_all_models: bool,
-    pub duplicate_behavior: AnkiDuplicateBehavior,
-    pub check_for_duplicates: bool,
-    pub field_templates: Vec<String>,
-    pub suspend_new_cards: bool,
-    pub display_tags: AnkiDisplayTags,
-    pub note_gui_mode: AnkiNoteGuiMode,
-    pub api_key: String,
+    enable: bool,
+    #[default("8765".into())]
+    server: String,
+    tags: Vec<String>,
+    screenshot: AnkiScreenshotOptions,
+    global_anki_options: Ptr<GlobalAnkiOptions>,
+    // Pre-mapped fields that specify which Anki field to insert term data
+    anki_fields: Option<AnkiFields>,
+    duplicate_scope: AnkiDuplicateScope,
+    duplicate_scope_check_all_models: bool,
+    duplicate_behavior: AnkiDuplicateBehavior,
+    #[default(true)]
+    check_for_duplicates: bool,
+    field_templates: Vec<String>,
+    suspend_new_cards: bool,
+    display_tags: AnkiDisplayTags,
+    note_gui_mode: AnkiNoteGuiMode,
+    api_key: String,
     /// The maximum time _(in milliseconds)_ before an idle download will be cancelled;
     /// 0 = no limit.
     ///
@@ -400,7 +835,16 @@ pub struct AnkiOptions {
     /// and sometimes these downloads can stall due to server or internet connectivity issues.
     /// When this setting has a non-zero value, if a download has stalled for longer
     /// than the time specified, the download will be cancelled.
-    pub download_timeout: u32,
+    #[default(2000)]
+    download_timeout: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, Setters)]
+#[getset(get = "pub", set = "pub")]
+pub struct AnkiNoteOptions {
+    pub deck: String,
+    pub model: String,
+    pub fields: AnkiNoteFields,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -409,14 +853,7 @@ pub struct AnkiScreenshotOptions {
     pub quality: u8,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct AnkiNoteOptions {
-    pub deck: String,
-    pub model: String,
-    pub fields: AnkiNoteFields,
-}
-
-pub type AnkiNoteFields = HashMap<String, String>;
+pub type AnkiNoteFields = IndexMap<String, String>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct SentenceParsingOptions {
@@ -450,7 +887,7 @@ pub struct InputsHotkeyOptions {
     pub enabled: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ClipboardOptions {
     pub enable_background_monitor: bool,
     pub enable_search_page_monitor: bool,
@@ -459,12 +896,12 @@ pub struct ClipboardOptions {
     pub maximum_search_length: u16,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct AccessibilityOptions {
     pub force_google_docs_html_rendering: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PreventMiddleMouseOptions {
     pub on_web_pages: bool,
     pub on_popup_pages: bool,
@@ -480,7 +917,7 @@ pub struct PreventMiddleMouseOptions {
 /// related terms to be included from other dictionaries.
 ///
 /// _Not all dictionaries are able to be selected as the Primary dictionary_.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResultOutputMode {
     /// No grouping.
     ///
@@ -502,14 +939,14 @@ pub enum ResultOutputMode {
 /// The `Default` mode will position the popup relative to the scanned text.
 /// The `Full Width` mode will anchor the popup to the top or bottom of the screen and
 /// take up the full width of the screen, which can be useful on devices with touch screens.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupDisplayMode {
     #[default]
     Default,
     FullWidth,
 }
 /// Change where the popup is positioned relative to horizontal text.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupHorizontalTextPosition {
     #[default]
     Below,
@@ -517,7 +954,7 @@ pub enum PopupHorizontalTextPosition {
 }
 
 /// Change where the popup is positioned relative to vertical text.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupVerticalTextPosition {
     #[default]
     Before,
@@ -527,7 +964,7 @@ pub enum PopupVerticalTextPosition {
 }
 
 /// Adjust the main style.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupTheme {
     Light,
     #[default]
@@ -536,7 +973,7 @@ pub enum PopupTheme {
 }
 
 /// Control when the action bar is visible.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupActionBarVisibility {
     #[default]
     Auto,
@@ -544,7 +981,7 @@ pub enum PopupActionBarVisibility {
 }
 
 /// Control where the action bar is visible.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupActionBarLocation {
     #[default]
     Top,
@@ -554,7 +991,7 @@ pub enum PopupActionBarLocation {
 }
 
 /// Adjust the shadow style.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupShadow {
     /// Casts no shadow.
     Light,
@@ -565,7 +1002,7 @@ pub enum PopupShadow {
 }
 
 /// Change how the selected definition entry is visually indicated.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupCurrentIndicatorMode {
     None,
     Asterisk,
@@ -578,7 +1015,7 @@ pub enum PopupCurrentIndicatorMode {
 }
 
 /// Change how frequency information is presented.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum FrequencyDisplayStyle {
     Tags,
     TagsGrouped,
@@ -590,7 +1027,7 @@ pub enum FrequencyDisplayStyle {
 }
 
 /// Change how terms and their readings are displayed.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TermDisplayStyle {
     #[default]
     Ruby,
@@ -610,7 +1047,7 @@ pub enum TermDisplayStyle {
 /// - Smaller values indicate a more common term.
 ///
 /// _`Occurrence`-based frequency dictionaries are highly discouraged, do not use them!!_
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SortFrequencyDictionaryOrder {
     Occurance,
     #[default]
@@ -618,7 +1055,7 @@ pub enum SortFrequencyDictionaryOrder {
 }
 
 /// Change the appearance of the window type.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupWindowType {
     Normal,
     #[default]
@@ -626,7 +1063,7 @@ pub enum PopupWindowType {
 }
 
 /// Change the state of the window.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PopupWindowState {
     #[default]
     Normal,
@@ -636,7 +1073,7 @@ pub enum PopupWindowState {
 
 /// When searching for audio, the sources are checked in order until the first valid source is found.
 /// This allows for selecting a fallback source if the first choice is not available.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AudioSourceType {
     #[default]
     Jpod101,
@@ -650,7 +1087,7 @@ pub enum AudioSourceType {
     CustomJson,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TranslationConvertType {
     #[default]
     False,
@@ -658,7 +1095,7 @@ pub enum TranslationConvertType {
     Variant,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TranslationCollapseEmphaticSequences {
     #[default]
     False,
@@ -667,7 +1104,7 @@ pub enum TranslationCollapseEmphaticSequences {
 }
 
 /// Customize dictionary collapsing.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum DictionaryDefinitionsCollapsible {
     /// Definitions will not be collapsed.
     NotCollapsible,
@@ -687,7 +1124,7 @@ pub enum DictionaryDefinitionsCollapsible {
 }
 
 /// Change what type of furigana is displayed for parsed text.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ParsingReadingMode {
     #[default]
     Hiragana,
@@ -698,7 +1135,7 @@ pub enum ParsingReadingMode {
 }
 
 /// Adjust the format and quality of screenshots created for cards.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum AnkiScreenshotFormat {
     #[default]
     Png,
@@ -713,7 +1150,7 @@ pub enum AnkiScreenshotFormat {
 /// The Deck root option will additionally check for duplicates in all child decks of the root deck.
 /// This allows adding cards that are unique for decks including a subdeck structure.
 /// For decks which don't have any parent-child hierarchy, both options function the same.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AnkiDuplicateScope {
     #[default]
     Collection,
@@ -722,7 +1159,7 @@ pub enum AnkiDuplicateScope {
 }
 
 /// When a duplicate is detected.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub enum AnkiDuplicateBehavior {
     #[default]
     Prevent,

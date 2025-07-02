@@ -1,1 +1,3 @@
-{"revision":"jpdb_kanji_2022-08-26T22:38:10.913Z","format":3,"url":"https://jpdb.io","author":"jpdb, Marv","attribution":"jpdb","title":"JPDB Kanji Freq","description":"Rank-based kanji frequency data from JPDB\nCreated with https://github.com/MarvNC/yomichan-dictionaries","frequencyMode":"rank-based"}
+version https://git-lfs.github.com/spec/v1
+oid sha256:1656b5ade28be8db58aa40fa392e0d55c28d4c850c00de5720fc9d1e4a0b7b2e
+size 303
