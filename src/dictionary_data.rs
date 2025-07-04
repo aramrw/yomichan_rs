@@ -131,7 +131,6 @@ pub struct Index {
 // #[deprecated(since = "0.0.1", note = "individual tag files should be used instead")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// Tag information for terms and kanji.
-///
 /// This object is deprecated, and individual tag files should be used instead.
 pub struct IndexTagMeta {
     pub tags: IndexMap<String, IndexTag>,

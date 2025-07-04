@@ -37,7 +37,7 @@ use crate::{
 pub struct Backend<'a> {
     pub environment: EnvironmentInfo,
     #[cfg(feature = "anki")]
-    pub anki: DisplayAnki,
+    pub anki: Ptr<DisplayAnki>,
     pub text_scanner: TextScanner<'a>,
     pub db: Arc<DictionaryDatabase<'a>>,
     pub options: Ptr<YomichanOptions>,
@@ -83,11 +83,11 @@ impl<'a> Backend<'a> {
 }
 
 impl<'a> Yomichan<'a> {
-    // The user facing api to update their options.
     /// Saves global options for all profiles to the database;
-    /// Meant to be called after you mutate a profile (ie. via [Self::mod_options_mut().get_current_profile_mut])
+    /// Meant to be called after you mutate a profile
+    /// (ie. via [Self::mod_options_mut().get_current_profile_mut])
     pub fn update_options(&self) -> Result<(), Box<native_db::db_type::Error>> {
-        self.backend._update_options_internal(None);
+        self.backend._update_options_internal(None)?;
         Ok(())
     }
 

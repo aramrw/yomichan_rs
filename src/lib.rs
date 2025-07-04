@@ -14,21 +14,22 @@ mod regex_util;
 pub mod settings;
 mod structured_content;
 mod test_utils;
-mod text_scanner;
+pub mod text_scanner;
 mod translation;
 mod translation_internal;
 mod translator;
 
+pub use anki_direct;
 use backend::Backend;
 use database::dictionary_database::DictionaryDatabase;
 use database::dictionary_database::DB_MODELS;
 use derive_more::derive::DerefMut;
 use icu::time::scaffold::IntoOption;
+pub use indexmap;
 use indexmap::IndexMap;
-use parking_lot::ArcRwLockReadGuard;
-use parking_lot::ArcRwLockWriteGuard;
-use parking_lot::RawRwLock;
-use parking_lot::RwLock;
+pub use parking_lot::{
+    ArcRwLockReadGuard, ArcRwLockUpgradableReadGuard, ArcRwLockWriteGuard, RawRwLock, RwLock,
+};
 use serde::Deserialize;
 use serde::Serialize;
 use settings::{YomichanOptions, YomichanProfile};
@@ -62,6 +63,9 @@ pub use crate::database::dictionary_importer;
 pub use crate::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
+#[cfg(not(feature = "anki"))]
+use crate::errors::DBError;
+use crate::errors::YomichanError;
 pub use crate::text_scanner::{TermSearchResults, TermSearchResultsSegment};
 // re-export parking lot cuz its too good
 use derive_more::Deref;
@@ -262,14 +266,14 @@ impl<'a> Yomichan<'a> {
     /// // This will successfully open the database created in Example 3.
     /// let ycd4 = Yomichan::new("/path/to/desktop").unwrap();
     /// ```
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, Box<InitError>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<Self, YomichanError> {
         let path = path.as_ref().to_path_buf();
         // Use the new, consolidated path resolution logic.
         let db_path = resolve_db_path(path)?;
         let db = Arc::new(DictionaryDatabase::new(db_path));
 
         #[cfg(not(feature = "anki"))]
-        let backend = Backend::new(db.clone())?;
+        let backend = Backend::new(db.clone()).map_err(|err| DBError::Database(err))?;
         #[cfg(feature = "anki")]
         let backend = Backend::default_sync(db.clone())?;
 

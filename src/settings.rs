@@ -8,6 +8,7 @@ use crate::backend::Backend;
 use crate::Ptr;
 use crate::PtrRGaurd;
 use crate::PtrWGaurd;
+use crate::Yomichan;
 use anki_direct::cache::model::ModelCache;
 use anki_direct::decks::DeckConfig;
 use anki_direct::model::FullModelDetails;
@@ -27,10 +28,7 @@ use native_db::native_db;
 use native_db::ToKey;
 use native_model::native_model;
 use native_model::Model;
-use parking_lot::ArcRwLockReadGuard;
-use parking_lot::ArcRwLockUpgradableReadGuard;
-use parking_lot::RawRwLock;
-use parking_lot::RwLock;
+use parking_lot::{ArcRwLockReadGuard, ArcRwLockUpgradableReadGuard, RawRwLock, RwLock};
 use serde::{Deserialize, Serialize};
 use serde_with::SerializeDisplay;
 use url::form_urlencoded::Target;
@@ -51,7 +49,7 @@ pub struct GlobalDatabaseOptions {
 }
 
 /// Global Yomichan Settings.
-#[native_model(id = 20, version = 1)]
+#[native_model(id = 20, version = 1, with = native_model::rmp_serde_1_3::RmpSerdeNamed)]
 #[native_db]
 #[derive(
     Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters, Setters,
@@ -65,6 +63,12 @@ pub struct YomichanOptions {
     pub current_profile: usize,
     pub global: GlobalOptions,
     pub anki: Ptr<GlobalAnkiOptions>,
+}
+
+impl Yomichan<'_> {
+    pub fn options(&self) -> Ptr<YomichanOptions> {
+        self.backend.options.clone()
+    }
 }
 
 impl YomichanOptions {
@@ -714,6 +718,9 @@ impl<'n> From<(usize, &'n str, &'n FullModelDetails)> for NoteModelNode<'n> {
 #[derive(Clone, Debug, PartialEq, Getters, Setters, MutGetters, DerefMut, Deref)]
 pub struct NoteModelNode<'n>((usize, &'n str, &'n FullModelDetails));
 impl NoteModelsMap {
+    #[deprecated(
+        note = "use each YomichanProfile's AnkiOptions to select from the GlobalAnkiOptions maps"
+    )]
     pub fn selected_note(&self) -> Option<NoteModelNode<'_>> {
         let i = self.selected;
         let (name, details) = self.map.get_index(i)?;
@@ -731,7 +738,7 @@ pub struct GlobalAnkiOptions {
     /// [IndexMap] of [Note](https://docs.ankiweb.net/getting-started.html#note-types)
     note_models_map: NoteModelsMap,
     /// [IndexMap] of [Deck](https://docs.ankiweb.net/getting-started.html#note-types)
-    deck_models_map: DecksMap,
+    decks_map: DecksMap,
 }
 impl GlobalAnkiOptions {
     pub fn get_selected_model(
@@ -747,7 +754,7 @@ impl GlobalAnkiOptions {
         &self,
         i: usize,
     ) -> Result<(&str, &Option<DeckConfig>), AnkiFieldsError> {
-        let map = self.deck_models_map();
+        let map = self.decks_map();
         map.get_index(i)
             .map(|(k, v)| (k.as_str(), v))
             .ok_or(AnkiFieldsError::ModelOutOfBounds(i))
@@ -765,7 +772,7 @@ impl GlobalAnkiOptions {
         &self,
         name: &str,
     ) -> Result<(usize, &str, &Option<DeckConfig>), AnkiFieldsError> {
-        let map = self.deck_models_map();
+        let map = self.decks_map();
         map.get_full(name)
             .map(|(i, k, v)| (i, k.as_str(), v))
             .ok_or(AnkiFieldsError::DeckNotFound(name.to_string()))
@@ -782,7 +789,7 @@ pub enum AnkiFieldsError {
     DeckOutOfBounds(usize),
     #[error("GlobalAnkiOptions.note_models_map doesn't contain a note with name: {0}")]
     ModelNotFound(String),
-    #[error("GlobalAnkiOptions.deck_models_map doesn't contain a deck with name: {0}")]
+    #[error("GlobalAnkiOptions.decks_map doesn't contain a deck with name: {0}")]
     DeckNotFound(String),
     #[error("[ankimodel::{model}] attempted to index field [{index}], but model only has {fields_len} fields")]
     ModelFieldsOutOfBounds {

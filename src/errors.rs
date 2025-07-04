@@ -1,6 +1,9 @@
-use crate::{database::dictionary_importer::DictionarySummaryError, settings::ProfileError};
+#[cfg(feature = "anki")]
+use crate::anki::DisplayAnkiError;
+use crate::{
+    database::dictionary_importer::DictionarySummaryError, settings::ProfileError, InitError,
+};
 use native_db::db_type;
-use snafu::Snafu;
 use std::{
     error::Error,
     path::{Path, PathBuf},
@@ -16,12 +19,22 @@ pub enum YomichanResult<T> {
 /// All possible `yomichan_rs` [Error] paths
 #[derive(Error, Debug)]
 pub enum YomichanError {
-    #[error("(-)[yc_error::import] -> \n{0}")]
+    #[error("(-)[<yc_error::import>] -> \n{0}")]
     Import(#[from] ImportError),
-    #[error("(-)[yc_error::db]")]
+    #[error("(-)[<yc_error::db>]")]
     Database(#[from] DBError),
-    #[error("(-)[yc_error::profile]")]
+    #[error("(-)[yc_error::<profile>]")]
     Profile(#[from] ProfileError),
+    #[cfg(feature = "anki")]
+    #[error("(-)[yc_error::<anki>]")]
+    Anki(#[from] DisplayAnkiError),
+    #[error("(-)[yc_error::<anki>]")]
+    Init(#[from] InitError),
+}
+impl From<Box<InitError>> for YomichanError {
+    fn from(value: Box<InitError>) -> Self {
+        YomichanError::Init(*value)
+    }
 }
 
 #[derive(Error, Debug)]

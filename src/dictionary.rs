@@ -320,4 +320,14 @@ pub struct TermDictionaryEntry {
     pub frequencies: Vec<TermFrequency>,
 }
 
+impl TermDictionaryEntry {
+    pub fn get_headword_text_joined(&self) -> String {
+        self.headwords
+            .iter()
+            .map(|th| th.term.clone())
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+}
+
 /*************** Pitch Accent & Pronunciation ***************/
