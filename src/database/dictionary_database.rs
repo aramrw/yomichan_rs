@@ -1566,9 +1566,6 @@ mod dbtests {
     use crate::{test_utils, Yomichan};
 
     #[test]
-    fn test_two_instances() {}
-
-    #[test]
     #[ignore]
     /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {
@@ -1580,12 +1577,13 @@ mod dbtests {
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
         let paths = [
+            tdcs.join("kty-es-en"),
             //tdcs.join("daijirin"),
-            tdcs.join("oubunshakokugo"),
+            //tdcs.join("oubunshakokugo"), // works
             //tdcs.join("yonjijukugo"),
             //tdcs.join("daijirin_test_version"),
             //tdcs.join("ajdfreq"),
-            // tdcs.join("pitch_accent"),
+            //tdcs.join("pitch_accent"),
             //tdcs.join("kotobankesjp"),
         ];
         match ycd.import_dictionaries(&paths) {

@@ -44,6 +44,7 @@ parking_lot = { version = "0.12.4", features = ["arc_lock", "serde", "send_guard
 derive-where = { version = "1.5.0", features = ["serde"] }
 derivative = { version = "2.2.0", features = ["use_core"] }
 kanji_processor = { version = "*", path = "crates/kanji_processor" }
+tracing = "0.1.41"
 
 [dev-dependencies]
 pretty_assertions = "=1.4.1"

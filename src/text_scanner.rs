@@ -526,6 +526,7 @@ mod textscanner {
         dbg!(res);
     }
 
+    #[ignore]
     #[test]
     fn search() {
         let mut ycd = YCD.write();

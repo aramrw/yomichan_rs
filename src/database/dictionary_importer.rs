@@ -58,26 +58,33 @@ use super::dictionary_database::{DatabaseTag, DatabaseTermMeta, DictionaryDataba
 
 impl Yomichan<'_> {
     pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
-        &mut self,
+        &self,
         zip_paths: &[P],
     ) -> Result<(), ImportError> {
-        self.backend.import_dictionaries_internal(zip_paths);
+        Backend::import_dictionaries_internal(
+            zip_paths,
+            self.options().read().get_current_profile()?,
+            self.db.clone(),
+        );
+
+        let rwtx = self.db.rw_transaction()?;
+        db_rwriter(&rwtx, vec![self.options().read().clone()]);
+        rwtx.commit()?;
+
         Ok(())
     }
 }
 
 impl Backend<'_> {
     pub fn import_dictionaries_internal<P: AsRef<Path> + Send + Sync>(
-        &mut self,
         zip_paths: &[P],
+        current_profile: Ptr<YomichanProfile>,
+        db: Arc<DictionaryDatabase>,
     ) -> Result<(), ImportError> {
-        let db = &self.db;
-        let current_profile = self.get_current_profile()?;
         ImportZipError::check_zip_paths(zip_paths)?;
-
         let options: Vec<DictionaryOptions> = zip_paths
             .par_iter()
-            .map(|path| import_dictionary(path, db, current_profile.clone()))
+            .map(|path| import_dictionary(path, db.clone(), current_profile.clone()))
             .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
 
         let mut dictionary_opts: IndexMap<String, DictionaryOptions> = options
@@ -85,26 +92,16 @@ impl Backend<'_> {
             .map(|opt| (opt.name.clone(), opt))
             .collect();
 
-        let global_options = self.options.clone();
-        let res: Result<(), ProfileError> = global_options.with_ptr_mut(|gopts| {
-            let current_profile_ptr: Ptr<YomichanProfile> = gopts.get_current_profile()?;
-            current_profile_ptr.with_ptr_mut(|current_profile| {
-                let mut main_dictionary = current_profile.get_main_dictionary();
-                if main_dictionary.is_empty() {
-                    let name = dictionary_opts
-                        .get_index(0)
-                        .expect("[unexpected] dictionary options created but len is 0");
-                    current_profile.set_main_dictionary(name.0.to_string());
-                }
-                current_profile.extend_dictionaries(dictionary_opts);
-            });
-            Ok(())
+        current_profile.with_ptr_mut(|current_profile| {
+            let mut main_dictionary = current_profile.get_main_dictionary();
+            if main_dictionary.is_empty() {
+                let name = dictionary_opts
+                    .get_index(0)
+                    .expect("[unexpected] dictionary options created but len is 0");
+                current_profile.set_main_dictionary(name.0.to_string());
+            }
+            current_profile.extend_dictionaries(dictionary_opts);
         });
-        res?;
-
-        let rwtx = db.rw_transaction()?;
-        db_rwriter(&rwtx, vec![global_options.read().clone()]);
-        rwtx.commit()?;
 
         Ok(())
     }
@@ -458,7 +455,7 @@ fn extract_dict_zip<P: AsRef<std::path::Path>>(
 
 pub fn import_dictionary<P: AsRef<Path>>(
     zip_path: P,
-    db: &DictionaryDatabase,
+    db: Arc<DictionaryDatabase>,
     current_profile: Ptr<YomichanProfile>,
 ) -> Result<DictionaryOptions, ImportError> {
     let data: DatabaseDictData = prepare_dictionary(zip_path, current_profile)?;

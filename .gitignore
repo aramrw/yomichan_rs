@@ -3,3 +3,4 @@
 *.yc
 tests/yomichan_rs/*
 db.ycd
+GEMINI.md
