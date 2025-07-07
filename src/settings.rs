@@ -59,7 +59,8 @@ pub struct YomichanOptions {
     #[primary_key]
     id: String,
     pub version: String,
-    pub profiles: Vec<Ptr<YomichanProfile>>,
+    /// (name, [YomichanProfile])
+    pub profiles: IndexMap<String, Ptr<YomichanProfile>>,
     pub current_profile: usize,
     pub global: GlobalOptions,
     pub anki: Ptr<GlobalAnkiOptions>,
@@ -77,22 +78,57 @@ impl YomichanOptions {
         Self {
             id: "global_user_options".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            profiles: vec![YomichanProfile::new_default(&global_anki_options).into()],
+            profiles: IndexMap::from_iter([(
+                "Default".into(),
+                Ptr::new(YomichanProfile::new_default(&global_anki_options)),
+            )]),
             current_profile: 0,
             global: GlobalOptions::default(),
             anki: global_anki_options,
         }
     }
-    /// Gets a [Ptr] to the currently selected profile.
+
+    /// Gets a [Ptr] to the currently selected profile by using [YomichanOptions::current_profile]
     /// Returns None if the index is out of bounds.
     pub fn get_current_profile(&self) -> ProfileResult<Ptr<YomichanProfile>> {
-        let Some(pf) = self.profiles.get(self.current_profile) else {
+        let Some((name, pf)) = self.profiles.get_index(self.current_profile) else {
             return Err(ProfileError::SelectedOutofBounds {
                 selected: *self.current_profile(),
                 len: self.profiles.len(),
             });
         };
         Ok(pf.clone())
+    }
+
+    /// Gets a [Ptr] to a [YomichanProfile] via it's name key
+    /// Returns [ProfileError::ProfileNotFound] if the it doesn't exist
+    pub fn find_profile_by_name(&self, name: &str) -> ProfileResult<Ptr<YomichanProfile>> {
+        let Some(ptr) = self.profiles.get(name) else {
+            return Err(ProfileError::ProfileNotFound {
+                find: name.into(),
+                available: self.profiles().keys().cloned().collect::<Vec<String>>(),
+            });
+        };
+        Ok(ptr.clone())
+    }
+
+    /// Sets the currently selected [YomichanProfile] via specified name and and returns it
+    /// Returns [ProfileError::ProfileNotFound] if the it doesn't exist
+    pub fn get_profile_by_name_full(
+        &self,
+        name: &str,
+    ) -> ProfileResult<(usize, &str, Ptr<YomichanProfile>)> {
+        let ((i, k, ptr)) = {
+            let profiles = self.profiles();
+            let Some((i, k, ptr)) = profiles.get_full(name) else {
+                return Err(ProfileError::ProfileNotFound {
+                    find: name.into(),
+                    available: self.profiles().keys().cloned().collect::<Vec<String>>(),
+                });
+            };
+            (i, k, ptr)
+        };
+        Ok((i, k.as_str(), ptr.clone()))
     }
 }
 
@@ -109,6 +145,11 @@ pub type ProfileResult<T> = Result<T, ProfileError>;
 pub enum ProfileError {
     #[error("tried to index selected_profile[selected], but profiles.len() = {len}")]
     SelectedOutofBounds { selected: usize, len: usize },
+    #[error("[profile-not-found]: {find}; [available]: {available:?}")]
+    ProfileNotFound {
+        find: String,
+        available: Vec<String>,
+    },
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters)]
 pub struct YomichanProfile {
@@ -121,6 +162,7 @@ pub struct YomichanProfile {
 impl YomichanProfile {
     pub fn new_default(global_anki_options: &Ptr<GlobalAnkiOptions>) -> Self {
         let mut default = Self::default();
+        default.name = uuid::Uuid::new_v4().to_string().chars().take(5).collect();
         default.options = ProfileOptions::new_default(global_anki_options.clone());
         default
     }
@@ -209,8 +251,7 @@ fn compare_prog_opts(a: &Arc<RwLock<AnkiOptions>>, b: &Arc<RwLock<AnkiOptions>>)
 ///
 /// # Usage
 /// Can be used for seperating profiles by language or user
-#[derive(Clone, Debug, Serialize, Deserialize, Default, Derivative, Getters, MutGetters)]
-#[derivative(PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Deserialize, Default, Getters, MutGetters)]
 pub struct ProfileOptions {
     #[getset(get = "pub", get_mut = "pub")]
     pub general: GeneralOptions,
@@ -222,8 +263,6 @@ pub struct ProfileOptions {
     #[getset(get = "pub", get_mut = "pub")]
     pub dictionaries: IndexMap<String, DictionaryOptions>,
     pub parsing: ParsingOptions,
-    /// a ptr for [DisplayAnki]
-    //#[derivative(PartialEq(compare_with = "compare_prog_opts"))]
     pub anki: AnkiOptions,
     pub sentence_parsing: SentenceParsingOptions,
     pub inputs: InputsOptions,
@@ -563,6 +602,18 @@ impl DerefMut for DecksMap {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum AnkiField {
+    Term,
+    Reading,
+    Sentence,
+    Definition,
+    TermAudio,
+    SentenceAudio,
+    Image,
+    Frequency,
+}
+
 #[derive(Clone, Copy)]
 pub enum FieldIndex {
     Term(usize),
@@ -704,6 +755,21 @@ pub struct NoteModelsMap {
     map: IndexMap<String, FullModelDetails>,
     selected: usize,
 }
+impl NoteModelsMap {
+    /// Moves the inner [IndexMap] out of itself and returns it.
+    pub fn take_map(self) -> IndexMap<String, FullModelDetails> {
+        self.map
+    }
+    #[deprecated(
+        note = "use each YomichanProfile's AnkiOptions to select from the GlobalAnkiOptions maps"
+    )]
+    pub fn selected_note(&self) -> Option<NoteModelNode<'_>> {
+        let i = self.selected;
+        let (name, details) = self.map.get_index(i)?;
+        let node: NoteModelNode<'_> = (i, name.as_str(), details).into();
+        Some(node)
+    }
+}
 impl From<IndexMap<String, FullModelDetails>> for NoteModelsMap {
     fn from(map: IndexMap<String, FullModelDetails>) -> Self {
         Self { map, selected: 0 }
@@ -717,17 +783,6 @@ impl<'n> From<(usize, &'n str, &'n FullModelDetails)> for NoteModelNode<'n> {
 }
 #[derive(Clone, Debug, PartialEq, Getters, Setters, MutGetters, DerefMut, Deref)]
 pub struct NoteModelNode<'n>((usize, &'n str, &'n FullModelDetails));
-impl NoteModelsMap {
-    #[deprecated(
-        note = "use each YomichanProfile's AnkiOptions to select from the GlobalAnkiOptions maps"
-    )]
-    pub fn selected_note(&self) -> Option<NoteModelNode<'_>> {
-        let i = self.selected;
-        let (name, details) = self.map.get_index(i)?;
-        let node: NoteModelNode<'_> = (i, name.as_str(), details).into();
-        Some(node)
-    }
-}
 
 /// Struct for [Options] that caches note models and decks from Anki
 #[derive(
@@ -824,6 +879,7 @@ pub struct AnkiOptions {
     screenshot: AnkiScreenshotOptions,
     global_anki_options: Ptr<GlobalAnkiOptions>,
     // Pre-mapped fields that specify which Anki field to insert term data
+    #[getset(get_mut = "pub")]
     anki_fields: Option<AnkiFields>,
     duplicate_scope: AnkiDuplicateScope,
     duplicate_scope_check_all_models: bool,
