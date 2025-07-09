@@ -722,27 +722,48 @@ fn convert_kanji_bank(
 
 /****************** Term Bank Functions ******************/
 
+#[cfg(feature = "tracing")]
+use tracing::{debug, error, info, span, Level};
+
 fn convert_term_bank_file(
     outpath: PathBuf,
     dict_name: &str,
 ) -> Result<Vec<DatabaseTermEntry>, DictionaryFileError> {
-    let file = fs::File::open(&outpath).map_err(|reason| DictionaryFileError::FailedOpen {
-        outpath: outpath.clone(),
-        reason: reason.to_string(),
+    #[cfg(feature = "tracing")]
+    let span = span!(Level::INFO, "convert_term_bank_file", ?outpath);
+    #[cfg(feature = "tracing")]
+    let _enter = span.enter();
+
+    let file = fs::File::open(&outpath).map_err(|reason| {
+        #[cfg(feature = "tracing")]
+        error!(%reason, "Failed to open file");
+        DictionaryFileError::FailedOpen {
+            outpath: outpath.clone(),
+            reason: reason.to_string(),
+        }
     })?;
     let reader = BufReader::new(file);
 
     let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermEntryItem>>();
-    let mut entries = match stream.next() {
-        Some(Ok(entries)) => entries,
+    let entries = match stream.next() {
+        Some(Ok(entries)) => {
+            #[cfg(feature = "tracing")]
+            info!("Successfully deserialized entries");
+            entries
+        }
         Some(Err(reason)) => {
-            eprintln!("{outpath:?} failed:\nreason: {reason}");
+            #[cfg(feature = "tracing")]
+            error!(%reason, "Failed to deserialize entries");
             return Err(crate::errors::DictionaryFileError::File {
                 outpath,
                 reason: reason.to_string(),
             });
         }
-        None => return Err(DictionaryFileError::Empty(outpath)),
+        None => {
+            #[cfg(feature = "tracing")]
+            error!("File is empty");
+            return Err(DictionaryFileError::Empty(outpath));
+        }
     };
 
     // Beginning of each word/phrase/expression (entry)
@@ -784,6 +805,8 @@ fn convert_term_bank_file(
             term
         })
         .collect();
+    #[cfg(feature = "tracing")]
+    debug!(num_terms = terms.len(), "Finished processing terms");
     Ok(terms)
 }
 

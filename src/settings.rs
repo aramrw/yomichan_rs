@@ -130,6 +130,37 @@ impl YomichanOptions {
         };
         Ok((i, k.as_str(), ptr.clone()))
     }
+
+    pub fn create_new_profile(&mut self, name: &str) -> ProfileResult<()> {
+        if self.profiles.contains_key(name) {
+            return Err(ProfileError::ProfileAlreadyExists {
+                name: name.to_string(),
+            });
+        }
+
+        let new_profile = self
+            .profiles
+            .get("Default")
+            .cloned()
+            .unwrap_or_else(|| Ptr::new(YomichanProfile::new_default(&self.anki)));
+
+        {
+            let mut new_profile_write = new_profile.write_arc();
+            new_profile_write.name = name.to_string();
+
+            // Copy dictionaries from the current profile
+            if let Ok(current_profile) = self.get_current_profile() {
+                let current_profile_read = current_profile.read_arc();
+                new_profile_write
+                    .options
+                    .dictionaries
+                    .extend(current_profile_read.options.dictionaries.clone());
+            }
+        }
+
+        self.profiles.insert(name.to_string(), new_profile);
+        Ok(())
+    }
 }
 
 impl Backend<'_> {
@@ -150,6 +181,8 @@ pub enum ProfileError {
         find: String,
         available: Vec<String>,
     },
+    #[error("profile already exists: {name}")]
+    ProfileAlreadyExists { name: String },
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters)]
 pub struct YomichanProfile {
@@ -1296,4 +1329,45 @@ pub enum InputsHotkeyScope {
     Popup,
     Search,
     Web,
+}
+
+#[cfg(test)]
+mod settings_tests {
+    use super::*;
+
+    #[test]
+    fn create_new_profile_shares_dictionaries() {
+        let mut options = YomichanOptions::new();
+        let dict_name = "test_dict".to_string();
+        let dict_opts = DictionaryOptions::new(dict_name.clone());
+
+        // Add a dictionary to the default profile
+        {
+            let default_profile = options.get_current_profile().unwrap();
+            let mut default_profile_write = default_profile.write_arc();
+            default_profile_write
+                .options
+                .dictionaries
+                .insert(dict_name.clone(), dict_opts);
+        }
+
+        let new_profile_name = "Test Profile";
+        assert!(options.create_new_profile(new_profile_name).is_ok());
+
+        // Check that the new profile exists
+        let new_profile_ptr = options.find_profile_by_name(new_profile_name).unwrap();
+        let new_profile = new_profile_ptr.read_arc();
+        assert_eq!(new_profile.name, new_profile_name);
+
+        // Check that the dictionary was copied
+        assert!(new_profile.options.dictionaries.contains_key(&dict_name));
+        assert_eq!(new_profile.options.dictionaries.len(), 1);
+
+        // Try to create a profile with the same name, should fail
+        let result = options.create_new_profile(new_profile_name);
+        assert!(matches!(
+            result,
+            Err(ProfileError::ProfileAlreadyExists { .. })
+        ));
+    }
 }
