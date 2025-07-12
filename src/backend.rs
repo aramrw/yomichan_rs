@@ -128,7 +128,7 @@ impl<'a> Yomichan<'a> {
                 dictionaries.swap_remove(name);
             }
         });
-        self.update_options()?;
+        //self.update_options()?;
         Ok(())
     }
 

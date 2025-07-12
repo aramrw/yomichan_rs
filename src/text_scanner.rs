@@ -20,6 +20,53 @@ use crate::{
 };
 
 impl Yomichan<'_> {
+    /// Searches for dictionary terms within a given text and returns a structured, display-ready result.
+    ///
+    /// This is the primary method for performing a "frontend" search. It takes a string of text,
+    /// processes it based on the currently configured language and settings, and returns a `Vec`
+    /// of `TermSearchResultsSegment`. Each segment represents a piece of the original text,
+    /// either as a recognized term with its associated dictionary entries or as unrecognized text.
+    ///
+    /// The method uses a "longest match" algorithm to ensure that longer terms are prioritized
+    /// (e.g., "日本語" is matched over "日本").
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - The text to search (e.g., a sentence or a single word).
+    ///
+    /// # Returns
+    ///
+    /// An `Option<Vec<TermSearchResultsSegment>>`.
+    /// - `Some(Vec<TermSearchResultsSegment>)` if the search was successful. The vector represents
+    ///   the segmented input text.
+    /// - `None` if the current user profile cannot be accessed.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use yomichan_rs::Yomichan;
+    /// # use std::sync::{LazyLock, RwLock};
+    /// #
+    /// # static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
+    /// #     let mut ycd = Yomichan::new("path/to/db").unwrap();
+    /// #     ycd.set_language("ja").unwrap();
+    /// #     RwLock::new(ycd)
+    /// # });
+    ///
+    /// let mut ycd = YCD.write().unwrap();
+    /// let text = "美味しいビールを飲む";
+    ///
+    /// if let Some(segments) = ycd.search(text) {
+    ///     for segment in segments {
+    ///         if let Some(results) = segment.results {
+    ///             println!("Found term: '{}'", segment.text);
+    ///             // Further process `results.dictionary_entries`
+    ///         } else {
+    ///             println!("Unrecognized: '{}'", segment.text);
+    ///         }
+    ///     }
+    /// }
+    /// ```
     pub fn search(&mut self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
         let profile = self.backend.get_current_profile().ok()?;
         let profile = profile.read();
@@ -31,10 +78,16 @@ impl Yomichan<'_> {
 
 /// Represents one chunk of a parsed sentence, ready for display.
 ///
-/// A segment can either be a known term (with dictionary entries) or
+/// A `TermSearchResultsSegment` is a self-contained piece of the original input text.
+/// It holds the text for that segment and, if it was successfully matched to one or more
+/// dictionary entries, an `Option` containing the `TermSearchResults`.
 #[derive(Debug, Clone)]
 pub struct TermSearchResultsSegment {
+    /// The text of this specific segment.
     pub text: String,
+    /// The dictionary lookup results for this segment.
+    /// - `Some(Arc<TermSearchResults>)` if the `text` was found in the dictionary.
+    /// - `None` if the `text` is a passthrough (unrecognized) part of the original string.
     pub results: Option<Arc<TermSearchResults>>,
 }
 
@@ -154,16 +207,23 @@ pub struct Sentence {
     pub offset: usize,
 }
 
-/// The final, structured result of a term search.
+/// The final, structured result of a term search, containing all dictionary
+/// entries found for a given term and the sentence context.
 ///
-/// # Parsing Examples
-/// ```
-/// todo!()
-/// ```
-/// See [TermDictionaryEntry] for all fields
+/// This struct is a container for the raw results from the backend `TextScanner`.
+/// It holds a flat list of all `TermDictionaryEntry` items that were found for a
+/// specific term within the original text.
+///
+/// The `SentenceParser` consumes this struct to produce the final, segmented
+/// display output (`Vec<TermSearchResultsSegment>`).
 #[derive(Debug, Clone)]
 pub struct TermSearchResults {
+    /// A flat list of all dictionary entries that matched the searched term.
+    ///
+    /// This can include entries from multiple dictionaries and for various inflections
+    /// of the term.
     pub dictionary_entries: Vec<TermDictionaryEntry>,
+    /// The sentence context in which the search was performed.
     pub sentence: Sentence,
 }
 

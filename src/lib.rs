@@ -197,43 +197,61 @@ where
     }
 }
 
-/// A Yomichan Dictionary instance.
+/// A Yomichan Dictionary instance, providing a comprehensive interface for dictionary lookups,
+/// text processing, and anki integration.
+///
+/// This struct is the primary entry point for interacting with the Yomichan library. It encapsulates
+/// the database connection, text scanning logic, and user settings, offering a unified and
+/// thread-safe API.
 ///
 /// # Examples
-/// ```
+///
+/// ```no_run
 /// use yomichan_rs::Yomichan;
+/// use std::sync::{LazyLock, RwLock};
 ///
-/// // must initialize as mut
-/// let mut ycd = Yomichan::new("~/desktop/db.ycd");
-/// // import dictionaries
-/// ycd.import_dictionaries(&["~/desktop/dicts/daijirin"])?;
-/// // set a language via it's iso
-/// ycd.set_language("ja");
-/// // optionally save the language to the db
-/// ycd.update_options()?;
-/// let res: Option<TermSearchResults> = ycd.search("まだ分かってない")
-/// ```
-/// For more info on results, reference the [TermSearchResults] docs.
-///
-/// # Best Practices
-///
-/// Unless you have a specific use case, it's best to initialize
-/// the Yomichan struct once as an _interior mutable_ static variable:
-/// ```
-/// // Yomichan impls Send + Sync, so you can useRwLock over a Mutex.
+/// // Best practice: Initialize Yomichan once as a static variable
+/// // to avoid repeatedly opening the database.
 /// static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
-///     let mut ycd = Yomichan::new("~/desktop/db.ycd").unwrap();
-///     ycd.set_language("es");
-///     ycd.update_options()?;
+///     // Create a new Yomichan instance.
+///     // This will create a `db.ycd` file in the specified directory.
+///     let mut ycd = Yomichan::new("path/to/your/db_directory ").unwrap();
+///
+///     // Import dictionaries (e.g., from a folder containing Yomitan-format dictionaries).
+///     // This only needs to be done once.
+///     if ycd.get_dictionaries().unwrap().is_empty() {
+///         ///         ycd.import_dictionaries(&["path/to/your/dictionaries "]).unwrap();
+///     }
+///
+///     // Set the language for text processing.
+///     ycd.set_language("ja").unwrap();
+///
 ///     RwLock::new(ycd)
 /// });
 ///
-// Example should be updated once we can use search without writing
 /// fn main() {
+///     // Lock the Yomichan instance for writing to perform a search.
 ///     let mut ycd = YCD.write().unwrap();
-///     let res = ycd.search("espanol es bueno");
+///
+///     // Perform a search.
+///     if let Some(results) = ycd.search("日本語を勉強している") {
+///         for segment in results {
+///             if let Some(search_results) = segment.results {
+///                 println!("Found term: {}", segment.text);
+///                 for entry in search_results.dictionary_entries {
+///                     // Process each dictionary entry.
+///                     println!("  - Headword: {}", entry.get_headword_text_joined());
+///                 }
+///             } else {
+///                 // This segment of text did not match any dictionary entries.
+///                 println!("Unrecognized text: {}", segment.text);
+///             }
+///         }
+///     }
 /// }
 /// ```
+///
+/// For more details on search results, see [`TermSearchResults`].
 pub struct Yomichan<'a> {
     db: Arc<DictionaryDatabase<'a>>,
     backend: Backend<'a>,
@@ -242,29 +260,37 @@ pub struct Yomichan<'a> {
 impl<'a> Yomichan<'a> {
     /// Opens or creates a Yomichan database at the specified path.
     ///
-    /// - **If `path` ends in `.ycd`**: Opens a ycd database.
-    ///     - The file will be created if it doesn't exist, but its parent directory must exist.
-    /// - **If `path` is a directory**: See [resolve_db_path] for detailed behavior.
+    /// This function provides a flexible and robust way to initialize the database,
+    /// automatically handling path resolution for different scenarios.
+    ///
+    /// - **If `path` ends in `.ycd`**: It directly opens or creates the specified database file.
+    ///   The parent directory must exist.
+    /// - **If `path` is a directory**:
+    ///   - If the directory is empty, it creates `db.ycd` inside it.
+    ///   - If the directory is not empty, it creates a `yomichan_rs` subdirectory and
+    ///     places `db.ycd` inside to avoid cluttering the existing directory.
+    ///   - If a `.ycd` file or a `yomichan_rs` subdirectory already exists, it will use it.
     ///
     /// # Examples
+    ///
     /// ```no_run
     /// use yomichan_rs::Yomichan;
     ///
     /// // Example 1: Explicitly name the database file.
     /// // Creates or opens `/path/to/my_database.ycd`.
-    /// let ycd1 = Yomichan::new("/path/to/my_database.ycd").unwrap();
+    /// let ycd1 = Yomichan::new("/path/to/my_database.ycd ").unwrap();
     ///
     /// // Example 2: Point to an empty directory.
     /// // Creates `/path/to/empty_dir/db.ycd`.
-    /// let ycd2 = Yomichan::new("/path/to/empty_dir").unwrap();
+    /// let ycd2 = Yomichan::new("/path/to/empty_dir ").unwrap();
     ///
     /// // Example 3: Point to a non-empty directory (e.g., your Desktop).
     /// // Creates a subdirectory: `/path/to/desktop/yomichan_rs/db.ycd`.
-    /// let ycd3 = Yomichan::new("/path/to/desktop").unwrap();
+    /// let ycd3 = Yomichan::new("/path/to/desktop ").unwrap();
     ///
     /// // Example 4: Open an existing database created by a previous run.
     /// // This will successfully open the database created in Example 3.
-    /// let ycd4 = Yomichan::new("/path/to/desktop").unwrap();
+    /// let ycd4 = Yomichan::new("/path/to/desktop ").unwrap();
     /// ```
     pub fn new(path: impl AsRef<Path>) -> Result<Self, YomichanError> {
         let path = path.as_ref().to_path_buf();
@@ -366,9 +392,10 @@ fn resolve_db_path(p: PathBuf) -> Result<PathBuf, Box<InitError>> {
 #[error("could not create yomichan_rs dictionary database:")]
 pub enum InitError {
     #[error(
-        "\ninvalid path: {p} | help: 
-  1. \"~/.home/db.ycd\" - opens a ycd instance
-  2. \"~/.home/test\"   - creates a new (blank) .ycd file"
+        r#"
+invalid path: {p} | help:
+  1. "~/.home/db.ycd" - opens a ycd instance
+  2. "~/.home/test"   - creates a new (blank) .ycd file"#
     )]
     InvalidPath { p: PathBuf },
     #[error("path does not have a parent: {p}")]

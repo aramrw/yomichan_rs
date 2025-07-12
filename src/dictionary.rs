@@ -200,52 +200,65 @@ pub struct TermFrequency {
     pub display_value_parsed: bool,
 }
 
+/// Represents the written form and reading of a term.
+///
+/// A single dictionary entry can have multiple headwords, for example, to represent
+/// different kanji writings of the same word (e.g., "見る" and "観る"). This struct
+/// holds the term's text, its reading, and associated metadata.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-/// A term headword is a combination of a term, reading, and auxiliary information.
 pub struct TermHeadword {
-    /// The original order of the headword, which is usually used for sorting.
+    /// The original order of the headword as it appeared in the source dictionary,
+    /// used for stable sorting.
     pub index: usize,
-    /// The text for the term.
+    /// The term's written form (e.g., "日本語").
     pub term: String,
-    /// The reading of the term.
+    /// The reading of the term (e.g., "にほんご").
     pub reading: String,
-    /// The sources of the term.
+    /// Information about how this headword was derived from the original search text.
     pub sources: Vec<TermSource>,
-    /// Tags for the headword.
+    /// Tags providing additional information about the headword (e.g., "usually written
+    /// using kana alone").
     pub tags: Vec<DictionaryTag>,
-    /// List of word classes (part of speech) for the headword.
+    /// A list of parts of speech associated with this headword (e.g., "Noun", "Verb").
     pub word_classes: Vec<String>,
 }
 
+/// Represents a single definition for a term from a specific dictionary.
+///
+/// A term can have multiple definitions, and this struct holds the content
+/// of one such definition, along with metadata about its source and relevance.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// A dictionary entry for a term or group of terms.
 pub struct TermDefinition {
-    /// Database ID for the definition.
+    /// A unique identifier for this specific definition.
     pub id: String,
-    /// The original order of the definition, which is usually used for sorting.
+    /// The original order of the definition as it appeared in the source dictionary,
+    /// used for stable sorting.
     pub index: usize,
-    /// A list of headwords that this definition corresponds to.
+    /// A list of indices pointing to the `TermHeadword`(s) this definition applies to.
     pub headword_indices: Vec<usize>,
-    /// The name of the dictionary that the definition information originated from.
+    /// The name of the dictionary from which this definition was sourced.
     pub dictionary: String,
-    /// The index of the dictionary in the original list of dictionaries used for the lookup.
+    /// The index of the source dictionary in the user's configured list.
     pub dictionary_index: usize,
+    /// The user-defined alias for the source dictionary.
     pub dictionary_alias: String,
-    /// A score for the definition.
+    /// A relevance score assigned to the definition, used for ranking search results.
     pub score: i128,
-    /// The sorting value based on the determined term frequency.
+    /// A sorting value derived from the term's frequency, used to order definitions
+    /// by how common they are.
     pub frequency_order: i128,
-    /// A list of database sequence numbers for the term.
-    /// A value of `-1` corresponds to no sequence.
-    /// The list can have multiple values if multiple definitions with
-    /// different sequences have been merged.
-    /// The list should always have at least one item.
+    /// A list of database sequence numbers associated with the term. A value of `-1`
+    /// indicates no sequence number. Multiple values can exist if definitions with
+    /// different sequences were merged.
     pub sequences: Vec<i128>,
-    /// Whether or not any of the sources is a primary source. Primary sources are derived from the
-    /// original search text, while non-primary sources originate from related terms.
+    /// Indicates if this definition is from a primary source (i.e., directly from the
+    /// initial search text) or a related term.
     pub is_primary: bool,
+    /// Tags providing additional information about the definition (e.g., usage notes,
+    /// field of study).
     pub tags: Vec<DictionaryTag>,
-    /// The definition entries.
+    /// The structured content of the definition, typically a list of glossary entries.
+    /// See [`TermGlossaryContentGroup`] for more details.
     pub entries: Vec<TermGlossaryContentGroup>,
 }
 
@@ -284,39 +297,47 @@ pub struct TermSource {
     pub is_primary: bool,
 }
 
+/// Represents a complete dictionary entry for a term, aggregating all related information
+/// such as headwords, definitions, pronunciations, and frequencies.
+///
+/// This is one of the core data structures returned by a search. It contains all the
+/// information associated with a single term as found in one or more dictionaries.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// A dictionary entry for a term or group of terms.
 pub struct TermDictionaryEntry {
-    /// This should always be [TermSourceMatchSource::Term]
+    /// The type of entry, indicating how it was matched (e.g., as a term).
+    /// This should always be [`TermSourceMatchSource::Term`].
     pub entry_type: TermSourceMatchSource,
-    /// Whether or not any of the sources is a primary source. Primary sources are derived from the
-    /// original search text, while non-primary sources originate from related terms.
+    /// Indicates if this entry is from a primary source (directly from the initial search)
+    /// or a related term.
     pub is_primary: bool,
-    /// Ways that a looked-up word might be an transformed into this term.
+    /// A list of potential transformation rule chains that could have produced this term
+    /// from the original text.
     pub text_processor_rule_chain_candidates: Vec<TextProcessorRuleChainCandidate>,
-    /// Ways that a looked-up word might be an inflected form of this term.
+    /// A list of potential de-inflection rule chains that could have produced this term
+    /// from an inflected form in the original text.
     pub inflection_rule_chain_candidates: Vec<InflectionRuleChainCandidate>,
-    /// A score for the dictionary entry.
+    /// A relevance score for the entire dictionary entry.
     pub score: i128,
-    /// The sorting value based on the determined term frequency.
+    /// A sorting value based on the term's overall frequency.
     pub frequency_order: i128,
-    /// The alias of the dictionary.
+    /// The user-defined alias of the dictionary this entry belongs to.
     pub dictionary_alias: String,
-    /// The index of the dictionary in the original list of dictionaries used for the lookup.
+    /// The index of the source dictionary in the user's configured list.
     pub dictionary_index: usize,
-    /// The number of primary sources that had an exact text match for the term.
+    /// The number of times the exact term was found in the primary source text.
     pub source_term_exact_match_count: usize,
-    /// Whether the term reading matched the primary reading.
+    /// Indicates whether the term's reading matched the primary reading from the source.
     pub match_primary_reading: bool,
-    /// The maximum length of the original text for all primary sources.
+    /// The maximum character length of the original text that this entry matched.
     pub max_original_text_length: usize,
-    /// Headwords for the entry.
+    /// A list of headwords associated with this entry. A single entry can have multiple
+    /// headwords (e.g., different kanji writings for the same word).
     pub headwords: Vec<TermHeadword>,
-    /// Definitions for the entry.
+    /// A list of definitions for the term.
     pub definitions: Vec<TermDefinition>,
-    /// Pronunciations for the entry.
+    /// A list of pronunciations for the term.
     pub pronunciations: Vec<TermPronunciation>,
-    /// Frequencies for the entry.
+    /// A list of frequency data points for the term.
     pub frequencies: Vec<TermFrequency>,
 }
 
