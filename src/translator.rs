@@ -1225,7 +1225,6 @@ impl<'a> Translator<'a> {
         let metas = match metas_result {
             Ok(m) => m,
             Err(e) => {
-                // eprintln is a Rust convention for printing to stderr
                 eprintln!("Failed to find term meta bulk: {e}");
                 return;
             }

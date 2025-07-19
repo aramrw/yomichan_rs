@@ -11,37 +11,63 @@ use serde_with::skip_serializing_none;
 
 use crate::{database::dictionary_database::DatabaseTermEntry, test_utils};
 
-/// The object holding all html & information about an entry.
-/// _There is only 1 per entry_.
+/// Represents the structured content of a dictionary entry, which is a tree-like
+/// structure that can be rendered into various formats.
+///
+/// This is the root of the content tree for a single dictionary definition. It
+/// acts as a container for a tree of `ContentMatchType` nodes, which can be
+/// recursively parsed and rendered as plain text, HTML, or other formats.
+///
+/// # Example
+///
+/// A typical `StructuredContent` object in a dictionary's JSON might look like:
+///
+/// ```json
+/// {
+///   "type": "structured-content",
+///   "content": [
+///     {
+///       "tag": "div",
+///       "content": "This is a definition."
+///     }
+///   ]
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StructuredContent {
-    /// Identifier to mark the start of each entry's content.
+    /// An identifier that marks this object as structured content.
     ///
-    /// This should _always_ be `"type": "structured-content"` in the file.
-    /// If not, the dictionary is not valid.
+    /// In the source JSON, this field is expected to always have the value
+    /// `"structured-content"`. This is used as a sanity check during parsing.
     #[serde(rename = "type")]
     pub content_type: String,
-    /// Contains the main content of the entry.
-    /// _(see: [`ContentMatchType`] )_.
+    /// The main content of the entry, represented as a tree of nodes.
     ///
-    /// Will _always_ be either an `Element (obj)` or a `Content (array)` _(ie: Never a String)_.
+    /// This can be a single element, a string, or a list of other content nodes,
+    /// allowing for a flexible and deeply nested structure.
+    /// See: [`ContentMatchType`].
     pub content: ContentMatchType,
 }
 
-/// A match type to deserialize any `Content` type.
+/// An enum that represents a node in the structured content tree.
+///
+/// A `ContentMatchType` can be one of three things:
+/// - An `Element`, which is a tagged node like a `div` or `span` that can have
+///   its own content.
+/// - A `Content` vector, which is a list of other `ContentMatchType` nodes.
+/// - A simple `String`.
+///
+/// This recursive structure allows for representing complex, nested content,
+/// similar to an HTML DOM tree.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum ContentMatchType {
-    /// A single html element.
-    /// See: [`HtmlTag`].
-    ///
-    /// Most likely a [`HtmlTag::Anchor`] element.
-    /// If so, the definition contains a reference to another entry.
+    /// A single HTML-like element, which can contain other content.
+    /// See: [`Element`].
     Element(Box<Element>),
-    /// An array of html elements.
-    /// See: [`HtmlTag`].
-    ///
+    /// A sequence of other content nodes.
     Content(Vec<ContentMatchType>),
+    /// A plain text string.
     String(String),
 }
 
@@ -366,14 +392,12 @@ impl<'de> Deserialize<'de> for TermGlossaryContent {
         // We'll capture the error if it fails.
         let tagged_error = match TaggedContent::deserialize(value.clone()) {
             Ok(tagged) => return Ok(TermGlossaryContent::Tagged(tagged)),
-            Err(e) => e.to_string(), // Keep the error message
+            Err(e) => e.to_string(),
         };
 
-        // Step 3: Try to deserialize as `String`. This is where your error likely originates.
-        // If `value` is a sequence, this will fail with "invalid type: sequence, expected a string".
         let string_error = match String::deserialize(value.clone()) {
             Ok(s) => return Ok(TermGlossaryContent::String(s)),
-            Err(e) => e.to_string(), // Keep the error message
+            Err(e) => e.to_string(),
         };
 
         // Step 4: If both attempts failed, report everything.
@@ -426,21 +450,21 @@ impl<'de> Deserialize<'de> for TaggedContent {
             {
                 // The first element is the tag string.
                 let tag: String = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &"a [tag, payload] sequence"))?;
+                    .next_element()?.
+                    ok_or_else(|| de::Error::invalid_length(0, &"a [tag, payload] sequence"))?;
 
                 // The second element is the payload, which depends on the tag.
                 let content = match tag.as_str() {
                     "text" => {
                         let text: String = seq
-                            .next_element()?
-                            .ok_or_else(|| de::Error::invalid_length(1, &"a text payload"))?;
+                            .next_element()?.
+                            ok_or_else(|| de::Error::invalid_length(1, &"a text payload"))?;
                         TaggedContent::Text { text }
                     }
                     "img" => {
                         let image_payload: Box<ImageElement> = seq
-                            .next_element()?
-                            .ok_or_else(|| de::Error::invalid_length(1, &"an image payload"))?;
+                            .next_element()?.
+                            ok_or_else(|| de::Error::invalid_length(1, &"an image payload"))?;
                         TaggedContent::Image(image_payload)
                     }
                     "structured-content" => {
@@ -717,15 +741,10 @@ impl<'de> Visitor<'de> for ElementVisitor {
     where
         A: SeqAccess<'de>,
     {
-        // Here we recreate your logic for the array format.
-        // The idea is to deserialize the entire sequence into a serde_json::Value
-        // ONLY because the rest of your logic depends on it. A more performant
-        // solution would deserialize field-by-field.
         let value_seq: Vec<Value> =
             de::Deserialize::deserialize(de::value::SeqAccessDeserializer::new(&mut seq))?;
         let value = Value::Array(value_seq);
 
-        // Now you can call a helper function with your existing logic
         deserialize_element_from_value(value).map_err(de::Error::custom)
     }
 
@@ -734,12 +753,10 @@ impl<'de> Visitor<'de> for ElementVisitor {
     where
         A: MapAccess<'de>,
     {
-        // Same principle: reconstruct a `serde_json::Value` and use your existing logic.
         let value_map: serde_json::Map<String, Value> =
             de::Deserialize::deserialize(de::value::MapAccessDeserializer::new(&mut map))?;
         let value = Value::Object(value_map);
 
-        // Call the same helper function
         deserialize_element_from_value(value).map_err(de::Error::custom)
     }
 }
@@ -809,90 +826,83 @@ impl<'de> Deserialize<'de> for Element {
     }
 }
 
-/// Represents All `Content` elements that can
-/// appear within a `"content":` section.
+/// Represents all possible HTML-like elements that can appear in a dictionary entry.
+///
+/// This enum covers a range of elements, from simple text links to more
+/// complex styled and unstyled containers. Each variant holds the specific
+/// data associated with that type of element.
+///
+/// The `untagged` attribute means that Serde will try to deserialize into each
+/// variant in order, which is why the order of variants can be important.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Element {
+    /// A string that doesn't match any known element type. This is a fallback.
     UnknownString(String),
-    //#[serde(rename = "a")]
+    /// A hyperlink, similar to an HTML `<a>` tag.
     Link(LinkElement),
-    // #[serde(
-    //     alias = "div",
-    //     alias = "span",
-    //     alias = "ol",
-    //     alias = "ul",
-    //     alias = "li",
-    //     alias = "details",
-    //     alias = "summary",
-    //     alias = "th",
-    //     alias = "td"
-    // )]
+    /// A styled element, like a `<span>` or `<div>`, which can have associated
+    /// CSS-like styles.
     Styled(StyledElement),
-    //     alias = "rt",
-    //     alias = "rp",
-    //     alias = "t",
-    //     alias = "tb",
-    //     alias = "tf",
-    //     alias = "tr"
-    // )]
+    /// An unstyled element, such as `<ruby>` or `<tr>`, which has structure but
+    /// no direct styling attributes in this model.
     Unstyled(UnstyledElement),
-    //#[serde(alias = "td", alias = "th")]
+    /// A table cell (`<td>`) or header (`<th>`).
     Table(TableElement),
-    //#[serde(rename = "br")]
+    /// A line break, like `<br>`.
     LineBreak(LineBreak),
-    //#[serde(rename = "img")]
+    /// An image, like `<img>`.
     Image(ImageElement),
 }
 
-/// This element doesn't support children or support language.
+/// Represents a line break element, equivalent to an HTML `<br>` tag.
+///
+/// This element does not have content or children.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LineBreak {
-    /// The `LineBreak`' tag is:
-    /// [`HtmlTag::Break`] | `"br"`.
+    /// The HTML tag, which is always `HtmlTag::Break` (`<br>`).
     pub tag: HtmlTag,
+    /// A map of custom data attributes.
     data: Option<IndexMap<String, String>>,
 }
 
+/// Represents a structural element that does not have direct styling attributes
+/// in this model, such as `<ruby>`, `<tr>`, or `<tbody>`.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnstyledElement {
-    /// `UnstyledElements`'s' tags could be the following:
-    ///
-    /// [`HtmlTag::Ruby`],
-    /// [`HtmlTag::RubyText`],
-    /// [`HtmlTag::RubyParenthesis`],
-    /// [`HtmlTag::Table`],
-    /// [`HtmlTag::TableHeader`],
-    /// [`HtmlTag::TableBody`],
-    /// [`HtmlTag::TableFooter`],
-    /// [`HtmlTag::TableRow`].
+    /// The HTML tag for this element (e.g., `ruby`, `tr`, `tbody`).
     pub tag: HtmlTag,
+    /// The content nested within this element.
     pub content: Option<ContentMatchType>,
+    /// A map of custom data attributes.
     pub data: Option<IndexMap<String, String>>,
     /// Defines the language of an element in the format defined by RFC 5646.
     lang: Option<String>,
 }
 
+/// Represents a table cell element, either a `<td>` or `<th>`.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TableElement {
-    /// `TableElement`'s tags could be the following:
-    ///
-    /// [`HtmlTag::TableData`],
-    /// [`HtmlTag::TableHeader`].
+    /// The HTML tag, which can be `TableData` (`<td>`) or `TableHeader` (`<th>`).
     pub tag: HtmlTag,
+    /// The content inside the table cell.
     pub content: Option<ContentMatchType>,
+    /// A map of custom data attributes.
     pub data: Option<IndexMap<String, String>>,
+    /// The number of columns this cell should span.
     pub col_span: Option<u16>,
+    /// The number of rows this cell should span.
     pub row_span: Option<u16>,
+    /// CSS-like styling for the table cell.
     pub style: Option<StructuredContentStyle>,
-    /// Defines the language of an element in the format defined by RFC 5646.
+    /// Defines the language of the element's content, using RFC 5646 format.
     lang: Option<String>,
 }
 
@@ -910,15 +920,14 @@ impl<'de> Deserialize<'de> for TableElement {
                 formatter.write_str("a sequence for a TableElement")
             }
 
-            // This is the method that will be called for your MessagePack data
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where
                 A: SeqAccess<'de>,
             {
                 // Field 1: Tag (required, always first)
                 let tag: HtmlTag = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?.
+                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 // Now, we handle the rest of the fields which might be optional or in any order.
                 // The most robust way is to read them all as generic values and then pick them apart.
@@ -972,7 +981,6 @@ impl<'de> Deserialize<'de> for TableElement {
                 })
             }
 
-            // OPTIONAL: To maintain compatibility with JSON map format if needed
             fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
             where
                 A: de::MapAccess<'de>,
@@ -1008,27 +1016,24 @@ impl<'de> Deserialize<'de> for TableElement {
     }
 }
 
+/// Represents an element that can have CSS-like styling, such as a `<span>` or `<div>`.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StyledElement {
-    /// `StyledElement`'s tags are:
-    ///
-    /// [`HtmlTag::Span`],
-    /// [`HtmlTag::Div`],
-    /// [`HtmlTag::OrderedList`],
-    /// [`HtmlTag::UnorderedList`],
-    /// [`HtmlTag::ListItem`],
-    /// [`HtmlTag::Details`],
-    /// [`HtmlTag::Summary`].
+    /// The HTML tag for this element (e.g., `div`, `span`, `li`).
     pub tag: HtmlTag,
+    /// The content nested within this element.
     pub content: Option<ContentMatchType>,
+    /// A map of custom data attributes.
     pub data: Option<IndexMap<String, String>>,
+    /// CSS-like styling information for this element.
     pub style: Option<StructuredContentStyle>,
-    /// Hover text for the element.
+    /// Hover text for the element, similar to the `title` attribute in HTML.
     pub title: Option<String>,
+    /// For `details` elements, this indicates whether the element should be open by default.
     pub open: Option<bool>,
-    /// Defines the language of an element in the format defined by RFC 5646.
+    /// Defines the language of the element's content, using RFC 5646 format.
     lang: Option<String>,
 }
 
@@ -1040,9 +1045,7 @@ pub struct FlexibleElementVisitor<T> {
 
 impl<T> FlexibleElementVisitor<T> {
     pub fn new() -> Self {
-        FlexibleElementVisitor {
-            _marker: PhantomData,
-        }
+        FlexibleElementVisitor { _marker: PhantomData }
     }
 }
 
@@ -1056,7 +1059,6 @@ where
         formatter.write_str("a map or a sequence representing an element")
     }
 
-    /// This is called for your database's sequence format.
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
@@ -1066,8 +1068,8 @@ where
 
         // Tag is always first and required.
         let tag: String = seq
-            .next_element()?
-            .ok_or_else(|| de::Error::invalid_length(0, &"tag"))?;
+            .next_element()?.
+            ok_or_else(|| de::Error::invalid_length(0, &"tag"))?;
         map.insert("tag".to_string(), Value::String(tag));
 
         // Loop through the rest of the optional, unordered fields.
@@ -1111,7 +1113,6 @@ where
         T::deserialize(Value::Object(map)).map_err(de::Error::custom)
     }
 
-    /// This is called for your JSON file's map format.
     fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
@@ -1121,22 +1122,23 @@ where
     }
 }
 
+/// Represents a hyperlink element, similar to an HTML `<a>` tag.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkElement {
-    /// The `LinkElement`'s tag is:
-    ///
-    /// [`HtmlTag::Anchor`] | `"a"`.
+    /// The HTML tag for this element, which is always `HtmlTag::Anchor` (`<a>`).
     pub tag: HtmlTag,
+    /// The content displayed for the link, which can be text or other elements.
     pub content: Option<ContentMatchType>,
     /// The URL for the link.
     ///
-    /// URLs starting with a `?` are treated as internal links to other dictionary content.
+    /// URLs starting with a `?` are treated as internal links to other dictionary
+    /// content, allowing for cross-references within the dictionary.
     pub href: String,
-    /// Defines the language of an element in the format defined by RFC 5646.
+    /// Defines the language of the element's content, using RFC 5646 format (e.g., "en-US").
     ///
-    ///yomichan_rs will currently only support `ja` & `ja-JP`.
+    /// `yomichan_rs` currently only supports `ja` and `ja-JP`.
     pub lang: Option<String>,
 }
 
@@ -1147,51 +1149,52 @@ pub enum NumberOrString {
     String(String),
 }
 
+/// Represents an image element, equivalent to an HTML `<img>` tag.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageElement {
+    /// The HTML tag, which is always `HtmlTag::Img` (`<img>`).
     pub tag: HtmlTag,
-    /// This element doesn't support children.
+    /// This element does not have content, so this is always `None`.
     pub content: Option<()>,
     /// The vertical alignment of the image.
     pub vertical_align: Option<VerticalAlign>,
     /// Shorthand for border width, style, and color.
     pub border: Option<String>,
-    /// Roundness of the corners of the image's outer border edge.
+    /// The radius of the image's corners.
     pub border_radius: Option<String>,
-    /// The units for the width and height.
+    /// The units for the width and height (e.g., `px`, `em`).
     pub size_units: Option<SizeUnits>,
+    /// A map of custom data attributes.
     pub data: Option<IndexMap<String, String>>,
-    /// Path to the image file in the archive.
+    /// The path to the image file within the dictionary archive.
     pub path: String,
-    /// Preferred width of the image.
+    /// The preferred width of the image.
     pub width: Option<f32>,
-    /// Preferred height of the image.
+    /// The preferred height of the image.
     pub height: Option<f32>,
-    /// Preferred width of the image.
-    /// This is only used in the internal database.
+    /// The preferred width of the image, used internally by the database.
     pub preferred_width: Option<f32>,
-    /// Preferred height of the image.
-    /// This is only used in the internal database.
+    /// The preferred height of the image, used internally by the database.
     pub preferred_height: Option<f32>,
     /// Hover text for the image.
     pub title: Option<String>,
-    /// Alt text for the image.
+    /// Alt text for the image, for accessibility.
     pub alt: Option<String>,
-    /// Description of the image.
+    /// A description of the image.
     pub description: Option<String>,
-    /// Whether or not the image should appear pixelated at sizes larger than the image's native resolution.
+    /// Whether the image should appear pixelated when scaled up.
     pub pixelated: Option<bool>,
-    /// Controls how the image is rendered. The value of this field supersedes the pixelated field.
+    /// Controls the rendering of the image, superseding the `pixelated` field.
     pub image_rendering: Option<ImageRendering>,
-    /// Controls the appearance of the image. The 'monochrome' value will mask the opaque parts of the image using the current text color.
+    /// Controls the appearance of the image, e.g., making it monochrome.
     appearance: Option<ImageAppearance>,
-    /// Whether or not a background color is displayed behind the image.
+    /// Whether a background color is displayed behind the image.
     background: Option<bool>,
-    /// Whether or not the image is collapsed by default.
+    /// Whether the image is collapsed by default.
     collapsed: Option<bool>,
-    /// Whether or not the image can be collapsed.
+    /// Whether the image can be collapsed by the user.
     collapsible: Option<bool>,
 }
 
@@ -1263,8 +1266,8 @@ impl<'de> Deserialize<'de> for StyledElement {
                 A: SeqAccess<'de>,
             {
                 let tag: HtmlTag = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?.
+                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 let mut content = None;
                 let mut data = None;
@@ -1404,8 +1407,8 @@ impl<'de> Deserialize<'de> for UnstyledElement {
                 A: SeqAccess<'de>,
             {
                 let tag: HtmlTag = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?.
+                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 let mut content = None;
                 let mut data = None;
@@ -1478,8 +1481,8 @@ impl<'de> Deserialize<'de> for LinkElement {
                 A: SeqAccess<'de>,
             {
                 let tag: HtmlTag = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?.
+                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 let mut content = None;
                 let mut href = None;
@@ -1594,14 +1597,14 @@ impl<'de> Deserialize<'de> for ImageElement {
                 // Based on the log, the sequence appears to be:
                 // [tag, size_units, path, width, height, alt, appearance, pixelated, collapsed, collapsible]
                 let tag: HtmlTag = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?.
+                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 // The rest of the fields have a fixed order in this compact format.
                 let size_units: Option<SizeUnits> = seq.next_element()?.unwrap_or(None);
                 let path: String = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
+                    .next_element()?.
+                    ok_or_else(|| de::Error::invalid_length(2, &self))?;
                 let width: Option<f32> = seq.next_element()?.unwrap_or(None);
                 let height: Option<f32> = seq.next_element()?.unwrap_or(None);
                 let alt: Option<String> = seq.next_element()?.unwrap_or(None);
@@ -1678,8 +1681,8 @@ impl<'de> Deserialize<'de> for LineBreak {
                 A: SeqAccess<'de>,
             {
                 let tag: HtmlTag = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?.
+                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
                 let data: Option<IndexMap<String, String>> = seq.next_element()?.unwrap_or(None);
 
                 Ok(LineBreak { tag, data })

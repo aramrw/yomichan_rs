@@ -212,24 +212,18 @@ mod ycd_tests {
         let file = File::open(path.join("自業自得_rust.json")).unwrap();
         let reader = BufReader::new(file);
 
-        // This part uses your full DatabaseTermEntry struct, which is correct
         let items: Vec<DatabaseTermEntry> = serde_json::from_reader(reader).unwrap();
 
         let mut buf = Vec::new();
         items.serialize(&mut Serializer::new(&mut buf)).unwrap();
 
-        // --- THE DEBUGGING STEP ---
-        // Deserialize the raw bytes into the generic `rmpv::Value`
         let decoded_value: Value =
             rmp_serde::from_slice(&buf).expect("Failed to decode MessagePack into generic Value");
 
-        // Print the decoded structure. This is the crucial output!
-        // It will show you exactly what is being stored.
         println!("--- DECODED RMPV::VALUE ---");
         println!("{decoded_value:#?}");
         println!("--- END DECODED RMPV::VALUE ---");
 
-        // We still expect the final deserialization to fail, which is what we're debugging.
         let result: Result<Vec<DatabaseTermEntry>, _> = rmp_serde::from_slice(&buf);
         result.unwrap();
     }

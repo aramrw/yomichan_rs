@@ -1,10 +1,3 @@
-// Assuming these types will be defined elsewhere in your Rust codebase
-// For example:
-// pub mod dictionary {
-//     pub type TermSourceMatchType = String; // Placeholder
-// }
-// pub type SearchResolution = String; // Placeholder
-
 use fancy_regex::Regex;
 use indexmap::{IndexMap, IndexSet};
 use deinflector::language_d::FindTermsTextReplacements;

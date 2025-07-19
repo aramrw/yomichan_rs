@@ -163,7 +163,6 @@ impl DisplayAnki {
         Ok(())
     }
 
-    // In your DisplayAnki impl...
     pub fn build_note_from_entry(
         &self,
         entry: &TermDictionaryEntry,
@@ -177,9 +176,8 @@ impl DisplayAnki {
         let model_name: String;
         let deck_name: String;
         let tags: Vec<String>;
-        let field_mappings: Vec<AnkiTermFieldType>; // This will be an owned clone
+        let field_mappings: Vec<AnkiTermFieldType>;
 
-        // CHANGE 2: Create a scope to ensure all locks are dropped.
         {
             let profile = self.options.read().get_current_profile()?;
             let profile_guard = profile.read();
@@ -189,20 +187,13 @@ impl DisplayAnki {
                 .as_ref()
                 .ok_or(DisplayAnkiError::AnkiFieldsUninitialized)?;
 
-            // CHANGE 3: Clone the data we need from behind the profile_guard lock.
             tags = anki_opts.tags().clone();
-            field_mappings = anki_fields.fields().clone(); // Now we own the mappings
+            field_mappings = anki_fields.fields().clone();
 
-            // This is your original, working block for getting model/deck names.
-            // We will execute it inside this scope to ensure its locks are also dropped.
             let (model_name_owned, deck_name_owned) = {
                 let global_opts = self.options.read();
-                // Assuming .anki() returns a reference that can be read_arc'd or similar
-                // This part depends heavily on your exact types, but the principle is the same.
                 let global_anki_opts = global_opts.anki().read();
 
-                // Using your exact logic and assuming get_selected_* returns Result<(&str, _),_>
-                // We use the correct indices for model and deck.
                 let selected_model_idx = *anki_fields.selected_model();
                 let selected_deck_idx = *anki_fields.selected_deck();
 
@@ -212,24 +203,15 @@ impl DisplayAnki {
                 (model_ref.to_string(), deck_ref.to_string())
             };
 
-            // Assign the owned values to our outer variables.
             model_name = model_name_owned;
             deck_name = deck_name_owned
-        } // <-- ALL LOCKS (`profile_guard`, `global_opts`) ARE DROPPED HERE.
-
-        // --- Phase 2: Note Construction (No Locks Held) ---
-        // This is YOUR ORIGINAL code, UNCHANGED, because it already works with owned values.
-        // The only difference is that `model_name`, `deck_name`, etc., now refer to the
-        // owned variables we created above, not values from behind a lock.
+        }
 
         let mut note_builder = anki_direct::notes::NoteBuilder::default();
 
-        // Your original builder setup, which works because model_name/deck_name are now String
         note_builder.model_name(model_name).deck_name(deck_name);
 
-        // Your original loop. It now iterates over `field_mappings`, our owned clone.
         for mapping in &field_mappings {
-            // Iterate by reference to avoid moving from the Vec
             let headwords_iter = entry.headwords.iter();
             match mapping {
                 AnkiTermFieldType::Term(field_name) => {
@@ -265,10 +247,8 @@ impl DisplayAnki {
             }
         }
 
-        // Your original tags call.
         note_builder.tags(tags);
 
-        // Your original build call. This is now safe.
         let note = note_builder.build(Some(self.client.read_arc().reqwest_client()))?;
         Ok(note)
     }
@@ -655,9 +635,6 @@ mod displayanki {
         let mut ycd = YCD.write();
         ycd.set_language("ja");
 
-        // --- The entire boilerplate setup block is replaced by this one robust call ---
-        // It dynamically uses the first model and deck found in the user's Anki.
-        // The field mappings are the same as your original test.
         ycd.display_anki()
             .read_arc()
             .configure_note_creation_with_first_available(&[
@@ -667,7 +644,6 @@ mod displayanki {
                 FieldIndex::Reading(2),
             ])
             .unwrap();
-        // --- End of new setup ---
 
         // The rest of the test logic remains the same.
         let sentence = "日本語が好きです";
@@ -707,7 +683,6 @@ mod displayanki {
         ycd.set_language("ja");
 
         let display_anki = ycd.display_anki().read_arc();
-        // --- End of setup ---
         display_anki.configure_note_creation_auto();
 
         // The rest of the test logic is identical.
