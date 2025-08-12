@@ -139,7 +139,7 @@ impl DbMetaFrequency {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, From, Into, Deref, DerefMut)]
-#[native_model(id = 4, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
+#[native_model(id = 6, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
 #[native_db(
     primary_key(id_getter -> &str),
     secondary_key(expression_getter -> &str),

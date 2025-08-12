@@ -1,7 +1,5 @@
 use crate::backend::Backend;
-use crate::database::dictionary_database::{
-    MediaDataArrayBufferContent, TermEntry, DB_MODELS,
-};
+use crate::database::dictionary_database::{MediaDataArrayBufferContent, TermEntry, DB_MODELS};
 use crate::dictionary::{self, KanjiDictionaryEntry};
 // COMMENTED OUT: Duplicate imports from importer crate
 /*
@@ -14,15 +12,16 @@ use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, ProfileResult,
     YomichanOptions, YomichanProfile,
 };
-use importer::structured_content::{
-    ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
-};
 use derive_more::derive::{Deref, DerefMut, From, Into};
 use importer::dictionary_data::{MetaDataMatchType, TermMetaModeType};
 use importer::dictionary_database::{
-    DBMetaType, DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTag, DatabaseTermEntryTuple
+    DBMetaType, DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType,
+    DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTag, DatabaseTermEntryTuple,
 };
 pub use importer::dictionary_importer::{prepare_dictionary, DictionarySummary};
+use importer::structured_content::{
+    ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
+};
 use importer::DatabaseDictionaryData;
 
 use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
@@ -47,6 +46,7 @@ use uuid::Uuid;
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
+use std::fmt::Debug;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
@@ -68,7 +68,7 @@ use super::dictionary_database::{DatabaseTermMeta, DictionaryDatabase}; // Keep 
 //use chrono::{DateTime, Local};
 
 impl Yomichan<'_> {
-    pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
+    pub fn import_dictionaries<P: AsRef<Path> + Send + Sync + Debug>(
         &self,
         zip_paths: &[P],
     ) -> Result<(), ImportError> {
@@ -87,31 +87,36 @@ impl Yomichan<'_> {
 }
 
 impl Backend<'_> {
-    pub fn import_dictionaries_internal<P: AsRef<Path> + Send + Sync>(
+    pub fn import_dictionaries_internal<P: AsRef<Path> + Send + Sync + Debug>(
         zip_paths: &[P],
         current_profile: Ptr<YomichanProfile>,
         db: Arc<DictionaryDatabase>,
     ) -> Result<(), ImportError> {
         ImportZipError::check_zip_paths(zip_paths)?;
-        let options: Vec<DictionaryOptions> = zip_paths
+
+        let data: Vec<DictionaryOptions> = zip_paths
             .par_iter()
             .map(|path| import_dictionary(path, db.clone(), current_profile.clone()))
-            .collect::<Result<Vec<DictionaryOptions>, ImportError>>()?;
+            .collect::<Result<Vec<_>, _>>()?;
 
-        let mut dictionary_opts: IndexMap<String, DictionaryOptions> = options
-            .into_iter()
-            .map(|opt| (opt.name.clone(), opt))
-            .collect();
+        let mut all_dictionary_opts: IndexMap<String, DictionaryOptions> = IndexMap::new();
+        for item in data.iter() {
+            let dict_name = item.name.clone();
+            // all dictionaries are enabled by default;
+            let mut dopts = DictionaryOptions::sane_defaults(dict_name.clone());
+            dopts.alias = dict_name.clone();
+            all_dictionary_opts.insert(dict_name.clone(), dopts);
+        }
 
         current_profile.with_ptr_mut(|current_profile| {
             let mut main_dictionary = current_profile.get_main_dictionary();
             if main_dictionary.is_empty() {
-                let name = dictionary_opts
+                let name = all_dictionary_opts
                     .get_index(0)
                     .expect("[unexpected] dictionary options created but len is 0");
                 current_profile.set_main_dictionary(name.0.to_string());
             }
-            current_profile.extend_dictionaries(dictionary_opts);
+            current_profile.extend_dictionaries(all_dictionary_opts);
         });
 
         Ok(())
@@ -233,7 +238,6 @@ impl DBMetaType for YomichanDatabaseMetaPhonetic {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone, Deref, DerefMut, From, Into)]
 #[native_model(id = 65, version = 1)]
 #[native_db(
@@ -331,7 +335,7 @@ pub fn import_dictionary<P: AsRef<Path>>(
     let original_summary = prepare_dictionary(zip_path.as_ref())?.summary;
 
     rwtx.commit()?;
-    Ok(DictionaryOptions::new(original_summary.title))
+    Ok(DictionaryOptions::sane_defaults(original_summary.title))
 }
 
 fn db_rwriter<L: ToInput>(
@@ -778,9 +782,7 @@ mod importer_tests {
     use std::collections::HashSet;
 
     use crate::{
-        database::{
-            dictionary_importer::{self, prepare_dictionary},
-        },
+        database::dictionary_importer::{self, prepare_dictionary},
         settings::YomichanOptions,
         test_utils, Yomichan,
     };

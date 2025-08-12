@@ -1,9 +1,6 @@
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnkiError;
-use crate::{
-    settings::ProfileError,
-    InitError,
-};
+use crate::{settings::ProfileError, InitError};
 use importer::dictionary_importer::DictionarySummaryError;
 use native_db::db_type;
 use std::{
@@ -21,8 +18,10 @@ pub enum YomichanResult<T> {
 /// All possible `yomichan_rs` [Error] paths
 #[derive(Error, Debug)]
 pub enum YomichanError {
-    #[error("(-)[<yc_error::import>] -> 
-{0}")]
+    #[error(
+        "(-)[<yc_error::import>] -> 
+{0}"
+    )]
     Import(#[from] ImportError),
     #[error("(-)[<yc_error::db>]")]
     Database(#[from] DBError),
@@ -48,6 +47,10 @@ pub enum ImportZipError {
     ZipCrate(#[from] zip::result::ZipError),
     #[error("filesystemIO error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("{0:?} is an unknown file; you can only deserialize zip files or unzipped folders")]
+    UnknownFileType(Option<String>),
+    #[error("{0:?}'s files do not contain index.json (*required)")]
+    IndexFileNotFound(PathBuf),
 }
 
 impl ImportZipError {
@@ -56,6 +59,33 @@ impl ImportZipError {
             let zp = zp.as_ref();
             if !zp.exists() {
                 return Err(Self::DoesNotExist(zp.to_path_buf()));
+            }
+
+            let mut has_index_file = false;
+
+            if zp.is_file() && zp.extension().unwrap_or_default().to_str() == Some("zip") {
+            } else if zp.is_dir() {
+                let mut dir_iter = std::fs::read_dir(zp)?;
+                while let Some(Ok(entry)) = dir_iter.next() {
+                    let path = entry.path();
+                    if path.exists() && path.is_file() {
+                        if path.extension().unwrap_or_default().to_str() == Some("json") {
+                            if path.file_name().unwrap_or_default().to_str() == Some("index") {
+                                has_index_file = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if !has_index_file {
+                    return Err(ImportZipError::IndexFileNotFound(zp.to_path_buf()));
+                }
+            } else {
+                return Err(Self::UnknownFileType(
+                    zp.file_name()
+                        .map(|os_str| os_str.to_str().map(|inner| inner.to_string()))
+                        .flatten(),
+                ));
             }
         }
         Ok(())
@@ -174,7 +204,7 @@ pub mod error_helpers {
     macro_rules! fmt_mod_error {
     ( $($path_part:literal),* ) => {
         // This macro expands to the full #[error(...)] attribute
-        #[error("[{}]", error_helpers::fmterr_module(&[ $($path_part),* ]))] 
+        #[error("[{}]", error_helpers::fmterr_module(&[ $($path_part),* ]))]
     };
 }
 }

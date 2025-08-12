@@ -810,7 +810,7 @@ pub struct DictionaryOptions {
 
 impl DictionaryOptions {
     /// Creates a new `DictionaryOptions` instance with default values for a given dictionary name.
-    pub fn new(dict_name: String) -> Self {
+    pub fn sane_defaults(dict_name: String) -> Self {
         DictionaryOptions {
             name: dict_name.clone(),
             alias: dict_name,
@@ -1704,7 +1704,7 @@ mod settings_tests {
     fn create_new_profile_shares_dictionaries() {
         let mut options = YomichanOptions::new();
         let dict_name = "test_dict".to_string();
-        let dict_opts = DictionaryOptions::new(dict_name.clone());
+        let dict_opts = DictionaryOptions::sane_defaults(dict_name.clone());
 
         // Add a dictionary to the default profile
         {
