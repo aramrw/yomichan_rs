@@ -306,6 +306,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "castaway"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -354,6 +363,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa961b519f0b462e3a3b4a34b64d119eeaca1d59af726fe450bbba07a9fc0a1"
 dependencies = [
  "thiserror 2.0.12",
+]
+
+[[package]]
+name = "compact_str"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fdb1325a1cece981e8a296ab8f0f9b63ae357bd0784a9faaf548cc7b480707a"
+dependencies = [
+ "castaway",
+ "cfg-if",
+ "itoa",
+ "rustversion",
+ "ryu",
+ "serde",
+ "static_assertions",
 ]
 
 [[package]]
@@ -539,7 +563,7 @@ dependencies = [
  "thiserror 2.0.12",
  "unicode-normalization",
  "unicode-segmentation",
- "wana_kana 4.0.0",
+ "wana_kana",
 ]
 
 [[package]]
@@ -1605,6 +1629,36 @@ checksum = "3acae9609540aa318d1bc588455225fb2085b9ed0c4f6bd0d9d5bcd86f1a0344"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
+]
+
+[[package]]
+name = "importer"
+version = "0.0.1"
+dependencies = [
+ "anki_direct",
+ "better_default",
+ "bimap",
+ "chrono",
+ "compact_str",
+ "derivative",
+ "derive_more 1.0.0",
+ "fancy-regex",
+ "getset",
+ "indexmap 2.7.1",
+ "parking_lot",
+ "pprof",
+ "rmp-serde",
+ "rmpv",
+ "serde",
+ "serde-untagged",
+ "serde_json",
+ "serde_with",
+ "tempfile",
+ "thiserror 2.0.12",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+ "zip",
 ]
 
 [[package]]
@@ -2917,6 +2971,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
 name = "str_stack"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3432,17 +3492,6 @@ dependencies = [
 
 [[package]]
 name = "wana_kana"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "477976a5c56fb7b014795df5a2ce08d2de8bcd4d5980844c5bd3978a7fd1c30b"
-dependencies = [
- "fnv",
- "itertools",
- "lazy_static",
-]
-
-[[package]]
-name = "wana_kana"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a74666202acfcb4f9b995be2e3e9f7f530deb65e05a1407b8d0b30c9c451238a"
@@ -3891,6 +3940,7 @@ dependencies = [
  "fancy-regex",
  "getset",
  "icu",
+ "importer",
  "indexmap 2.7.1",
  "kanji_processor 0.0.11",
  "native_db",
@@ -3910,11 +3960,8 @@ dependencies = [
  "thiserror 2.0.12",
  "tracing",
  "tracing-test",
- "unicode-normalization",
- "unicode-segmentation",
  "url",
  "uuid",
- "wana_kana 3.0.0",
  "zip",
 ]
 

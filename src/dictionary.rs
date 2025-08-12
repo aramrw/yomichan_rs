@@ -158,7 +158,7 @@ pub struct DictionaryOrder {
 
 /*************** Term ***************/
 
-/// Enum representing what database field was used to match the source term.
+/// What database field was used to match the source term.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchSource {
@@ -167,7 +167,7 @@ pub enum TermSourceMatchSource {
     Sequence,
 }
 
-/// Enum representing how the search term relates to the final term.
+/// How the search term relates to the final term.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchType {

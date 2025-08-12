@@ -1,7 +1,9 @@
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnkiError;
 use crate::{
-    database::dictionary_importer::DictionarySummaryError, settings::ProfileError, InitError,
+    database::dictionary_importer::DictionarySummaryError,
+    settings::ProfileError,
+    InitError,
 };
 use native_db::db_type;
 use std::{
@@ -19,7 +21,8 @@ pub enum YomichanResult<T> {
 /// All possible `yomichan_rs` [Error] paths
 #[derive(Error, Debug)]
 pub enum YomichanError {
-    #[error("(-)[<yc_error::import>] -> \n{0}")]
+    #[error("(-)[<yc_error::import>] -> 
+{0}")]
     Import(#[from] ImportError),
     #[error("(-)[<yc_error::db>]")]
     Database(#[from] DBError),
@@ -63,10 +66,7 @@ impl ImportZipError {
 pub enum DictionaryFileError {
     #[error("failed to deserialize file: `{outpath}`\nreason: {reason}")]
     File { outpath: PathBuf, reason: String },
-    #[error(
-        "no data in term_bank stream, is the file empty?
-         file: {0}"
-    )]
+    #[error("no data in term_bank stream, is the file empty?\n         file: {0}")]
     Empty(PathBuf),
     #[error("failed to open file: {outpath}\nreason: {reason}")]
     FailedOpen { outpath: PathBuf, reason: String },
@@ -92,15 +92,14 @@ pub enum ImportError {
     LineErr(u32, Box<ImportError>),
     #[error("json err: {0}")]
     Custom(String),
-    #[error(
-        "failed to deserialize file: {file}
-         reason: {e:#?}"
-    )]
+    #[error("failed to deserialize file: {file}\n         reason: {e:#?}")]
     InvalidJson { file: PathBuf, e: Option<String> },
     #[error("failed to create summary: {0}")]
     Summary(#[from] DictionarySummaryError),
     #[error("profile error: {0}")]
     Profile(#[from] ProfileError),
+    #[error("importer error: {0}")]
+    Importer(#[from] importer::errors::ImportError),
 }
 
 impl From<native_db::db_type::Error> for ImportError {
@@ -175,7 +174,7 @@ pub mod error_helpers {
     macro_rules! fmt_mod_error {
     ( $($path_part:literal),* ) => {
         // This macro expands to the full #[error(...)] attribute
-        #[error("[{}]", error_helpers::fmterr_module(&[ $($path_part),* ]))]
+        #[error("[{}]", error_helpers::fmterr_module(&[ $($path_part),* ]))] 
     };
 }
 }

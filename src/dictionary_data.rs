@@ -1,4 +1,4 @@
-use crate::database::dictionary_database::{DBMetaType, TermMetaPhoneticData};
+use crate::database::dictionary_database::TermMetaPhoneticData;
 use crate::database::dictionary_importer::FrequencyMode;
 use crate::dictionary::VecNumOrNum;
 // use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
@@ -14,67 +14,34 @@ use std::string::String;
 
 use std::sync::LazyLock;
 
-trait StrMacro {
-    fn from_static_str(s: &'static ::core::primitive::str) -> Self;
-}
-impl StrMacro for &::core::primitive::str {
-    fn from_static_str(s: &'static ::core::primitive::str) -> Self {
-        s
-    }
-}
-impl StrMacro for ::std::string::String {
-    fn from_static_str(s: &'static ::core::primitive::str) -> Self {
-        ::std::borrow::ToOwned::to_owned(s)
-    }
-}
-macro_rules! str {
-    ($s:literal) => {
-        StrMacro::from_static_str($s)
-    };
-}
-
-fn main() {
-    let _: &str = str!("foo");
-    let _: String = str!("foo");
-    let _: &'static str = str!("foo");
-}
-
-#[rustfmt::skip]
-pub static KANA_MAP: LazyLock<BiHashMap<&'static str, &'static str>> = LazyLock::new(|| {
-    BiHashMap::from_iter([
-        ("ア", "あ"), ("イ", "い"), ("ウ", "う"), ("エ", "え"), ("オ", "お"),
-        ("カ", "か"), ("キ", "き"), ("ク", "く"), ("ケ", "け"), ("コ", "こ"),
-        ("サ", "さ"), ("シ", "し"), ("ス", "す"), ("セ", "せ"), ("ソ", "そ"),
-        ("タ", "た"), ("チ", "ち"), ("ツ", "つ"), ("テ", "て"), ("ト", "と"),
-        ("ナ", "な"), ("ニ", "に"), ("ヌ", "ぬ"), ("ネ", "ね"), ("ノ", "の"),
-        ("ハ", "は"), ("ヒ", "ひ"), ("フ", "ふ"), ("ヘ", "へ"), ("ホ", "ほ"),
-        ("マ", "ま"), ("ミ", "み"), ("ム", "む"), ("メ", "め"), ("モ", "も"),
-        ("ヤ", "や"), ("ユ", "ゆ"), ("ヨ", "よ"), ("ラ", "ら"), ("リ", "り"),
-        ("ル", "る"), ("レ", "れ"), ("ロ", "ろ"), ("ワ", "わ"), ("ヲ", "を"),
-        ("ン", "ん"), ("ガ", "が"), ("ギ", "ぎ"), ("グ", "ぐ"), ("ゲ", "げ"),
-        ("ゴ", "ご"), ("ザ", "ざ"), ("ジ", "じ"), ("ズ", "ず"), ("ゼ", "ぜ"),
-        ("ゾ", "ぞ"), ("ダ", "だ"), ("ヂ", "ぢ"), ("ヅ", "づ"), ("デ", "で"),
-        ("ド", "ど"), ("バ", "ば"), ("ビ", "び"), ("ブ", "ぶ"), ("ベ", "べ"),
-        ("ボ", "ぼ"), ("パ", "ぱ"), ("ピ", "ぴ"), ("プ", "ぷ"), ("ペ", "ぺ"),
-        ("ポ", "ぽ"),   ("キャ", "きゃ"), ("キュ", "きゅ"), ("キョ", "きょ"),
-        ("シャ", "しゃ"), ("シュ", "しゅ"), ("ショ", "しょ"), ("チャ", "ちゃ"),
-        ("チュ", "ちゅ"), ("チョ", "ちょ"), ("ニャ", "にゃ"), ("ニュ", "にゅ"),
-        ("ニョ", "にょ"), ("ヒャ", "ひゃ"), ("ヒュ", "ひゅ"), ("ヒョ", "ひょ"),
-        ("ミャ", "みゃ"), ("ミュ", "みゅ"), ("ミョ", "みょ"), ("リャ", "りゃ"),
-        ("リュ", "りゅ"), ("リョ", "りょ"),  ("ギャ", "ぎゃ"), ("ギュ", "ぎゅ"),
-        ("ギョ", "ぎょ"), ("ジャ", "じゃ"), ("ジュ", "じゅ"), ("ジョ", "じょ"),
-        ("ビャ", "びゃ"), ("ビュ", "びゅ"), ("ビョ", "びょ"), ("ピャ", "ぴゃ"),
-        ("ピュ", "ぴゅ"), ("ピョ", "ぴょ"),
-    ])
-});
-
-// #[derive(Serialize, Deserialize, Debug)]
-// pub struct TermEntry {
-//     pub dictionary: String,
-//     pub expression: String,
-//     pub reading: String,
-//     pub sequence: Option<String>,
-// }
+// #[rustfmt::skip]
+// pub static KANA_MAP: LazyLock<BiHashMap<&'static str, &'static str>> = LazyLock::new(|| {
+//     BiHashMap::from_iter([
+//         ("ア", "あ"), ("イ", "い"), ("ウ", "う"), ("エ", "え"), ("オ", "お"),
+//         ("カ", "か"), ("キ", "き"), ("ク", "く"), ("ケ", "け"), ("コ", "こ"),
+//         ("サ", "さ"), ("シ", "し"), ("ス", "す"), ("セ", "せ"), ("ソ", "そ"),
+//         ("タ", "た"), ("チ", "ち"), ("ツ", "つ"), ("テ", "て"), ("ト", "と"),
+//         ("ナ", "な"), ("ニ", "に"), ("ヌ", "ぬ"), ("ネ", "ね"), ("ノ", "の"),
+//         ("ハ", "は"), ("ヒ", "ひ"), ("フ", "ふ"), ("ヘ", "へ"), ("ホ", "ほ"),
+//         ("マ", "ま"), ("ミ", "み"), ("ム", "む"), ("メ", "め"), ("モ", "も"),
+//         ("ヤ", "や"), ("ユ", "ゆ"), ("ヨ", "よ"), ("ラ", "ら"), ("リ", "り"),
+//         ("ル", "る"), ("レ", "れ"), ("ロ", "ろ"), ("ワ", "わ"), ("ヲ", "を"),
+//         ("ン", "ん"), ("ガ", "が"), ("ギ", "ぎ"), ("グ", "ぐ"), ("ゲ", "げ"),
+//         ("ゴ", "ご"), ("ザ", "ざ"), ("ジ", "じ"), ("ズ", "ず"), ("ゼ", "ぜ"),
+//         ("ゾ", "ぞ"), ("ダ", "だ"), ("ヂ", "ぢ"), ("ヅ", "づ"), ("デ", "で"),
+//         ("ド", "ど"), ("バ", "ば"), ("ビ", "び"), ("ブ", "ぶ"), ("ベ", "べ"),
+//         ("ボ", "ぼ"), ("パ", "ぱ"), ("ピ", "ぴ"), ("プ", "ぷ"), ("ペ", "ぺ"),
+//         ("ポ", "ぽ"),   ("キャ", "きゃ"), ("キュ", "きゅ"), ("キョ", "きょ"),
+//         ("シャ", "しゃ"), ("シュ", "しゅ"), ("ショ", "しょ"), ("チャ", "ちゃ"),
+//         ("チュ", "ちゅ"), ("チョ", "ちょ"), ("ニャ", "にゃ"), ("ニュ", "にゅ"),
+//         ("ニョ", "にょ"), ("ヒャ", "ひゃ"), ("ヒュ", "ひゅ"), ("ヒョ", "ひょ"),
+//         ("ミャ", "みゃ"), ("ミュ", "みゅ"), ("ミョ", "みょ"), ("リャ", "りゃ"),
+//         ("リュ", "りゅ"), ("リョ", "りょ"),  ("ギャ", "ぎゃ"), ("ギュ", "ぎゅ"),
+//         ("ギョ", "ぎょ"), ("ジャ", "じゃ"), ("ジュ", "じゅ"), ("ジョ", "じょ"),
+//         ("ビャ", "びゃ"), ("ビュ", "びゅ"), ("ビョ", "びょ"), ("ピャ", "ぴゃ"),
+//         ("ピュ", "ぴゅ"), ("ピョ", "ぴょ"),
+//     ])
+// });
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TermGlossaryType {
@@ -172,46 +139,46 @@ pub struct DictionaryDataTag {
 //     pub text: String,
 // }
 
-/// Yomichan-like term model.
-///
-/// Because of how Yomichan is designed, the definition's raw HTML is contained in
-/// [`TermGlossaryContent::term_glossary_structured_content`]/`content` as a String.
-///
-/// If the program is unable/unwilling to render HTML:
-/// See: [`TermV4`]
-///
-/// Related: [`TermGlossaryContent`]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct TermV3 {
-    pub expression: String,
-    pub reading: String,
-    pub definition_tags: Option<String>,
-    pub rules: String,
-    pub score: i128,
-    pub glossary: Vec<TermGlossary>,
-    pub sequence: i64,
-    pub term_tags: String,
-}
+// /// Yomichan-like term model.
+// ///
+// /// Because of how Yomichan is designed, the definition's raw HTML is contained in
+// /// [`TermGlossaryContent::term_glossary_structured_content`]/`content` as a String.
+// ///
+// /// If the program is unable/unwilling to render HTML:
+// /// See: [`TermV4`]
+// ///
+// /// Related: [`TermGlossaryContent`]
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+// pub struct TermV3 {
+//     pub expression: String,
+//     pub reading: String,
+//     pub definition_tags: Option<String>,
+//     pub rules: String,
+//     pub score: i128,
+//     pub glossary: Vec<TermGlossary>,
+//     pub sequence: i64,
+//     pub term_tags: String,
+// }
 
-/// Custom `Yomichan.rs`-unique term model.
-/// Allows access to `entry` data _(ie: definitions)_ as a concatenated String instead of raw HTML.
-///
-/// The String data is simply extracted and concatenated-
-/// meaning that there is _no_ formatting; A single string of continuous text.
-///
-/// If the program _is_ able to render html, this may be preferable:
-/// See: [`TermV3`]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct TermV4 {
-    pub expression: String,
-    pub reading: String,
-    pub definition_tags: Option<String>,
-    pub rules: String,
-    pub score: i8,
-    pub definition: String,
-    pub sequence: i128,
-    pub term_tags: String,
-}
+// /// Custom `Yomichan.rs`-unique term model.
+// /// Allows access to `entry` data _(ie: definitions)_ as a concatenated String instead of raw HTML.
+// ///
+// /// The String data is simply extracted and concatenated-
+// /// meaning that there is _no_ formatting; A single string of continuous text.
+// ///
+// /// If the program _is_ able to render html, this may be preferable:
+// /// See: [`TermV3`]
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+// pub struct TermV4 {
+//     pub expression: String,
+//     pub reading: String,
+//     pub definition_tags: Option<String>,
+//     pub rules: String,
+//     pub score: i8,
+//     pub definition: String,
+//     pub sequence: i128,
+//     pub term_tags: String,
+// }
 
 /************* Term Meta *************/
 
