@@ -33,10 +33,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::SerializeDisplay;
 use url::form_urlencoded::Target;
 
-use crate::{
-    database::dictionary_importer::DictionarySummary, translation::FindTermsSortOrder,
-    translator::FindTermsMode,
-};
+use importer::dictionary_importer::DictionarySummary;
+use crate::{translation::FindTermsSortOrder, translator::FindTermsMode,};
 
 /// Global application-level options.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]

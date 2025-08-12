@@ -1,14 +1,15 @@
 use crate::backend::Backend;
 use crate::database::dictionary_database::{
-    DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMeta, DatabaseMetaFrequency,
-    DatabaseMetaMatchType, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
-    MediaDataArrayBufferContent, TermEntry, DB_MODELS,
+    DatabaseDictData, MediaDataArrayBufferContent, TermEntry, DB_MODELS,
 };
 use crate::dictionary::{self, KanjiDictionaryEntry};
+// COMMENTED OUT: Duplicate imports from importer crate
+/*
 use crate::dictionary_data::{
     self, dictionary_data_util, DictionaryDataTag, Index, MetaDataMatchType, TermGlossaryImage,
     TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPitchData,
 };
+*/
 use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, ProfileResult,
     YomichanOptions, YomichanProfile,
@@ -58,7 +59,11 @@ use std::sync::{
 use std::time::Instant;
 use std::{fs, io, mem};
 
+// COMMENTED OUT: Duplicate import from importer crate
+/*
 use super::dictionary_database::{DatabaseTag, DatabaseTermMeta, DictionaryDatabase};
+*/
+use super::dictionary_database::{DatabaseTermMeta, DictionaryDatabase}; // Keep this if other items are needed
 
 //use chrono::{DateTime, Local};
 
@@ -113,6 +118,7 @@ impl Backend<'_> {
     }
 }
 
+/*
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ImportSteps {
     Uninitialized,
@@ -123,7 +129,9 @@ pub enum ImportSteps {
     ImportData,
     Completed,
 }
+*/
 
+/*
 #[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum CompiledSchemaNames {
@@ -137,18 +145,24 @@ pub enum CompiledSchemaNames {
     /// Data file containing tag information for terms and kanji.
     TagBank,
 }
+*/
 
+/*
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImportResult {
     result: Option<DictionarySummary>,
     //errors: Vec<ImportError>,
 }
+*/
 
+/*
 #[derive(Clone, Debug, PartialEq, Copy, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ImportDetails {
     prefix_wildcards_supported: bool,
 }
+*/
 
+/*
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum FrequencyMode {
     #[serde(rename = "occurrence-based")]
@@ -156,7 +170,9 @@ pub enum FrequencyMode {
     #[serde(rename = "rank-based")]
     RankBased,
 }
+*/
 
+/*
 // Final details about the Dictionary and it's import process.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[native_db]
@@ -311,7 +327,9 @@ impl YomichanDictionarySummary {
         Ok(res)
     }
 }
+*/
 
+/*
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryDetails {
     pub prefix_wildcard_supported: bool,
@@ -320,7 +338,9 @@ pub struct SummaryDetails {
     pub styles: String,
     pub yomitan_version: String,
 }
+*/
 
+/*
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryCounts {
     pub terms: SummaryItemCount,
@@ -364,20 +384,26 @@ impl SummaryCounts {
         }
     }
 }
+*/
 
+/*
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryItemCount {
     pub total: u16,
 }
 
 impl SummaryItemCount {}
+*/
 
+/*
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryMetaCount {
     pub total: u16,
     pub meta: MetaCounts,
 }
+*/
 
+/*
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct MetaCounts {
     pub freq: u32,
@@ -406,13 +432,17 @@ impl MetaCounts {
         meta_counts
     }
 }
+*/
 
+/*
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ImageImportMatchType {
     Image,
     StructuredContentImage,
 }
+*/
 
+/*
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImageImportRequirement {
     /// This is of type [`ImageImportType::Image`]
@@ -421,7 +451,9 @@ pub struct ImageImportRequirement {
     source: TermGlossaryImage,
     entry: DatabaseTermEntry,
 }
+*/
 
+/*
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StructuredContentImageImportRequirement {
     /// This is of type [`ImageImportType::StructuredContentImage`]
@@ -430,16 +462,21 @@ pub struct StructuredContentImageImportRequirement {
     source: TermGlossaryImage,
     entry: DatabaseTermEntry,
 }
+*/
 
+/*
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImportRequirementContext {
     //file_map: ArchiveFileMap,
     media: IndexMap<String, MediaDataArrayBufferContent>,
 }
+*/
+/*
 /// Deserializable type mapping a `term_bank_$i.json` file.
 pub type TermBank = Vec<TermEntryItem>;
 pub type TermMetaBank = Vec<TermMeta>;
 pub type KanjiBank = Vec<DatabaseKanjiEntry>;
+*/
 
 fn extract_dict_zip<P: AsRef<std::path::Path>>(
     zip_path: P,
@@ -573,7 +610,7 @@ impl From<DatabaseMetaPhonetic> for YomichanDatabaseMetaPhonetic {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[native_model(id = 59, version = 1)]
+#[native_model(id = 60, version = 1)] // Changed ID from 59 to 60
 #[native_db]
 pub struct YomichanDatabaseMetaPitch {
     #[primary_key]
@@ -595,7 +632,7 @@ pub fn import_dictionary<P: AsRef<Path>>(
     db: Arc<DictionaryDatabase>,
     _current_profile: Ptr<YomichanProfile>,
 ) -> Result<DictionaryOptions, ImportError> {
-    let data: DatabaseDictionaryData = prepare_dictionary(zip_path)?;
+    let data: DatabaseDictionaryData = prepare_dictionary(zip_path.as_ref())?;
     let rwtx = db.rw_transaction()?;
 
     // 1. Convert each list to its database model representation
@@ -642,10 +679,10 @@ pub fn import_dictionary<P: AsRef<Path>>(
     }
 
     // Get the original summary for the return value
-    let original_summary = prepare_dictionary(zip_path)?.summary;
+    let original_summary = prepare_dictionary(zip_path.as_ref())?.summary;
 
     rwtx.commit()?;
-    Ok(original_summary)
+    Ok(DictionaryOptions::new(original_summary.title))
 }
 
 fn db_rwriter<L: ToInput>(
@@ -658,6 +695,7 @@ fn db_rwriter<L: ToInput>(
     Ok(())
 }
 
+/*
 // pub fn prepare_dictionary<P: AsRef<Path>>(
 //     zip_path: P,
 //     current_profile: Ptr<YomichanProfile>,
@@ -810,7 +848,9 @@ fn db_rwriter<L: ToInput>(
 //         dictionary_options,
 //     })
 // }
+*/
 
+/*
 fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     let index_str = fs::read_to_string(&outpath).map_err(|e| DictionaryFileError::File {
         outpath,
@@ -819,7 +859,9 @@ fn convert_index_file(outpath: PathBuf) -> Result<Index, ImportError> {
     let index: Index = serde_json::from_str(&index_str)?;
     Ok(index)
 }
+*/
 
+/*
 // this one should probabaly be refactored to:
 // 1. include the file and err if it throws like the rest of the converts
 // 2. only handle one file and have the iteration be handled in the caller function
@@ -857,7 +899,9 @@ fn convert_tag_bank_files(
         })
         .collect()
 }
+*/
 
+/*
 /****************** Kanji Bank Functions ******************/
 
 fn convert_kanji_bank(
@@ -888,7 +932,9 @@ fn convert_kanji_bank(
 
     Ok(entries)
 }
+*/
 
+/*
 /****************** Term Bank Functions ******************/
 
 #[cfg(feature = "tracing")]
@@ -978,10 +1024,13 @@ fn convert_term_bank_file(
     debug!(num_terms = terms.len(), "Finished processing terms");
     Ok(terms)
 }
+*/
 
+/*
 fn rev_str(expression: &str) -> String {
     expression.chars().rev().collect()
 }
+*/
 
 // fn get_string_content(c_match_type: ContentMatchType) -> Vec<String> {
 //     match c_match_type {
@@ -1033,6 +1082,7 @@ fn rev_str(expression: &str) -> String {
 //     content_strings
 // }
 
+/*
 /****************** Helper Functions ******************/
 
 fn read_dir_helper<P: AsRef<Path>>(
@@ -1072,6 +1122,7 @@ fn read_dir_helper<P: AsRef<Path>>(
         Ok(())
     })
 }
+*/
 
 #[cfg(test)]
 mod importer_tests {

@@ -12,11 +12,7 @@ use crate::{
     dictionary::{
         self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
         TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
-        TermSource, TermSourceMatchSource, TermSourceMatchType, VecNumOrNum,
-    },
-    dictionary_data::{
-        FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermMetaFreqDataMatchType,
-        TermMetaModeType,
+        TermSource, TermSourceMatchSource, TermSourceMatchType,
     },
     freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
@@ -63,6 +59,7 @@ use icu::{
     datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
     locale::locale,
 };
+use importer::dictionary_data::{FrequencyInfo, GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum};
 use indexmap::{IndexMap, IndexSet};
 use native_db::*;
 use native_model::{native_model, Model};
@@ -1434,6 +1431,7 @@ impl<'a> Translator<'a> {
             None => Vec::new(),
         }
     }
+
     fn _create_term_frequency_(
         index: usize,
         headword_index: usize,
@@ -1474,7 +1472,8 @@ impl<'a> Translator<'a> {
             pronunciations,
         }
     }
-    fn _get_frequency_info(frequency_data: GenericFreqData) -> FrequencyInfo {
+
+    fn _get_frequency_info(frequency_data: importer::dictionary_data::GenericFreqData) -> FrequencyInfo {
         match frequency_data {
             GenericFreqData::Object(obj) => FrequencyInfo {
                 frequency: obj.value,

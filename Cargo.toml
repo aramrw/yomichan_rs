@@ -27,12 +27,7 @@ bimap = { version = "=0.6.3", features = ["std"] }
 # unicode-segmentation = "=1.12.0"
 # unicode-normalization = "=0.1.24"
 # wana_kana = "=3.0.0"
-derive_more = { version = "1.0.0", features = [
-	"debug",
-	"from",
-	"deref",
-	"deref_mut",
-] }
+derive_more = { version = "1.0.0", features = ["debug", "from", "deref", "deref_mut", "into"] }
 indexmap = { version = "2.7.1", features = ["serde"] }
 deinflector = { version = "0.0.1" }
 icu = "=2.0.0"

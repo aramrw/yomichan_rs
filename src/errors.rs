@@ -1,7 +1,7 @@
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnkiError;
 use crate::{
-    database::dictionary_importer::DictionarySummaryError,
+    importer::dictionary_importer::DictionarySummaryError,
     settings::ProfileError,
     InitError,
 };

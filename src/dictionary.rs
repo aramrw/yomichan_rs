@@ -27,20 +27,6 @@ pub struct EntryInflectionRuleChainCandidatesKey {
     pub inflection_rule_chain_candidates: Vec<DictionaryInflectionRuleChainCandidate>,
 }
 
-/// Helper enum to match expected schema types more accurately.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum NumOrStr {
-    Num(i128),
-    Str(String),
-}
-
-/// Helper enum to match [TermMetaPitchAccent] data more accurately.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum VecNumOrNum {
-    Vec(Vec<u8>),
-    Num(u8),
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 /// A tag represents some brief information about part of a dictionary entry.
 pub struct DictionaryTag {
@@ -109,6 +95,13 @@ pub struct KanjiStat {
     dictionary: String,
     /// A value for the stat.
     value: NumOrStr,
+}
+
+/// Helper enum to match expected schema types more accurately.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum NumOrStr {
+    Num(i128),
+    Str(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

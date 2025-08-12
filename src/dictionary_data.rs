@@ -1,6 +1,6 @@
 use crate::database::dictionary_database::TermMetaPhoneticData;
-use crate::database::dictionary_importer::FrequencyMode;
-use crate::dictionary::VecNumOrNum;
+use importer::dictionary_data::VecNumOrNum;
+use importer::dictionary_importer::FrequencyMode;
 // use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
 use crate::structured_content::{ContentMatchType, ImageElement, StructuredContent, TermGlossary};
 use native_db::{Key, ToKey};

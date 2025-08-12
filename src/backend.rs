@@ -15,7 +15,7 @@ use crate::anki::DisplayAnki;
 use crate::{
     database::{
         dictionary_database::{DictionaryDatabase, DictionaryDatabaseError},
-        dictionary_importer::DictionarySummary,
+        importer::dictionary_importer::DictionarySummary,
     },
     dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchSource, TermSourceMatchType},
     environment::{EnvironmentInfo, CACHED_ENVIRONMENT_INFO},

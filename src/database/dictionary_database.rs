@@ -1,9 +1,15 @@
-use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
+use derive_more::derive::{From, Into};
+use importer::dictionary_data::TermMetaModeType;
+use importer::dictionary_database::DatabaseMetaPitch;
+use importer::dictionary_importer::DictionarySummary;
+use importer::dictionary_data::TermMeta;
+use importer::dictionary_data::MetaDataMatchType;
 use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    DictionaryDataTag, MetaDataMatchType, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
-    TermMetaModeType, TermMetaPitch, TermMetaPitchData,
+    DictionaryDataTag, TermMetaFreqDataMatchType, TermMetaFrequency,
+    TermMetaPitch, TermMetaPitchData,
 };
+use crate::database::dictionary_importer::YomichanDatabaseSummary;
 use crate::errors::{DBError, DictionaryFileError, ImportError};
 use crate::settings::{DictionaryOptions, YomichanOptions, YomichanProfile};
 use crate::structured_content::{StructuredContent, TermGlossary, TermGlossaryGroupType};
@@ -62,13 +68,13 @@ impl<V: Send + Sync> DictionarySet for &IndexMap<String, V> {
 pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     let mut models = Models::new();
     models.define::<YomichanOptions>().unwrap();
-    models.define::<DictionarySummary>().unwrap();
+    models.define::<YomichanDatabaseSummary>().unwrap();
     models.define::<DatabaseTermEntry>().unwrap();
     /// in js, freq, pitch, and phonetic are grouped under an enum
     /// native_model doesn't support this you can only have a single primary key
     /// so we add all 3 types
     models.define::<DatabaseMetaFrequency>().unwrap();
-    models.define::<DatabaseMetaPitch>().unwrap();
+    models.define::<YomichanDatabaseMetaPitch>().unwrap();
     models.define::<DatabaseMetaPhonetic>().unwrap();
     models.define::<DatabaseKanjiEntry>().unwrap();
     models.define::<DatabaseKanjiMeta>().unwrap();
@@ -461,20 +467,32 @@ impl DBMetaType for DatabaseMetaFrequency {
     }
 }
 
-/// Used to store the pitch metadata of a term in the db.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, From, Into)]
 #[native_model(id = 4, version = 1)]
-#[native_db]
-pub struct DatabaseMetaPitch {
-    #[primary_key]
-    pub id: String,
-    #[secondary_key]
-    pub pitch_expression: String,
-    /// Is of type [`TermMetaModeType::Pitch`]
-    pub mode: TermMetaModeType,
-    pub data: TermMetaPitchData,
-    pub dictionary: String,
+#[native_db(
+    primary_key(id -> String)
+)]
+struct YomichanDatabaseMetaPitch(DatabaseMetaPitch);
+impl YomichanDatabaseMetaPitch {
+    fn id(&self) -> String {
+        self.0.id.clone()
+    }
 }
+
+/// Used to store the pitch metadata of a term in the db.
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// #[native_model(id = 4, version = 1)]
+// #[native_db]
+// pub struct DatabaseMetaPitch {
+//     #[primary_key]
+//     pub id: String,
+//     #[secondary_key]
+//     pub pitch_expression: String,
+//     /// Is of type [`TermMetaModeType::Pitch`]
+//     pub mode: TermMetaModeType,
+//     pub data: TermMetaPitchData,
+//     pub dictionary: String,
+// }
 /// Pitch accent information for a term, represented as the position of the downstep.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PitchAccent {
@@ -826,7 +844,7 @@ use native_db::{
 // use std::marker::PhantomData;
 use std::ops::{Bound, Deref, RangeBounds};
 
-use super::dictionary_importer::DictionarySummaryKey; // RangeBounds unused
+
 
 /// Describes the kind of secondary key to query.
 /// This enum IS `Clone` and `Copy`.
@@ -910,9 +928,9 @@ impl DictionaryDatabase<'_> {
     //
     pub fn get_dictionary_summaries(
         &self,
-    ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
+    ) -> Result<Vec<YomichanDatabaseSummary>, Box<DictionaryDatabaseError>> {
         let rtx = self.db.r_transaction()?;
-        let summaries: Result<Vec<DictionarySummary>, native_db::db_type::Error> =
+        let summaries: Result<Vec<YomichanDatabaseSummary>, native_db::db_type::Error> =
             rtx.scan().primary()?.all()?.collect();
         let mut summaries = summaries?;
         summaries.sort_by_key(|s| s.import_date);
