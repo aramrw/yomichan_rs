@@ -7,13 +7,14 @@ use anki_direct::{
     notes::{Note, NoteBuilder},
     ReqwestClient,
 };
+use importer::dictionary_database::TermSourceMatchType;
 use indexmap::IndexMap;
 use parking_lot::{ArcRwLockReadGuard, RawRwLock};
 
 use crate::{
     backend::FindTermsDetails,
     database::dictionary_database::DictionaryDatabase,
-    dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
+    dictionary::{TermDictionaryEntry, TermSource},
     settings::{AnkiOptions, DecksMap, ProfileOptions, YomichanProfile},
     translator::{FindTermsMode, FindTermsResult, Translator},
     Ptr, Yomichan,
@@ -565,7 +566,6 @@ impl<'a> TextScanner<'a> {
 #[cfg(test)]
 mod textscanner {
     use crate::{
-        structured_content::TermGlossary,
         test_utils::{self, YCD},
         Yomichan,
     };

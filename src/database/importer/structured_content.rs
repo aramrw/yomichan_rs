@@ -1,4 +1,4 @@
-use crate::database::dictionary_database::{DBMetaType, TermMetaPhoneticData};
+use crate::database::dictionary_database::TermMetaPhoneticData;
 use importer::dictionary_data::VecNumOrNum;
 use importer::dictionary_importer::FrequencyMode;
 use importer::structured_content::ImageElement;

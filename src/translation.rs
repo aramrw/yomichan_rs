@@ -1,10 +1,11 @@
-use fancy_regex::Regex;
-use indexmap::{IndexMap, IndexSet};
 use deinflector::language_d::FindTermsTextReplacements;
+use fancy_regex::Regex;
+use importer::dictionary_database::TermSourceMatchType;
+use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    database::dictionary_database::DictionarySet, dictionary::TermSourceMatchType,
+    database::dictionary_database::DictionarySet,
     settings::SearchResolution,
 };
 

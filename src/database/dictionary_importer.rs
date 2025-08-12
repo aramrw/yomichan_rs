@@ -1,6 +1,6 @@
 use crate::backend::Backend;
 use crate::database::dictionary_database::{
-    DatabaseDictData, MediaDataArrayBufferContent, TermEntry, DB_MODELS,
+    MediaDataArrayBufferContent, TermEntry, DB_MODELS,
 };
 use crate::dictionary::{self, KanjiDictionaryEntry};
 // COMMENTED OUT: Duplicate imports from importer crate

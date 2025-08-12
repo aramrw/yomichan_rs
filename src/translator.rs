@@ -5,14 +5,14 @@ use crate::{
         self,
         dictionary_database::{
             DatabaseTag, DatabaseTermMeta, DictionaryDatabase, DictionarySet, GenericQueryRequest,
-            PhoneticTranscription, PitchAccent, Pronunciation, QueryRequestMatchType, QueryType,
-            TermEntry, TermExactQueryRequest, TermPronunciationMatchType,
+            PhoneticTranscription, PitchAccent, QueryRequestMatchType, QueryType, TermEntry,
+            TermExactQueryRequest, TermPronunciationMatchType,
         },
     },
     dictionary::{
-        self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
-        TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
-        TermSource, TermSourceMatchSource, TermSourceMatchType,
+        self, DictionaryEntryType, EntryInflectionRuleChainCandidatesKey, TermDefinition,
+        TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation, TermSource,
+        TermSourceMatchSource, TermSourceMatchType,
     },
     freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
@@ -20,10 +20,6 @@ use crate::{
         DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
         SortFrequencyDictionaryOrder, TranslationOptions, TranslationTextReplacementGroup,
         TranslationTextReplacementOptions,
-    },
-    structured_content::{
-        TermGlossary, TermGlossaryContent, TermGlossaryContentGroup, TermGlossaryDeinflection,
-        TermGlossaryGroupType,
     },
     test_utils, to_variant,
     translation::{
@@ -59,7 +55,20 @@ use icu::{
     datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
     locale::locale,
 };
-use importer::dictionary_data::{FrequencyInfo, GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum};
+use importer::dictionary_database::Pronunciation;
+use importer::{
+    dictionary_data::{
+        FrequencyInfo, GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType,
+        TermMetaModeType, VecNumOrNum,
+    },
+};
+use importer::{
+    dictionary_database::DictionaryTag,
+    structured_content::{
+        TermGlossary, TermGlossaryContent, TermGlossaryContentGroup, TermGlossaryDeinflection,
+        TermGlossaryGroupType,
+    },
+};
 use indexmap::{IndexMap, IndexSet};
 use native_db::*;
 use native_model::{native_model, Model};
@@ -1333,13 +1342,15 @@ impl<'a> Translator<'a> {
                             let devoice_positions_vec = Translator::_vec_num_or_num_to_vec_u8(
                                 pitch_item_data.devoice.as_ref(),
                             ); // JS: devoicePositions
-                            pitches_to_add.push(Pronunciation::PitchAccent(PitchAccent {
-                                term: TermPronunciationMatchType::PitchAccent,
-                                position: pitch_item_data.position,
-                                nasal_positions: nasal_positions_vec,
-                                devoice_positions: devoice_positions_vec,
-                                tags: resolved_tags,
-                            }));
+                            pitches_to_add.push(Pronunciation::PitchAccent(
+                                importer::dictionary_database::PitchAccent {
+                                    term: importer::dictionary_database::TermPronunciationMatchType::PitchAccent,
+                                    position: pitch_item_data.position,
+                                    nasal_positions: nasal_positions_vec,
+                                    devoice_positions: devoice_positions_vec,
+                                    tags: resolved_tags,
+                                },
+                            ));
                         }
                         if pitches_to_add.is_empty() {
                             // Not explicitly in JS, but good practice
@@ -1386,11 +1397,14 @@ impl<'a> Translator<'a> {
                                 );
                             }
                             phonetic_transcriptions_to_add.push(
-                                Pronunciation::PhoneticTranscription(PhoneticTranscription {
-                                    match_type: TermPronunciationMatchType::PhoneticTranscription,
-                                    ipa: transcription_item.ipa.clone(),
-                                    tags: resolved_ipa_tags,
-                                }),
+                                Pronunciation::PhoneticTranscription(
+                                    importer::dictionary_database::PhoneticTranscription {
+                                        match_type:
+                                            importer::dictionary_database::TermPronunciationMatchType::PhoneticTranscription,
+                                        ipa: transcription_item.ipa.clone(),
+                                        tags: resolved_ipa_tags,
+                                    },
+                                ),
                             );
                             // The JS code pushes the transcription_item itself again,
                             // which seems redundant or a mistake
@@ -1473,7 +1487,9 @@ impl<'a> Translator<'a> {
         }
     }
 
-    fn _get_frequency_info(frequency_data: importer::dictionary_data::GenericFreqData) -> FrequencyInfo {
+    fn _get_frequency_info(
+        frequency_data: importer::dictionary_data::GenericFreqData,
+    ) -> FrequencyInfo {
         match frequency_data {
             GenericFreqData::Object(obj) => FrequencyInfo {
                 frequency: obj.value,
@@ -2197,7 +2213,7 @@ impl<'a> Translator<'a> {
         // this is how yomitan_js does
         let mut database_entries = self
             .db
-            .find_terms_by_sequence_bulk(sequence_list)
+            .find_terms_by_sequence_bulk(&sequence_list)
             .unwrap_or_default();
         for db_entry in database_entries {
             let TermEntry {
@@ -2406,7 +2422,10 @@ impl<'a> Translator<'a> {
                 match_primary_reading = true;
             }
             for source in sources {
-                if source.is_primary && source.match_source == TermSourceMatchSource::Term {
+                if source.is_primary
+                    && source.match_source
+                        == importer::dictionary_database::TermSourceMatchSource::Term
+                {
                     source_term_exact_match_count += 1;
                     break;
                 }
@@ -3013,8 +3032,8 @@ impl<'a> Translator<'a> {
         original_text: String,
         transformed_text: String,
         deinflected_text: String,
-        match_type: TermSourceMatchType,
-        match_source: TermSourceMatchSource,
+        match_type: importer::dictionary_database::TermSourceMatchType,
+        match_source: importer::dictionary_database::TermSourceMatchSource,
         is_primary: bool,
     ) -> TermSource {
         TermSource {
@@ -3175,7 +3194,7 @@ impl<'a> Translator<'a> {
                                 let inflection_rule_chain_candidates: Vec<String> = alg_inflections
                                     .iter()
                                     .cloned()
-                                    .chain(inflection_rules.iter().cloned())
+                                    .chain(inflection_rules.iter().map(|ir| ir.to_string()))
                                     .collect();
                                 InternalInflectionRuleChainCandidate {
                                     source,
@@ -3186,7 +3205,7 @@ impl<'a> Translator<'a> {
                         let dictionary_deinflection = Translator::_create_deinflection(
                             original_text,
                             transformed_text,
-                            form_of,
+                            &form_of,
                             0,
                             text_processor_rule_chain_candidates.clone(),
                             inflection_rule_chain_candidates,

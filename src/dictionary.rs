@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
 use crate::{
-    database::dictionary_database::{Pronunciation, TermPronunciationMatchType},
-    structured_content::{TermGlossaryContent, TermGlossaryContentGroup},
-    translation_internal::TextProcessorRuleChainCandidate,
-    translator::TermType,
+    database::dictionary_database::TermPronunciationMatchType,
+    translation_internal::TextProcessorRuleChainCandidate, translator::TermType,
 };
 use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
 use derive_more::derive::From;
 use getset::MutGetters;
+use importer::{
+    dictionary_database::{DictionaryTag, Pronunciation},
+    structured_content::{TermGlossaryContent, TermGlossaryContentGroup},
+};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -27,42 +29,42 @@ pub struct EntryInflectionRuleChainCandidatesKey {
     pub inflection_rule_chain_candidates: Vec<DictionaryInflectionRuleChainCandidate>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-/// A tag represents some brief information about part of a dictionary entry.
-pub struct DictionaryTag {
-    /// The name of the tag.
-    pub name: String,
-    /// The category of the tag.
-    pub category: String,
-    /// A number indicating the sorting order of the tag.
-    pub order: usize,
-    /// A score value for the tag.
-    pub score: usize,
-    /// An array of descriptions for the tag. If there are multiple entries,
-    /// the values will typically have originated from different dictionaries.
-    /// However, there is no correlation between the length of this array and
-    /// the length of the `dictionaries` field, as duplicates are removed.
-    pub content: Vec<String>,
-    /// An array of dictionary names that contained a tag with this name and category.
-    pub dictionaries: Vec<String>,
-    /// Whether or not this tag is redundant with previous tags.
-    pub redundant: bool,
-}
-impl DictionaryTag {
-    /// sets the category to "default"
-    pub fn new_default(name: String, dictionary: String) -> Self {
-        Self {
-            name,
-            category: "default".to_string(),
-            order: 0,
-            score: 0,
-            content: vec![],
-            dictionaries: vec![dictionary],
-            redundant: false,
-        }
-    }
-}
-
+// #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+// /// A tag represents some brief information about part of a dictionary entry.
+// pub struct DictionaryTag {
+//     /// The name of the tag.
+//     pub name: String,
+//     /// The category of the tag.
+//     pub category: String,
+//     /// A number indicating the sorting order of the tag.
+//     pub order: usize,
+//     /// A score value for the tag.
+//     pub score: usize,
+//     /// An array of descriptions for the tag. If there are multiple entries,
+//     /// the values will typically have originated from different dictionaries.
+//     /// However, there is no correlation between the length of this array and
+//     /// the length of the `dictionaries` field, as duplicates are removed.
+//     pub content: Vec<String>,
+//     /// An array of dictionary names that contained a tag with this name and category.
+//     pub dictionaries: Vec<String>,
+//     /// Whether or not this tag is redundant with previous tags.
+//     pub redundant: bool,
+// }
+// impl DictionaryTag {
+//     /// sets the category to "default"
+//     pub fn new_default(name: String, dictionary: String) -> Self {
+//         Self {
+//             name,
+//             category: "default".to_string(),
+//             order: 0,
+//             score: 0,
+//             content: vec![],
+//             dictionaries: vec![dictionary],
+//             redundant: false,
+//         }
+//     }
+// }
+//
 /*************** Kanji ***************/
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -211,7 +213,7 @@ pub struct TermHeadword {
     pub sources: Vec<TermSource>,
     /// Tags providing additional information about the headword (e.g., "usually written
     /// using kana alone").
-    pub tags: Vec<DictionaryTag>,
+    pub tags: Vec<importer::dictionary_database::DictionaryTag>,
     /// A list of parts of speech associated with this headword (e.g., "Noun", "Verb").
     pub word_classes: Vec<String>,
 }
@@ -249,7 +251,7 @@ pub struct TermDefinition {
     pub is_primary: bool,
     /// Tags providing additional information about the definition (e.g., usage notes,
     /// field of study).
-    pub tags: Vec<DictionaryTag>,
+    pub tags: Vec<importer::dictionary_database::DictionaryTag>,
     /// The structured content of the definition, typically a list of glossary entries.
     /// See [`TermGlossaryContentGroup`] for more details.
     pub entries: Vec<TermGlossaryContentGroup>,
@@ -282,9 +284,9 @@ pub struct TermSource {
     /// The final text after applying deinflections.
     pub deinflected_text: String,
     /// How the deinflected text matches the value from the database.
-    pub match_type: TermSourceMatchType,
+    pub match_type: importer::dictionary_database::TermSourceMatchType,
     /// Which field was used to match the database entry.
-    pub match_source: TermSourceMatchSource,
+    pub match_source: importer::dictionary_database::TermSourceMatchSource,
     /// Whether or not this source is a primary source. Primary sources are derived from the
     /// original search text, while non-primary sources originate from related terms.
     pub is_primary: bool,
