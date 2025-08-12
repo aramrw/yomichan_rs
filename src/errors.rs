@@ -1,10 +1,10 @@
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnkiError;
 use crate::{
-    importer::dictionary_importer::DictionarySummaryError,
     settings::ProfileError,
     InitError,
 };
+use importer::dictionary_importer::DictionarySummaryError;
 use native_db::db_type;
 use std::{
     error::Error,

@@ -1,20 +1,21 @@
-use derive_more::derive::{From, Into};
-use importer::dictionary_data::TermMetaModeType;
-use importer::dictionary_database::DatabaseMetaPitch;
-use importer::dictionary_importer::DictionarySummary;
-use importer::dictionary_data::TermMeta;
-use importer::dictionary_data::MetaDataMatchType;
+use crate::database::dictionary_importer::YomichanDatabaseSummary;
 use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
 use crate::dictionary_data::{
-    DictionaryDataTag, TermMetaFreqDataMatchType, TermMetaFrequency,
-    TermMetaPitch, TermMetaPitchData,
+    DictionaryDataTag, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaPitch,
+    TermMetaPitchData,
 };
-use crate::database::dictionary_importer::YomichanDatabaseSummary;
+use crate::dictionary_importer::YomichanDatabaseMetaPhonetic;
 use crate::errors::{DBError, DictionaryFileError, ImportError};
 use crate::settings::{DictionaryOptions, YomichanOptions, YomichanProfile};
 use crate::structured_content::{StructuredContent, TermGlossary, TermGlossaryGroupType};
 use crate::test_utils::TEST_PATHS;
 use crate::translator::TagTargetItem;
+use derive_more::derive::{Deref, DerefMut, From, Into};
+use importer::dictionary_data::MetaDataMatchType;
+use importer::dictionary_data::TermMeta;
+use importer::dictionary_data::TermMetaModeType;
+use importer::dictionary_database::{DatabaseMetaPhonetic, DatabaseMetaPitch};
+use importer::dictionary_importer::DictionarySummary;
 use serde_with::skip_serializing_none;
 use serde_with::{serde_as, NoneAsEmptyString};
 
@@ -329,20 +330,6 @@ pub struct DatabaseTag {
 
 /*************** Database Term Meta ***************/
 
-pub trait DBMetaType {
-    fn mode(&self) -> &TermMetaModeType;
-    fn expression(&self) -> &str;
-}
-
-// /// A custom `Yomichan_rs`-unique, generic Database Meta model.
-// ///
-// /// May contain `any` or `all` of the values.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum DatabaseMetaMatchType {
-    Frequency(DatabaseMetaFrequency),
-    Pitch(DatabaseMetaPitch),
-    Phonetic(DatabaseMetaPhonetic),
-}
 
 impl DatabaseMetaMatchType {
     pub fn convert_kanji_meta_file(
@@ -444,21 +431,34 @@ impl DatabaseMetaMatchType {
     }
 }
 
-/// Used to store the frequency metadata of a term in the db.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 3, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
-#[native_db]
-pub struct DatabaseMetaFrequency {
-    #[primary_key]
-    pub id: String,
-    #[secondary_key]
-    pub freq_expression: String,
-    /// Is of type [`TermMetaModeType::Freq`]
-    pub mode: TermMetaModeType,
-    pub data: TermMetaFreqDataMatchType,
-    pub dictionary: String,
+pub trait DBMetaType {
+    fn mode(&self) -> &TermMetaModeType;
+    fn expression(&self) -> &str;
 }
-impl DBMetaType for DatabaseMetaFrequency {
+
+// /// A custom `Yomichan_rs`-unique, generic Database Meta model.
+// ///
+// /// May contain `any` or `all` of the values.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum DatabaseMetaMatchType {
+    Frequency(DatabaseMetaFrequency),
+    Pitch(DatabaseMetaPitch),
+    Phonetic(DatabaseMetaPhonetic),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, From, Into, DerefMut, Deref)]
+#[native_model(id = 3, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
+#[native_db(
+    primary_key(id -> &str),
+    secondary_key(expression -> &str)
+)]
+struct YomichanDatabaseMetaFrequency(importer::dictionary_database::DatabaseMetaFrequency);
+impl YomichanDatabaseMetaFrequency {
+    fn id(&self) -> &str {
+        &self.0.id
+    }
+}
+impl DBMetaType for YomichanDatabaseMetaFrequency {
     fn mode(&self) -> &TermMetaModeType {
         &self.mode
     }
@@ -467,32 +467,27 @@ impl DBMetaType for DatabaseMetaFrequency {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, From, Into)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, From, Into, Deref, DerefMut)]
 #[native_model(id = 4, version = 1)]
 #[native_db(
-    primary_key(id -> String)
+    primary_key(id -> &str),
+    secondary_key(expression -> String)
 )]
 struct YomichanDatabaseMetaPitch(DatabaseMetaPitch);
 impl YomichanDatabaseMetaPitch {
-    fn id(&self) -> String {
-        self.0.id.clone()
+    fn id(&self) -> &str {
+        &self.id
+    }
+}
+impl DBMetaType for YomichanDatabaseMetaPitch {
+    fn mode(&self) -> &TermMetaModeType {
+        &self.mode
+    }
+    fn expression(&self) -> &str {
+        &self.pitch_expression
     }
 }
 
-/// Used to store the pitch metadata of a term in the db.
-// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-// #[native_model(id = 4, version = 1)]
-// #[native_db]
-// pub struct DatabaseMetaPitch {
-//     #[primary_key]
-//     pub id: String,
-//     #[secondary_key]
-//     pub pitch_expression: String,
-//     /// Is of type [`TermMetaModeType::Pitch`]
-//     pub mode: TermMetaModeType,
-//     pub data: TermMetaPitchData,
-//     pub dictionary: String,
-// }
 /// Pitch accent information for a term, represented as the position of the downstep.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PitchAccent {
@@ -517,20 +512,18 @@ impl DBMetaType for DatabaseMetaPitch {
     }
 }
 
-/// Used to store the phonetic metadata of a term in the db.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 5, version = 1)]
-#[native_db]
-pub struct DatabaseMetaPhonetic {
-    #[primary_key]
-    pub id: String,
-    #[secondary_key]
-    pub phonetic_expression: String,
-    /// Is of type [`TermMetaModeType::Ipa`]
-    pub mode: TermMetaModeType,
-    pub data: TermMetaPhoneticData,
-    pub dictionary: String,
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, From, Into)]
+#[native_model(id = 4, version = 1)]
+#[native_db(
+    primary_key(id -> &str)
+)]
+pub struct YomichanDatabaseMetaPhonetic(importer::DatabaseMetaPhonetic);
+impl YomichanDatabaseMetaPhonetic {
+    fn id(&self) -> &str {
+        &self.0.id
+    }
 }
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermMetaPhoneticData {
     pub reading: String,
@@ -843,8 +836,6 @@ use native_db::{
 // std::marker::PhantomData is unused
 // use std::marker::PhantomData;
 use std::ops::{Bound, Deref, RangeBounds};
-
-
 
 /// Describes the kind of secondary key to query.
 /// This enum IS `Clone` and `Copy`.
@@ -1600,11 +1591,11 @@ mod dbtests {
             //tdcs.join("kty-es-en"),
             //tdcs.join("daijirin"),
             tdcs.join("oubunshakokugo"), // works
-            //tdcs.join("yonjijukugo"),
-            //tdcs.join("daijirin_test_version"),
-            //tdcs.join("ajdfreq"),
-            //tdcs.join("pitch_accent"),
-            //tdcs.join("kotobankesjp"),
+                                         //tdcs.join("yonjijukugo"),
+                                         //tdcs.join("daijirin_test_version"),
+                                         //tdcs.join("ajdfreq"),
+                                         //tdcs.join("pitch_accent"),
+                                         //tdcs.join("kotobankesjp"),
         ];
         match ycd.import_dictionaries(&paths) {
             Ok(_) => {}

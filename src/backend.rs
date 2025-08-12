@@ -15,22 +15,14 @@ use crate::anki::DisplayAnki;
 use crate::{
     database::{
         dictionary_database::{DictionaryDatabase, DictionaryDatabaseError},
-        importer::dictionary_importer::DictionarySummary,
-    },
-    dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchSource, TermSourceMatchType},
-    environment::{EnvironmentInfo, CACHED_ENVIRONMENT_INFO},
-    errors::{DBError, YomichanError},
-    settings::{
+        dictionary_importer::DictionarySummary,
+    }, dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchSource, TermSourceMatchType}, dictionary_importer::YomichanDatabaseSummary, environment::{EnvironmentInfo, CACHED_ENVIRONMENT_INFO}, errors::{DBError, YomichanError}, settings::{
         DictionaryOptions, GeneralOptions, ProfileError, ProfileOptions, ProfileResult,
         ScanningOptions, SearchResolution, TranslationOptions, TranslationTextReplacementGroup,
         TranslationTextReplacementOptions, YomichanOptions,
-    },
-    text_scanner::{TermSearchResults, TextScanner},
-    translation::{
+    }, text_scanner::{TermSearchResults, TextScanner}, translation::{
         FindTermDictionary, FindTermsMatchType, FindTermsOptions, TermEnabledDictionaryMap,
-    },
-    translator::{EnabledDictionaryMapType, FindTermsMode, FindTermsResult, Translator},
-    Ptr, Yomichan,
+    }, translator::{EnabledDictionaryMapType, FindTermsMode, FindTermsResult, Translator}, Ptr, Yomichan
 };
 
 /// `yomichan_rs` private engine
@@ -149,7 +141,7 @@ impl<'a> Yomichan<'a> {
     /// [DictionarySummary] is different from [DictionaryOptions]
     pub fn dictionary_summaries(
         &self,
-    ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
+    ) -> Result<Vec<YomichanDatabaseSummary>, Box<DictionaryDatabaseError>> {
         self.db.get_dictionary_summaries()
     }
 }
@@ -188,9 +180,9 @@ type ParseTextLine = Vec<ParseTextSegment>;
 mod ycd_tests {
     use std::{cell::RefCell, fs::File, io::BufReader};
 
+    use importer::{dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType}, dictionary_database::{DatabaseMetaFrequency, DatabaseTermEntry}};
+
     use crate::{
-        database::dictionary_database::{DatabaseMetaFrequency, DatabaseTermEntry},
-        dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
         test_utils::{self, TEST_PATHS},
         Yomichan,
     };

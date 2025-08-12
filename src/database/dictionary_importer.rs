@@ -17,12 +17,12 @@ use crate::settings::{
 use crate::structured_content::{
     ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
 };
-use derive_more::derive::From;
-use importer::dictionary_data::MetaDataMatchType;
+use derive_more::derive::{Deref, DerefMut, From, Into};
+use importer::dictionary_data::{MetaDataMatchType, TermMetaModeType};
 use importer::dictionary_database::{
-    DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTag, DatabaseTermEntryTuple
+    DBMetaType, DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTag, DatabaseTermEntryTuple
 };
-use importer::dictionary_importer::{prepare_dictionary, DictionarySummary};
+pub use importer::dictionary_importer::{prepare_dictionary, DictionarySummary};
 use importer::DatabaseDictionaryData;
 
 use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
@@ -118,366 +118,6 @@ impl Backend<'_> {
     }
 }
 
-/*
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum ImportSteps {
-    Uninitialized,
-    ValidateIndex,
-    ValidateSchema,
-    FormatDictionary,
-    ImportMedia,
-    ImportData,
-    Completed,
-}
-*/
-
-/*
-#[allow(clippy::enum_variant_names)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum CompiledSchemaNames {
-    TermBank,
-    /// Metadata & information for terms.
-    ///
-    /// This currently includes `frequency data` and `pitch accent` data.
-    TermMetaBank,
-    KanjiBank,
-    KanjiMetaBank,
-    /// Data file containing tag information for terms and kanji.
-    TagBank,
-}
-*/
-
-/*
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ImportResult {
-    result: Option<DictionarySummary>,
-    //errors: Vec<ImportError>,
-}
-*/
-
-/*
-#[derive(Clone, Debug, PartialEq, Copy, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct ImportDetails {
-    prefix_wildcards_supported: bool,
-}
-*/
-
-/*
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum FrequencyMode {
-    #[serde(rename = "occurrence-based")]
-    OccurrenceBased,
-    #[serde(rename = "rank-based")]
-    RankBased,
-}
-*/
-
-/*
-// Final details about the Dictionary and it's import process.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_db]
-#[native_model(id = 1, version = 1)]
-pub struct YomichanDictionarySummary {
-    /// Name of the dictionary.
-    #[primary_key]
-    pub title: String,
-    /// Revision of the dictionary.
-    /// This value is only used for displaying information.
-    pub revision: String,
-    /// Whether or not this dictionary contains sequencing information for related terms.
-    pub sequenced: Option<bool>,
-    /// The minimum Yomitan version necessary for the dictionary to function
-    pub minimum_yomitan_version: Option<String>,
-    /// Format of data found in the JSON data files.
-    pub version: Option<u8>,
-    /// Date the dictionary was added to the db.
-    pub import_date: DateTime<Local>,
-    /// Whether or not wildcards can be used for the search query.
-    ///
-    /// Rather than searching for the source text exactly,
-    /// the text will only be required to be a prefix of an existing term.
-    /// For example, scanning `読み` will effectively search for `読み*`
-    /// which may bring up additional results such as `読み方`.
-    pub prefix_wildcards_supported: bool,
-    pub counts: SummaryCounts,
-    /// Creator of the dictionary.
-    pub styles: String,
-    pub is_updatable: bool,
-    pub index_url: Option<String>,
-    pub download_url: Option<String>,
-    pub author: Option<String>,
-    /// URL for the source of the dictionary.
-    pub url: Option<String>,
-    /// Description of the dictionary data.
-    pub description: Option<String>,
-    /// Attribution information for the dictionary data.
-    pub attribution: Option<String>,
-    /// Language of the terms in the dictionary.
-    #[secondary_key]
-    pub source_language: Option<String>,
-    /// Main language of the definitions in the dictionary.
-    #[secondary_key]
-    pub target_language: Option<String>,
-    /// (See: [FrequencyMode])
-    pub frequency_mode: Option<FrequencyMode>,
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum DictionarySummaryError {
-    #[error("dictionary is incompatible with current version of Yomitan: (${yomitan_version}; minimum required: ${minimum_required_yomitan_version}); dictionary: {dictionary}")]
-    IncompatibleYomitanVersion {
-        yomitan_version: String,
-        minimum_required_yomitan_version: String,
-        dictionary: String,
-    },
-    #[error("invalid index data: `is_updatable` exists but is false")]
-    InvalidIndexIsNotUpdatabale,
-    #[error("index url: {url} is not a valid url\nreason: {err}")]
-    InvalidIndexUrl { url: String, err: url::ParseError },
-}
-
-impl YomichanDictionarySummary {
-    fn new(
-        index: Index,
-        prefix_wildcards_supported: bool,
-        details: SummaryDetails,
-    ) -> Result<Self, DictionarySummaryError> {
-        let import_date: DateTime<Local> = Local::now();
-        let SummaryDetails {
-            prefix_wildcard_supported,
-            counts,
-            styles,
-            yomitan_version,
-        } = details;
-        let Index {
-            title,
-            revision,
-            sequenced,
-            format,
-            version,
-            minimum_yomitan_version,
-            is_updatable,
-            index_url,
-            download_url,
-            author,
-            url,
-            description,
-            attribution,
-            source_language,
-            target_language,
-            frequency_mode,
-            tag_meta,
-        } = index;
-
-        if yomitan_version == "0.0.0.0" {
-            // running development version
-        } else if let Some(minimum_yomitan_version) = &minimum_yomitan_version {
-            if dictionary_data_util::compare_revisions(&yomitan_version, minimum_yomitan_version) {
-                return Err(DictionarySummaryError::IncompatibleYomitanVersion {
-                    yomitan_version,
-                    minimum_required_yomitan_version: minimum_yomitan_version.clone(),
-                    dictionary: title,
-                });
-            }
-        }
-
-        if let Some(is_updatable) = is_updatable {
-            if !is_updatable {
-                return Err(DictionarySummaryError::InvalidIndexIsNotUpdatabale);
-            }
-            if let Some(index_url) = &index_url {
-                if let Err(err) = dictionary_data_util::validate_url(index_url) {
-                    return Err(DictionarySummaryError::InvalidIndexUrl {
-                        url: index_url.clone(),
-                        err,
-                    });
-                }
-            }
-            if let Some(download_url) = &download_url {
-                if let Err(err) = dictionary_data_util::validate_url(download_url) {
-                    return Err(DictionarySummaryError::InvalidIndexUrl {
-                        url: download_url.clone(),
-                        err,
-                    });
-                }
-            }
-        }
-
-        let res = Self {
-            title,
-            revision,
-            sequenced,
-            minimum_yomitan_version,
-            version,
-            import_date,
-            prefix_wildcards_supported,
-            counts,
-            styles,
-            is_updatable: is_updatable.unwrap_or_default(),
-            index_url,
-            download_url,
-            author,
-            url,
-            description,
-            attribution,
-            source_language,
-            target_language,
-            frequency_mode,
-        };
-        Ok(res)
-    }
-}
-*/
-
-/*
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct SummaryDetails {
-    pub prefix_wildcard_supported: bool,
-    pub counts: SummaryCounts,
-    // some kind of styles.css file stuff
-    pub styles: String,
-    pub yomitan_version: String,
-}
-*/
-
-/*
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct SummaryCounts {
-    pub terms: SummaryItemCount,
-    pub term_meta: SummaryMetaCount,
-    pub kanji: SummaryItemCount,
-    pub kanji_meta: SummaryMetaCount,
-    pub tag_meta: SummaryItemCount,
-    pub media: SummaryItemCount,
-}
-
-impl SummaryCounts {
-    fn new(
-        term_len: usize,
-        term_meta_len: usize,
-        tag_len: usize,
-        kanji_len: usize,
-        kanji_meta_len: usize,
-        term_meta_counts: MetaCounts,
-        kanji_meta_counts: MetaCounts,
-    ) -> Self {
-        Self {
-            terms: SummaryItemCount {
-                total: term_len as u16,
-            },
-            term_meta: SummaryMetaCount {
-                total: term_meta_len as u16,
-                meta: term_meta_counts,
-            },
-            tag_meta: SummaryItemCount {
-                total: tag_len as u16,
-            },
-            kanji_meta: SummaryMetaCount {
-                total: kanji_meta_len as u16,
-                meta: kanji_meta_counts,
-            },
-            kanji: SummaryItemCount {
-                total: kanji_len as u16,
-            },
-            // Can't deserialize media (yet).
-            media: SummaryItemCount { total: 0 },
-        }
-    }
-}
-*/
-
-/*
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct SummaryItemCount {
-    pub total: u16,
-}
-
-impl SummaryItemCount {}
-*/
-
-/*
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct SummaryMetaCount {
-    pub total: u16,
-    pub meta: MetaCounts,
-}
-*/
-
-/*
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
-pub struct MetaCounts {
-    pub freq: u32,
-    pub pitch: u32,
-    pub ipa: u32,
-}
-
-impl MetaCounts {
-    fn count_kanji_metas(kanji_metas: &[DatabaseMetaFrequency]) -> Self {
-        MetaCounts {
-            freq: kanji_metas.len() as u32,
-            ..Default::default()
-        }
-    }
-    fn count_term_metas(metas: &[DatabaseMetaMatchType]) -> Self {
-        let mut meta_counts = MetaCounts::default();
-
-        for database_meta_match_type in metas.iter() {
-            match database_meta_match_type {
-                DatabaseMetaMatchType::Frequency(_) => meta_counts.freq += 1,
-                DatabaseMetaMatchType::Pitch(_) => meta_counts.pitch += 1,
-                DatabaseMetaMatchType::Phonetic(_) => meta_counts.ipa += 1,
-            }
-        }
-
-        meta_counts
-    }
-}
-*/
-
-/*
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum ImageImportMatchType {
-    Image,
-    StructuredContentImage,
-}
-*/
-
-/*
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ImageImportRequirement {
-    /// This is of type [`ImageImportType::Image`]
-    image_type: ImageImportMatchType,
-    target: TermGlossaryImage,
-    source: TermGlossaryImage,
-    entry: DatabaseTermEntry,
-}
-*/
-
-/*
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct StructuredContentImageImportRequirement {
-    /// This is of type [`ImageImportType::StructuredContentImage`]
-    image_type: ImageImportMatchType,
-    target: TermGlossaryImage,
-    source: TermGlossaryImage,
-    entry: DatabaseTermEntry,
-}
-*/
-
-/*
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ImportRequirementContext {
-    //file_map: ArchiveFileMap,
-    media: IndexMap<String, MediaDataArrayBufferContent>,
-}
-*/
-/*
-/// Deserializable type mapping a `term_bank_$i.json` file.
-pub type TermBank = Vec<TermEntryItem>;
-pub type TermMetaBank = Vec<TermMeta>;
-pub type KanjiBank = Vec<DatabaseKanjiEntry>;
-*/
-
 fn extract_dict_zip<P: AsRef<std::path::Path>>(
     zip_path: P,
 ) -> Result<std::path::PathBuf, ImportZipError> {
@@ -572,58 +212,67 @@ impl From<DictionarySummary> for YomichanDatabaseSummary {
     }
 }
 
-// --- Meta Models (for the enum) ---
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[native_model(id = 5, version = 1)]
-#[native_db]
-pub struct YomichanMetaFrequency {
-    #[primary_key]
-    pub id: String, // e.g., a combination of term and frequency value
-    pub data: DatabaseMetaFrequency,
+#[derive(Serialize, Deserialize, Debug, Clone, Deref, DerefMut, From, Into)]
+#[native_model(id = 65, version = 1)]
+#[native_db(
+    primary_key(id -> &str),
+    secondary_key(expression -> String)
+)]
+pub struct YomichanDatabaseMetaPhonetic(importer::dictionary_database::DatabaseMetaPhonetic);
+impl YomichanDatabaseMetaPhonetic {
+    fn id(&self) -> &str {
+        &self.id
+    }
 }
-
-impl From<DatabaseMetaFrequency> for YomichanMetaFrequency {
-    fn from(freq: DatabaseMetaFrequency) -> Self {
-        Self {
-            id: freq.id.clone(),
-            data: freq,
-        }
+impl DBMetaType for YomichanDatabaseMetaPhonetic {
+    fn mode(&self) -> &TermMetaModeType {
+        &self.mode
+    }
+    fn expression(&self) -> &str {
+        &self.phonetic_expression
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[native_model(id = 59, version = 1)]
-#[native_db]
-pub struct YomichanDatabaseMetaPhonetic {
-    #[primary_key]
-    pub id: String,
-    pub data: DatabaseMetaPhonetic,
-}
 
-impl From<DatabaseMetaPhonetic> for YomichanDatabaseMetaPhonetic {
-    fn from(x: DatabaseMetaPhonetic) -> Self {
-        Self {
-            id: x.id.clone(),
-            data: x,
-        }
+#[derive(Serialize, Deserialize, Debug, Clone, Deref, DerefMut, From, Into)]
+#[native_model(id = 65, version = 1)]
+#[native_db(
+    primary_key(id -> &str),
+    secondary_key(expression -> String)
+)]
+pub struct YomichanDatabaseMetaFrequency(importer::dictionary_database::DatabaseMetaFrequency);
+impl YomichanDatabaseMetaFrequency {
+    fn id(&self) -> &str {
+        &self.id
+    }
+}
+impl DBMetaType for YomichanDatabaseMetaFrequency {
+    fn mode(&self) -> &TermMetaModeType {
+        &self.mode
+    }
+    fn expression(&self) -> &str {
+        &self.freq_expression
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[native_model(id = 60, version = 1)] // Changed ID from 59 to 60
-#[native_db]
-pub struct YomichanDatabaseMetaPitch {
-    #[primary_key]
-    pub id: String,
-    pub data: DatabaseMetaPitch,
+#[derive(Serialize, Deserialize, Debug, Clone, Deref, DerefMut, From, Into)]
+#[native_model(id = 60, version = 1)]
+#[native_db(
+    primary_key(id -> &str),
+    secondary_key(expression -> String)
+)]
+pub struct YomichanDatabaseMetaPitch(importer::dictionary_database::DatabaseMetaPitch);
+impl YomichanDatabaseMetaPitch {
+    fn id(&self) -> &str {
+        &self.id
+    }
 }
-
-impl From<DatabaseMetaPitch> for YomichanDatabaseMetaPitch {
-    fn from(x: DatabaseMetaPitch) -> Self {
-        Self {
-            id: x.id.clone(),
-            data: x,
-        }
+impl DBMetaType for YomichanDatabaseMetaPitch {
+    fn mode(&self) -> &TermMetaModeType {
+        &self.mode
+    }
+    fn expression(&self) -> &str {
+        &self.pitch_expression
     }
 }
 
@@ -667,7 +316,7 @@ pub fn import_dictionary<P: AsRef<Path>>(
         match item {
             DatabaseMetaMatchType::Frequency(freq) => {
                 // Convert to the DB model before inserting
-                rwtx.insert(YomichanMetaFrequency::from(freq))?;
+                rwtx.insert(YomichanDatabaseMetaFrequency::from(freq))?;
             }
             DatabaseMetaMatchType::Pitch(pitch) => {
                 rwtx.insert(YomichanDatabaseMetaPitch::from(pitch))?;

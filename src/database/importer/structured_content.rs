@@ -1,9 +1,8 @@
 use crate::database::dictionary_database::{DBMetaType, TermMetaPhoneticData};
-use crate::database::dictionary_importer::FrequencyMode;
-use crate::dictionary::VecNumOrNum;
+use importer::dictionary_data::VecNumOrNum;
+use importer::dictionary_importer::FrequencyMode;
+use importer::structured_content::ImageElement;
 // use crate::dictionary::{PhoneticTranscription, VecNumOrNum};
-use crate::structured_content;
-use crate::structured_content::{ImageElement, MainStructuredContent};
 use native_db::{Key, ToKey};
 
 use bimap::BiHashMap;
@@ -83,13 +82,13 @@ pub enum TermGlossaryType {
     Image,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermGlossaryImage {
     pub term_glossary_type: TermGlossaryType,
     pub term_image: Option<TermImage>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TermImage {
     pub image_element_base: ImageElement,
     pub vertical_align: Option<()>,
@@ -191,7 +190,7 @@ pub struct TermGlossaryText {
     pub text: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum TermGlossaryContent {
     #[serde(rename = "text")]
