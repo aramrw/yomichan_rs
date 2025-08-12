@@ -9,10 +9,11 @@ use crate::{
             TermExactQueryRequest, TermPronunciationMatchType,
         },
     },
+    
     dictionary::{
         self, DictionaryEntryType, EntryInflectionRuleChainCandidatesKey, TermDefinition,
         TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation, TermSource,
-        TermSourceMatchSource, TermSourceMatchType,
+        
     },
     freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
@@ -32,6 +33,7 @@ use crate::{
         VariantAndTextProcessorRuleChainCandidatesMap,
     },
 };
+use importer::dictionary_database::{TermSourceMatchType, TermSourceMatchSource};
 use deinflector::transformer::{
     InflectionRuleChainCandidate, InflectionSource, InternalInflectionRuleChainCandidate,
 };

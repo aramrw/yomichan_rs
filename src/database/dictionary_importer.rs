@@ -14,7 +14,7 @@ use crate::settings::{
     self, DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, ProfileResult,
     YomichanOptions, YomichanProfile,
 };
-use crate::structured_content::{
+use importer::structured_content::{
     ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
 };
 use derive_more::derive::{Deref, DerefMut, From, Into};
@@ -213,7 +213,7 @@ impl From<DictionarySummary> for YomichanDatabaseSummary {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Deref, DerefMut, From, Into)]
-#[native_model(id = 65, version = 1)]
+#[native_model(id = 66, version = 1)]
 #[native_db(
     primary_key(id -> &str),
     secondary_key(expression -> String)
@@ -779,7 +779,6 @@ mod importer_tests {
 
     use crate::{
         database::{
-            dictionary_database::Queries,
             dictionary_importer::{self, prepare_dictionary},
         },
         settings::YomichanOptions,

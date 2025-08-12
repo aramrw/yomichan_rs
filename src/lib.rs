@@ -1,43 +1,43 @@
 //! # Yomichan RS
-//! 
+//!
 //! A Rust-based engine for processing and searching Yomitan-format dictionaries.
-//! 
+//!
 //! This crate provides a comprehensive interface for dictionary lookups, text processing,
 //! and Anki integration, designed for performance and ease of use. It encapsulates
 //! the database connection, text scanning logic, and user settings into a unified,
 //! thread-safe API.
-//! 
+//!
 //! ## Examples
-//! 
+//!
 //! Here is a basic example of how to initialize the engine, import dictionaries, and perform a search.
-//! 
+//!
 //! ```no_run
 //! use yomichan_rs::Yomichan;
 //! use std::sync::{LazyLock, RwLock};
-//! 
+//!
 //! // Best practice: Initialize Yomichan once as a static variable
 //! // to avoid repeatedly opening the database.
 //! static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
 //!     // Create a new Yomichan instance.
 //!     // This will create a `db.ycd` file in the specified directory.
 //!     let mut ycd = Yomichan::new("path/to/your/db_directory").unwrap();
-//! 
+//!
 //!     // Import dictionaries (e.g., from a folder containing Yomitan-format dictionaries).
 //!     // This only needs to be done once.
 //!     if ycd.get_dictionaries().unwrap().is_empty() {
 //!         ycd.import_dictionaries(&["path/to/your/dictionaries"]).unwrap();
 //!     }
-//! 
+//!
 //!     // Set the language for text processing.
 //!     ycd.set_language("ja").unwrap();
-//! 
+//!
 //!     RwLock::new(ycd)
 //! });
-//! 
+//!
 //! fn main() {
 //!     // Lock the Yomichan instance for writing to perform a search.
 //!     let mut ycd = YCD.write().unwrap();
-//! 
+//!
 //!     // Perform a search.
 //!     if let Some(results) = ycd.search("日本語を勉強している") {
 //!         for segment in results {
@@ -352,6 +352,20 @@ impl<'a> Yomichan<'a> {
         // Use the new, consolidated path resolution logic.
         let db_path = resolve_db_path(path)?;
         let db = Arc::new(DictionaryDatabase::new(db_path));
+
+        #[cfg(not(feature = "anki"))]
+        let backend = Backend::new(db.clone()).map_err(|err| DBError::Database(err))?;
+        #[cfg(feature = "anki")]
+        let backend = Backend::default_sync(db.clone())?;
+
+        Ok(Self { db, backend })
+    }
+
+    pub fn create_in_memory() -> Result<Self, YomichanError> {
+        let db = Arc::new(
+            DictionaryDatabase::create_in_memory()
+                .map_err(|e| YomichanError::Database((errors::DBError::Database(e.into()))))?,
+        );
 
         #[cfg(not(feature = "anki"))]
         let backend = Backend::new(db.clone()).map_err(|err| DBError::Database(err))?;

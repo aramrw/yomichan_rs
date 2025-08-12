@@ -1,23 +1,28 @@
 use crate::database::dictionary_importer::YomichanDatabaseSummary;
 use crate::dictionary_data::{
-    DictionaryDataTag, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaPitch,
+    DictionaryDataTag,
+    TermMetaFreqDataMatchType,
+    TermMetaFrequency,
+    TermMetaPitch,
     TermMetaPitchData,
     // NOTE: TermMetaPhoneticData is defined below, so it's not imported from here.
 };
-use crate::errors::{DBError, DictionaryFileError, ImportError};
+use crate::errors::{DBError, DictionaryFileError, ImportError, YomichanError};
 use crate::settings::{DictionaryOptions, YomichanOptions, YomichanProfile};
-use importer::structured_content::{StructuredContent, TermGlossary, TermGlossaryGroupType};
-use importer::DatabaseDictionaryData;
 use crate::test_utils::TEST_PATHS;
 use crate::translator::TagTargetItem;
 use derive_more::derive::{Deref, DerefMut, From, Into};
 use importer::dictionary_data::MetaDataMatchType;
 use importer::dictionary_data::TermMeta;
 use importer::dictionary_data::TermMetaModeType;
+use importer::structured_content::{StructuredContent, TermGlossary, TermGlossaryGroupType};
+use importer::DatabaseDictionaryData;
 // FIX: Using the structs from the importer crate directly.
 // They will be wrapped in newtypes for database compatibility.
 use importer::dictionary_database::{
-    DatabaseMetaFrequency as ImporterMetaFrequency, DatabaseMetaPhonetic as ImporterMetaPhonetic, DatabaseMetaPitch as ImporterMetaPitch, DictionaryTag, TermSourceMatchSource, TermSourceMatchType
+    DatabaseMetaFrequency as ImporterMetaFrequency, DatabaseMetaPhonetic as ImporterMetaPhonetic,
+    DatabaseMetaPitch as ImporterMetaPitch, DictionaryTag, TermSourceMatchSource,
+    TermSourceMatchType,
 };
 use serde_with::skip_serializing_none;
 use serde_with::{serde_as, NoneAsEmptyString};
@@ -33,10 +38,10 @@ use serde_json::Deserializer as JsonDeserializer;
 use uuid::Uuid;
 
 use std::io::BufReader;
+use std::ops::{Bound, Deref, RangeBounds};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock};
 use std::{fs, marker};
-use std::ops::{Bound, Deref, RangeBounds};
 
 // FIX: Added back macros that are used in other files.
 #[macro_export]
@@ -74,7 +79,6 @@ macro_rules! collect_variant_data_ref {
             .collect::<Vec<_>>()
     };
 }
-
 
 impl DictionarySet for IndexSet<String> {
     fn has(&self, value: &str) -> bool {
@@ -123,9 +127,15 @@ pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
 )]
 struct DbMetaFrequency(ImporterMetaFrequency);
 impl DbMetaFrequency {
-    fn id_getter(&self) -> &str { &self.0.id }
-    fn expression_getter(&self) -> &str { &self.0.freq_expression }
-    fn dictionary_getter(&self) -> &str { &self.0.dictionary }
+    fn id_getter(&self) -> &str {
+        &self.0.id
+    }
+    fn expression_getter(&self) -> &str {
+        &self.0.freq_expression
+    }
+    fn dictionary_getter(&self) -> &str {
+        &self.0.dictionary
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, From, Into, Deref, DerefMut)]
@@ -137,9 +147,15 @@ impl DbMetaFrequency {
 )]
 struct DbMetaPitch(ImporterMetaPitch);
 impl DbMetaPitch {
-    fn id_getter(&self) -> &str { &self.0.id }
-    fn expression_getter(&self) -> &str { &self.0.pitch_expression }
-    fn dictionary_getter(&self) -> &str { &self.0.dictionary }
+    fn id_getter(&self) -> &str {
+        &self.0.id
+    }
+    fn expression_getter(&self) -> &str {
+        &self.0.pitch_expression
+    }
+    fn dictionary_getter(&self) -> &str {
+        &self.0.dictionary
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, From, Into, Deref, DerefMut)]
@@ -151,9 +167,15 @@ impl DbMetaPitch {
 )]
 struct DbMetaPhonetic(ImporterMetaPhonetic);
 impl DbMetaPhonetic {
-    fn id_getter(&self) -> &str { &self.0.id }
-    fn expression_getter(&self) -> &str { &self.0.phonetic_expression }
-    fn dictionary_getter(&self) -> &str { &self.0.dictionary }
+    fn id_getter(&self) -> &str {
+        &self.0.id
+    }
+    fn expression_getter(&self) -> &str {
+        &self.0.phonetic_expression
+    }
+    fn dictionary_getter(&self) -> &str {
+        &self.0.dictionary
+    }
 }
 
 pub type MediaDataArrayBufferContent = MediaDataBase<Vec<u8>>;
@@ -441,7 +463,11 @@ impl DatabaseMetaMatchType {
             .into_iter()
             .map(|entry| {
                 let id = Uuid::now_v7().to_string();
-                let TermMeta { expression, mode, data } = entry;
+                let TermMeta {
+                    expression,
+                    mode,
+                    data,
+                } = entry;
 
                 match data {
                     MetaDataMatchType::Frequency(data) => {
@@ -467,7 +493,7 @@ impl DatabaseMetaMatchType {
                             id,
                             phonetic_expression: expression,
                             mode: TermMetaModeType::Ipa,
-                            data, 
+                            data,
                             dictionary: dict_name.clone(),
                         })
                     }
@@ -477,7 +503,6 @@ impl DatabaseMetaMatchType {
         Ok(term_metas)
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PitchAccent {
@@ -570,7 +595,6 @@ pub struct KanjiEntry {
 //     pub summary: YomichanDatabaseSummary,
 //     pub dictionary_options: DictionaryOptions,
 // }
-
 
 #[derive(thiserror::Error, Debug)]
 #[error("queries returned None:\n {queries:#?}\n reason: {reason}")]
@@ -738,6 +762,14 @@ impl DictionaryDatabase<'_> {
         }
     }
 
+    pub fn create_in_memory() -> Result<Self, native_db::db_type::Error> {
+        Ok(Self {
+            db: DBBuilder::new()
+                .create_in_memory(&DB_MODELS)?,
+            db_name: "yomichan_rs_memory",
+        })
+    }
+
     pub fn get_dictionary_summaries(
         &self,
     ) -> Result<Vec<YomichanDatabaseSummary>, Box<DictionaryDatabaseError>> {
@@ -807,7 +839,7 @@ impl DictionaryDatabase<'_> {
                     _ => r_txn
                         .scan()
                         .secondary::<DatabaseTermEntry>(db_key_for_query)?
-                        .start_with(item_to_query)?
+                        .start_with(item_to_query.clone())?
                         .collect::<Result<Vec<_>, _>>(),
                 };
 
@@ -821,8 +853,8 @@ impl DictionaryDatabase<'_> {
                         item_index: item_idx,
                         index_index: index_kind_idx,
                     };
-                    let term_entry = db_model
-                        .into_term_generic(&mut current_match_type_for_result, find_data);
+                    let term_entry =
+                        db_model.into_term_generic(&mut current_match_type_for_result, find_data);
 
                     if visited_ids.insert(term_entry.id.clone()) {
                         all_final_results.push(term_entry);
@@ -870,8 +902,10 @@ impl DictionaryDatabase<'_> {
         term_list_input: &IndexSet<impl AsRef<str> + Sync>,
         dictionaries: &(impl DictionarySet),
     ) -> Result<Vec<DatabaseTermMeta>, Box<DictionaryDatabaseError>> {
-        let terms_as_strings: Vec<String> =
-            term_list_input.iter().map(|s| s.as_ref().to_string()).collect();
+        let terms_as_strings: Vec<String> = term_list_input
+            .iter()
+            .map(|s| s.as_ref().to_string())
+            .collect();
 
         if terms_as_strings.is_empty() {
             return Ok(Vec::new());
@@ -909,12 +943,17 @@ impl DictionaryDatabase<'_> {
                 if dictionaries.has(&db_entry.dictionary) {
                     // NOTE: The DB entry can have a Vec of data. The result type expects one.
                     // Taking the first one found. This might need more complex logic.
-                    if let Some(first_data) = db_entry.data.iter().next() {
+                    if let Some(first_data) = db_entry.data.pitches.iter().next() {
                         all_term_meta_results.push(DatabaseTermMeta {
                             index: item_idx,
                             term: db_entry.pitch_expression.clone(),
                             mode: db_entry.mode.clone(),
-                            data: MetaDataMatchType::Pitch(first_data.clone()),
+                            data: MetaDataMatchType::Pitch(
+                                importer::dictionary_data::TermMetaPitchData {
+                                    reading: term.clone(),
+                                    pitches: vec![first_data.clone()],
+                                },
+                            ),
                             dictionary: db_entry.dictionary.clone(),
                         });
                     }
@@ -929,12 +968,17 @@ impl DictionaryDatabase<'_> {
             {
                 let db_entry = result?;
                 if dictionaries.has(&db_entry.dictionary) {
-                    if let Some(first_data) = db_entry.data.iter().next() {
+                    if let Some(first_data) = db_entry.data.transcriptions.iter().next() {
                         all_term_meta_results.push(DatabaseTermMeta {
                             index: item_idx,
                             term: db_entry.phonetic_expression.clone(),
                             mode: db_entry.mode.clone(),
-                            data: MetaDataMatchType::Phonetic(first_data.clone()),
+                            data: MetaDataMatchType::Phonetic(
+                                importer::dictionary_database::TermMetaPhoneticData {
+                                    reading: term.clone(),
+                                    transcriptions: vec![first_data.clone()],
+                                },
+                            ),
                             dictionary: db_entry.dictionary.clone(),
                         });
                     }

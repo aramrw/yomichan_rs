@@ -7,8 +7,8 @@ use crate::{
 use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
 use derive_more::derive::From;
 use getset::MutGetters;
-use importer::{
-    dictionary_database::{DictionaryTag, Pronunciation},
+pub use importer::{
+    dictionary_database::{DictionaryTag, Pronunciation, TermSourceMatchSource, TermSourceMatchType},
     structured_content::{TermGlossaryContent, TermGlossaryContentGroup},
 };
 use indexmap::IndexMap;
@@ -153,23 +153,7 @@ pub struct DictionaryOrder {
 
 /*************** Term ***************/
 
-/// What database field was used to match the source term.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TermSourceMatchSource {
-    Term,
-    Reading,
-    Sequence,
-}
 
-/// How the search term relates to the final term.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TermSourceMatchType {
-    Exact,
-    Prefix,
-    Suffix,
-}
 
 /// Frequency information corresponds to how frequently a term appears in a corpus,
 /// which can be a number of occurrences or an overall rank.
@@ -346,4 +330,3 @@ impl TermDictionaryEntry {
     }
 }
 
-/*************** Pitch Accent & Pronunciation ***************/

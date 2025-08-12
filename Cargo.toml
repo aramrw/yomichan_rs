@@ -49,7 +49,7 @@ derive-where = { version = "1.5.0", features = ["serde"] }
 derivative = { version = "2.2.0", features = ["use_core"] }
 kanji_processor = { version = "*", path = "crates/kanji_processor" }
 tracing = { version = "0.1.41", optional = true }
-importer = { path = "../importer" }
+importer = { path = "../importer", features = ["full"]}
 
 [dev-dependencies]
 pretty_assertions = "=1.4.1"
