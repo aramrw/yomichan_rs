@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8cd52929bcf61a111fdbce663bc084de8b6b06f0e34f426dd52ed093a9ff7252
-size 390
+{"title":"JPDBv2","format":3,"revision":"JPDB v2.2 Frequency 2024-10-13","frequencyMode":"rank-based","author":"jpdb, Kuuube, Gecko","url":"https://jpdb.io","description":"Contains 99.99% of the JPDB corpus up to frequency 25000, 99.5% up to 70000, and 98.6% up to 100000.\n"}

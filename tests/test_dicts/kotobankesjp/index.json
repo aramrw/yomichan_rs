@@ -1,3 +1,9 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:56412aa2ac061a0c73452c9ce4f70bd694dfb9f4385599b3f2544ab97ef7a3a4
-size 288
+{
+  "title": "小学館 西和中辞典 第2版",
+  "revision": "1",
+  "sequenced": false,
+  "format": 3,
+  "author": "aramrw",
+  "description": "A Spanish to Japanese dictionary scraped from kotobank.jp's 小学館 西和中辞典 第2版",
+  "attribution": "https://github.com/aramrw"
+}

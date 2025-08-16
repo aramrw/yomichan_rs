@@ -72,11 +72,12 @@ impl Yomichan<'_> {
         &self,
         zip_paths: &[P],
     ) -> Result<(), ImportError> {
+        // Correctly propagate the error using '?'
         Backend::import_dictionaries_internal(
             zip_paths,
             self.options().read().get_current_profile()?,
             self.db.clone(),
-        );
+        )?; // <--- ADDED '?' HERE
 
         let rwtx = self.db.rw_transaction()?;
         db_rwriter(&rwtx, vec![self.options().read().clone()]);
@@ -294,16 +295,19 @@ pub fn import_dictionary<P: AsRef<Path>>(
         .into_iter()
         .map(YomichanDatabaseTerm::from)
         .collect();
+
     let db_kanji: Vec<YomichanDatabaseKanji> = data
         .kanji_list
         .into_iter()
         .map(YomichanDatabaseKanji::from)
         .collect();
+
     let db_tags: Vec<YomichanDatabaseTag> = data
         .tag_list
         .into_iter()
         .map(YomichanDatabaseTag::from)
         .collect();
+
     let db_summary: YomichanDatabaseSummary = YomichanDatabaseSummary::from(data.summary);
 
     // 2. Write the converted lists to the database

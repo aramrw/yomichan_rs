@@ -54,40 +54,47 @@ pub enum ImportZipError {
 }
 
 impl ImportZipError {
-    pub fn check_zip_paths(paths: &[impl AsRef<Path>]) -> Result<(), Self> {
+    // Prefer a concrete error type (adjust to your actual error enum)
+    pub fn check_zip_paths(paths: &[impl AsRef<Path>]) -> Result<(), ImportZipError> {
         for zp in paths {
             let zp = zp.as_ref();
             if !zp.exists() {
-                return Err(Self::DoesNotExist(zp.to_path_buf()));
+                return Err(ImportZipError::DoesNotExist(zp.to_path_buf()));
             }
 
-            let mut has_index_file = false;
-
-            if zp.is_file() && zp.extension().unwrap_or_default().to_str() == Some("zip") {
+            // accept .zip files (do nothing)
+            if zp.is_file() && matches!(zp.extension().and_then(|s| s.to_str()), Some("zip")) {
+                continue;
             } else if zp.is_dir() {
-                let mut dir_iter = std::fs::read_dir(zp)?;
-                while let Some(Ok(entry)) = dir_iter.next() {
+                let mut has_index_file = false;
+                for entry in std::fs::read_dir(zp)? {
+                    let entry = entry?;
                     let path = entry.path();
-                    if path.exists() && path.is_file() {
-                        if path.extension().unwrap_or_default().to_str() == Some("json") {
-                            if path.file_name().unwrap_or_default().to_str() == Some("index") {
-                                has_index_file = true;
-                                break;
-                            }
-                        }
+                    if !path.is_file() {
+                        continue;
+                    }
+
+                    let is_json = path.extension().and_then(|s| s.to_str()) == Some("json");
+                    let is_index_stem = path.file_stem().and_then(|s| s.to_str()) == Some("index");
+
+                    if is_json && is_index_stem {
+                        has_index_file = true;
+                        break;
                     }
                 }
+
                 if !has_index_file {
                     return Err(ImportZipError::IndexFileNotFound(zp.to_path_buf()));
                 }
             } else {
-                return Err(Self::UnknownFileType(
+                return Err(ImportZipError::UnknownFileType(
                     zp.file_name()
-                        .map(|os_str| os_str.to_str().map(|inner| inner.to_string()))
-                        .flatten(),
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.to_string()),
                 ));
             }
         }
+
         Ok(())
     }
 }

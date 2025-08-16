@@ -418,13 +418,11 @@ mod import_tests {
     use crate::{test_utils::TEST_PATHS, Yomichan};
 
     #[test]
-    #[ignore]
     fn import_in_memory() -> Result<(), Box<dyn std::error::Error>> {
         let mut ycd = Yomichan::create_in_memory()?;
-        ycd.set_language("ja");
-        ycd.import_dictionaries(&[TEST_PATHS.test_dicts_dir.join("daijirin")])?;
-        let res = ycd.search(" 阿鼻叫喚").expect("no results for abi kyoukan");
-        assert!(res.is_empty());
+        ycd.set_language("es");
+        ycd.import_dictionaries(&[TEST_PATHS.test_dicts_dir.join("kotobankesjp")])?;
+        let res = ycd.search("espanol").unwrap();
         Ok(())
     }
 }

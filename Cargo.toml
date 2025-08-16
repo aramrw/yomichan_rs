@@ -35,7 +35,6 @@ fancy-regex = "=0.14.0"
 getset = "=0.1.6"
 serde_with = "=3.13.0"
 url = "=2.5.4"
-anki_direct = { path = "../anki_direct", features = ["cache"] }
 rmp-serde = "=1.3.0"
 # module_macros = { path = "crates/module_macros" }
 rmpv = { version = "=1.3.0", features = ["with-serde"] }
@@ -49,7 +48,8 @@ derive-where = { version = "1.5.0", features = ["serde"] }
 derivative = { version = "2.2.0", features = ["use_core"] }
 kanji_processor = { version = "*", path = "crates/kanji_processor" }
 tracing = { version = "0.1.41", optional = true }
-importer = { path = "../importer", features = ["full"]}
+anki_direct = { git = "https://github.com/aramrw/anki_direct", branch = "note", features = ["cache"] }
+importer = { git = "https://github.com/aramrw/importer", branch = "simd", features = ["full"]}
 
 [dev-dependencies]
 pretty_assertions = "=1.4.1"

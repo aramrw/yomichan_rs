@@ -1,3 +1,30 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c6714b900b8a09632b2fb32301270859c432047019f9f789b6db582aa1209b72
-size 275
+[
+  [
+    "n",
+    "partOfSpeech",
+    0,
+    "noun",
+    0
+  ],
+  [
+    "adv",
+    "partOfSpeech",
+    0,
+    "adverb",
+    0
+  ],
+  [
+    "adj",
+    "partOfSpeech",
+    0,
+    "adjective",
+    0
+  ],
+  [
+    "int",
+    "partOfSpeech",
+    0,
+    "interjection",
+    0
+  ]
+]
