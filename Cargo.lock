@@ -80,6 +80,7 @@ dependencies = [
 [[package]]
 name = "anki_direct"
 version = "0.0.14"
+source = "git+https://github.com/aramrw/anki_direct?branch=note#de54c3088066f82686847e1873aaac5825f274c6"
 dependencies = [
  "base64",
  "derive-where",
@@ -1670,8 +1671,8 @@ dependencies = [
 [[package]]
 name = "importer"
 version = "0.0.1"
+source = "git+https://github.com/aramrw/importer?branch=simd#e9b661e3b28a13a0ec4f803f7f9b393283c078d7"
 dependencies = [
- "anki_direct",
  "better_default",
  "bimap",
  "chrono",
