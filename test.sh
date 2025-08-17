@@ -10,19 +10,19 @@ CARGO_ARGS_IGNORED="--release --features tracing -- --show-output --ignored"
 PS3="Please select a test to run: "
 
 # 'select' creates a menu from a list of options
-select option in "Database Test" "Text Scanner Test" "Quit"; do
+select option in "dbtests::init_db" "textscanner::search_dbg" "quit"; do
   case $option in
-    "Database Test")
+    "dbtests::init_db")
       echo "🚀 initializing database test..."
       cargo test dbtests::init_db $CARGO_ARGS_IGNORED
       break # Exit the loop after running
       ;;
-    "Text Scanner Test")
+    "textscanner::search_dbg")
       echo "🚀 Running text scanner test..."
       cargo test textscanner::search_dbg $CARGO_ARGS
       break # Exit the loop after running
       ;;
-    "Quit")
+    "quit")
       echo "👋 Exiting."
       break # Exit the loop
       ;;
