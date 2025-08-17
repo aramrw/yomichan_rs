@@ -579,10 +579,11 @@ mod textscanner {
     fn search_dbg() {
         let mut ycd = YCD.write();
         ycd.set_language("es");
-        let res = ycd.search("espanol es muy bueno");
-        let Some(res) = res else {
-            panic!("search test failed");
-        };
+        let sentence = "espanol es muy bueno";
+        let res = ycd.search(sentence);
+        if res.is_none() {
+            panic!("{sentence} didnt match any terms from the database");
+        }
         dbg!(res);
     }
 
@@ -624,10 +625,9 @@ mod textscanner {
 
 #[cfg(test)]
 mod dbtests {
+    use crate::{test_utils, Yomichan};
     use std::fs::remove_dir_all;
     use tracing_test::traced_test;
-
-    use crate::{test_utils, Yomichan};
 
     #[test]
     #[traced_test]
