@@ -74,6 +74,7 @@ dependencies = [
 [[package]]
 name = "anki_direct"
 version = "0.0.14"
+source = "git+https://github.com/aramrw/anki_direct?branch=note#de54c3088066f82686847e1873aaac5825f274c6"
 dependencies = [
  "base64",
  "derive-where",
