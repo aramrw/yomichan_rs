@@ -1559,48 +1559,4 @@ mod ycd {
     }
 }
 
-#[cfg(test)]
-mod dbtests {
-    use std::fs::remove_dir_all;
-    use tracing_test::traced_test;
 
-    use crate::{test_utils, Yomichan};
-
-    #[test]
-    #[traced_test]
-    #[ignore]
-    /// Initializes the repo's yomichan database with specified dicts.
-    fn init_db() {
-        let td = &*test_utils::TEST_PATHS.tests_dir;
-        let yomichan_rs_folder = td.join("yomichan_rs");
-        if yomichan_rs_folder.exists() {
-            remove_dir_all(yomichan_rs_folder);
-        }
-        let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
-        let mut ycd = Yomichan::new(td).unwrap();
-        let paths = [
-            //tdcs.join("kty-es-en"),
-            //tdcs.join("daijirin"),
-            tdcs.join("oubunshakokugo"), // works
-            //tdcs.join("yonjijukugo"),
-            //tdcs.join("daijirin_test_version"),
-            //tdcs.join("ajdfreq"),
-            //tdcs.join("pitch_accent"),
-            //tdcs.join("kotobankesjp"),
-        ];
-        match ycd.import_dictionaries(&paths) {
-            Ok(_) => {}
-            Err(e) => {
-                let db_path = td.join("db.ycd");
-                if db_path.exists() && db_path.is_file() {
-                    if let Some(ext) = db_path.extension() {
-                        if ext == "ycd" {
-                            std::fs::remove_file(db_path).unwrap();
-                        }
-                    }
-                }
-                panic!("failed init_db test: {e}");
-            }
-        }
-    }
-}

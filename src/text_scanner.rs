@@ -578,8 +578,8 @@ mod textscanner {
     #[test]
     fn search_dbg() {
         let mut ycd = YCD.write();
-        ycd.set_language("ja");
-        let res = ycd.search("今勉強中です");
+        ycd.set_language("es");
+        let res = ycd.search("espanol es muy bueno");
         let Some(res) = res else {
             panic!("search test failed");
         };
@@ -617,6 +617,43 @@ mod textscanner {
                         file.write_all(content.plain_text.as_bytes()).unwrap();
                     }
                 }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod dbtests {
+    use std::fs::remove_dir_all;
+    use tracing_test::traced_test;
+
+    use crate::{test_utils, Yomichan};
+
+    #[test]
+    #[traced_test]
+    #[ignore]
+    /// Initializes the repo's yomichan database with specified dicts.
+    fn init_db() {
+        let td = &*test_utils::TEST_PATHS.tests_dir;
+        let yomichan_rs_folder = td.join("yomichan_rs");
+        if yomichan_rs_folder.exists() {
+            remove_dir_all(yomichan_rs_folder);
+        }
+        let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
+        let mut ycd = Yomichan::new(td).unwrap();
+        let paths = [tdcs.join("oubunshakokugo")];
+        match ycd.import_dictionaries(&paths) {
+            Ok(_) => {}
+            Err(e) => {
+                let db_path = td.join("db.ycd");
+                if db_path.exists() && db_path.is_file() {
+                    if let Some(ext) = db_path.extension() {
+                        if ext == "ycd" {
+                            std::fs::remove_file(db_path).unwrap();
+                        }
+                    }
+                }
+                panic!("failed init_db test: {e}");
             }
         }
     }
