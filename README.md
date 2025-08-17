@@ -1,7 +1,7 @@
-## `yomichan-rs`  
-_Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan_](https://github.com/FooSoft/yomichan)_
-> [!CAUTION]
-> **This library is highly unstable and will have breaking changes**
+## `yomichan-rs` [![Crates.io](https://img.shields.io/crates/v/yomichan_rs.svg)](https://crates.io/crates/yomichan_rs)
+#### Rust library based off _[Yomitan](https://github.com/yomidevs/yomitan) & [Yomichan](https://github.com/FooSoft/yomichan)_
+> [!CAUTION] 
+> This library is unstable and **will have breaking changes**
 
 ### Features/Roadmap
 - [ ] **`Dictionary Imports`**
@@ -15,31 +15,43 @@ _Rust library based off [Yomitan](https://github.com/yomidevs/yomitan)/[Yomichan
     - [ ] Advanced Importing
         - [ ] Dictionaries with Images/Media
 
-- [ ] [**`Anki (Issue Tracker)`**](https://github.com/aramrw/yomichan_rs/issues/18)  
-    - [ ] Note creation
-        - [ ]  Basic Features
-            - [ ] Notes 
-                - [x] Create new from search
-                - [ ] Edit Existing
-                - [ ] Delete Existing
-                - [ ] Overwrite Existing
-        - [ ] Customization
+### Multi-Language Deinflector [![github](https://img.shields.io/badge/github%20-blue.svg)](https://github.com/aramrw/deinflector) [![Crates.io](https://img.shields.io/crates/v/deinflector.svg)](https://crates.io/crates/deinflector) 
+- [ ] [Yomitan Supported Languages](https://github.com/yomidevs/yomitan/tree/HEAD/ext/js/language)
+    - [x] Japanese
+    - [x] Spanish
+    - [x] English
+    - [ ] Chinese
+    - [ ] Korean
+    - [ ] Arabic
+    - ... _more_
 
-- [ ] **`Deserialization`**
-    - [ ] Definitions
-        - [x] Plain Text (String)
-        - [ ] Html
+### [Anki (Issue Tracker)](https://github.com/aramrw/yomichan_rs/issues/18)  
 
-### Examples
+- [ ] **`Note creation`**
+    - [ ]  Basic Features
+    - [ ] Notes 
+    - [x] Create new from search
+    - [ ] Edit Existing
+    - [ ] Delete Existing
+    - [ ] Overwrite Existing
+- [ ] **`Styling`**
+
+### Misc
+- [ ] **`Entry Definitions`**
+    - [x] Plain Text (String)
+    - [ ] Html
+    - [ ] styles.css
+
+## Examples
 ```rust
 let mut ycd = Yomichan::new("db.ycd");
 ycd.set_language("ja");
 let res = ycd.search("今勉強中です");
 dbg!(res);
 ```
-_Example output, excluded some fields for brevity_
+### Output example
+* See the full type at [TermSearchResultSegment](https://github.com/aramrw/yomichan_rs/blob/HEAD/src/text_scanner.rs#L36)
 ```rust
-// Example output (abbreviated for clarity)
 [
     TermSearchResultsSegment {
         text: "今",
@@ -106,10 +118,8 @@ _Example output, excluded some fields for brevity_
             TermSearchResults {
                 dictionary_entries: [
                     TermDictionaryEntry {
-                        dictionary_alias: "旺文社国語辞典 第十一版 画像無し",
-                        headwords: [
-                            TermHeadword { term: "勉強", reading: "べんきょう" },
-                        ],
+                        // ../ dictionary,
+                        // ../ headwords,
                         definitions: [
                             TermDefinition {
                                 entries: [
@@ -129,82 +139,11 @@ _Example output, excluded some fields for brevity_
             },
         ),
     },
-    TermSearchResultsSegment {
-        text: "中",
-        results: Some(
-            TermSearchResults {
-                dictionary_entries: [
-                    TermDictionaryEntry {
-                        dictionary_alias: "旺文社国語辞典 第十一版 画像無し",
-                        headwords: [
-                            TermHeadword { term: "中", reading: "ちゅう" },
-                        ],
-                        definitions: [
-                            TermDefinition {
-                                entries: [
-                                    TermGlossaryContentGroup {
-                                        plain_text: "ちゅう【中】\n\
-                                                     〔教１〕\n\
-                                                     チュウ・ジュウ\n\
-                                                     なか・あたる・うち\n\
-                                                     筆順：\n\n\
-                                                     （字義）\n\
-                                                     ① なか。うち。\n\
-                                                     ㋐ まんなか。「中央・中心・正中」\n\
-                                                     ㋑ 内部。「胸中・市中・車中・腹中」\n\
-                                                     ㋒ ある時期の間。物事のまだ終わりきらないうち。「寒中・忌中・最中・道中」\n\
-                                                     ㋓ 距離・時間などのなかほど。「中間・中秋・中旬・中途・中腹・中路」\n\
-                                                     ㋔ なかま。「講中（こうじゆう）・連中」\n\
-                                                     ㋕ 並み。ふつう。「中型・中流」\n\
-                                                     ② ほどよい。かたよらない。「中正・中道・中庸・中立・中和」\n\
-
-                                                     ③ あたる。\n\
-                                                     ㋐ まとにあたる。「必中・命中・百発百中」\n\
-                                                     ㋑ 予想と事実とが一致する。「的中・適中」\n\
-                                                     ㋒ 体をそこなう。「中毒」\n\
-                                                     ④ 「中国」の略。「米中仏」\n\
-                                                     ⑤ 「中学校」の略。「中二」\n\
-                                                     中心（なかご）・中稲（なかて）・中山道（なかせんどう）\n\
-                                                     あつる・かなめ・すなお・ただ・ただし・な・なかば・のり・ひとし・まさ・みつ・みつる・よし",
-                                    },
-                                ],
-                            },
-                            // ... other definitions for "ちゅう"
-                        ],
-                    },
-                    // ... other entries for "じゅう", "なか", etc.
-                ],
-            },
-        ),
-    },
-    TermSearchResultsSegment {
-        text: "です",
-        results: Some(
-            TermSearchResults {
-                dictionary_entries: [
-                    TermDictionaryEntry {
-                        dictionary_alias: "旺文社国語辞典 第十一版 画像無し",
-                        headwords: [
-                            TermHeadword { term: "です", reading: "です" },
-                        ],
-                        definitions: [
-                            TermDefinition {
-                                entries: [
-                                    TermGlossaryContentGroup {
-                                        plain_text: "です\n\
-                                                     （助動－特殊型）《デシヨ・デシ・デス・（デス）・○・○》\n\
-                                                     丁寧な断定の意を表す。「ここは学校―よ」「今晩は寒い―ね」\n\
-                                                     形容詞の丁寧形は連用形に「ございます」を付けた「高うございます」の形が用いられたが、現在は「高いです」の形も用いられる。\n\
-                                                     名詞および助詞（の・ほど・から・など・まで・だけ・くらい・ばかり、など）に付く。未然形「でしょ」に限り、動詞・形容詞・動詞型の助動詞・形容詞型の助動詞・特殊型の助動詞（ます・た・ぬ）の連体形に付く。連体形「です」は、ふつう助詞「ので」「のに」を伴い、「ですので」「ですのに」となる場合にだけ用いられる。\n\
-                                                     【変遷】「でござります」→「でござんす」→「であんす」→「でんす」→「でえす」→「です」と変化したとする説、「で候（そうろう）」を略した「で候（そう）」の転とする説など諸説ある。動詞の終止形につく「～するです」などの形は、古い言い方や方言で用いられるが、現在の共通語では避けられ、「行くです」は「行きます」という。",
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            },
-        ),
-    },
+   ../ "中",
+    ../ "です",
 ]
 ```
+
+### Other Examples
+1. [yomichan_rs_gui](http://github.com/aramrw/yomichan_rs_gui) (wip):
+<img src="https://github.com/user-attachments/assets/b32cc484-8aa0-49e9-a68b-d2730ea173ea" width=350/>
