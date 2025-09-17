@@ -524,8 +524,6 @@ checksum = "da692b8d1080ea3045efaab14434d40468c3d8657e42abddfffca87b428f4c1b"
 [[package]]
 name = "deinflector"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccfa881643441631118c99963c64afb857f223a227eb0eeb08caac8fa549911f"
 dependencies = [
  "derivative",
  "derive_more 2.0.1",

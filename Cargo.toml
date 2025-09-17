@@ -34,7 +34,7 @@ derive_more = { version = "=1.0.0", features = [
 	"deref_mut",
 ] }
 indexmap = { version = "2.7.1", features = ["serde"] }
-deinflector = { version = "0.0.1" }
+deinflector = { path = "../deinflector" }
 icu = "=2.0.0"
 fancy-regex = "=0.14.0"
 getset = "=0.1.6"
@@ -75,6 +75,9 @@ tracing = ["dep:tracing"]
 # pprof is linux only
 [target.'cfg(unix)'.dependencies]
 pprof = { version = "0.13", features = ["flamegraph"] }
+
+[profile.release]
+opt-level = 2
 
 # compiles the test with --release
 [profile.test]
