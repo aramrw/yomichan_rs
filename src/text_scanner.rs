@@ -637,7 +637,7 @@ mod dbtests {
         let td = &*test_utils::TEST_PATHS.tests_dir;
         let yomichan_rs_folder = td.join("yomichan_rs");
         if yomichan_rs_folder.exists() {
-            remove_dir_all(yomichan_rs_folder);
+            remove_dir_all(yomichan_rs_folder).unwrap();
         }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();

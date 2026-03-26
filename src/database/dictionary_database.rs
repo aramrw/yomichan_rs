@@ -1511,13 +1511,11 @@ mod ycd {
         //let (f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
         let queries = &[
-            // 大丈夫
-            QueryType::Sequence(9635800000),
-            // 奉迎
-            QueryType::Sequence(14713900000),
+            // salmuera
+            QueryType::Sequence(0),
         ];
         let queries_generic_req =
-            GenericQueryRequest::from_query_type_slice_to_vec(queries, "大辞林\u{3000}第四版");
+            GenericQueryRequest::from_query_type_slice_to_vec(queries, "小学館 西和中辞典 第2版");
         let entries = ycd.find_terms_by_sequence_bulk(queries_generic_req);
         match entries {
             Ok(entries) => {
@@ -1537,9 +1535,9 @@ mod ycd {
     fn find_term_meta_bulk_() {
         //let (_f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
-        let term_list = IndexSet::from(["自業自得".to_string()]);
+        let term_list = IndexSet::from(["salmuera".to_string()]);
         let mut dictionaries = IndexSet::new();
-        dictionaries.insert("Anime & J-drama".to_string());
+        dictionaries.insert("小学館 西和中辞典 第2版".to_string());
         let result = ycd.find_term_meta_bulk(&term_list, &dictionaries).unwrap();
         dbg!(result);
     }
@@ -1548,11 +1546,9 @@ mod ycd {
     fn find_terms_bulk_exact_match_test() {
         //let (_f_path, _handle) = test_utils::copy_test_db();
         let ycd = &test_utils::SHARED_DB_INSTANCE;
-        let term_list = vec!["日本語", "日本", "日"];
+        let term_list = vec!["salmuera", "salmónidos"];
         let mut dictionaries = IndexSet::new();
-        dictionaries.insert("大辞林\u{3000}第四版".to_string());
-        dictionaries.insert("四字熟語辞典オンライン".to_string());
-        dictionaries.insert("旺文社国語辞典 第十一版 画像無し".to_string());
+        dictionaries.insert("小学館 西和中辞典 第2版".to_string());
 
         let match_type = TermSourceMatchType::Exact;
         // Pass term_list directly as it implements AsRef<str> for String
