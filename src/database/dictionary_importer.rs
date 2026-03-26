@@ -1,25 +1,27 @@
-use crate::backend::Backend;
 use crate::database::dictionary_database::{
-    DatabaseDictData, DatabaseKanjiEntry, DatabaseKanjiMeta, DatabaseMetaFrequency,
-    DatabaseMetaMatchType, DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTermEntry, KanjiEntry,
-    MediaDataArrayBufferContent, TermEntry, DB_MODELS,
+    DatabaseDictData, DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType,
+    DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry,
+    DatabaseTermEntryTuple, DictionaryDatabase, MediaDataArrayBufferContent, PhoneticTranscription,
+    TermMetaPhoneticData, TermPronunciationMatchType,
 };
-use crate::dictionary::{self, KanjiDictionaryEntry};
+use crate::dictionary::{DictionaryTag, VecNumOrNum};
 use crate::dictionary_data::{
-    self, dictionary_data_util, DictionaryDataTag, Index, MetaDataMatchType, TermGlossaryImage,
-    TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency, TermMetaModeType, TermMetaPitchData,
-    TermV3, TermV4,
+    self, dictionary_data_util, DictionaryDataTag, FreqObjectData, GenericFreqData, Index,
+    Pitch as DictionaryPitch, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType,
+    TermMetaFreqDataWithReading, TermMetaModeType, TermMetaPitchData, TermGlossaryType,
 };
+use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
 use crate::settings::{
-    self, DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, ProfileResult,
-    YomichanOptions, YomichanProfile,
+    DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, YomichanProfile
 };
 use crate::structured_content::{
-    ContentMatchType, Element, LinkElement, StructuredContent, TermEntryItem,
+    HtmlTag, ImageElement, ImageRendering, SizeUnits, TaggedContent, TermEntryItem, TermGlossary,
+    TermGlossaryContent, TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
+    VerticalAlign,
 };
-
-use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
-use crate::{test_utils, Ptr, Yomichan};
+use crate::Ptr;
+use crate::Yomichan;
+use crate::backend::Backend;
 
 use indexmap::IndexMap;
 use native_db::transaction::RwTransaction;
@@ -51,8 +53,6 @@ use std::sync::{
 
 use std::time::Instant;
 use std::{fs, io, mem};
-
-use super::dictionary_database::{DatabaseTag, DatabaseTermMeta, DictionaryDatabase};
 
 //use chrono::{DateTime, Local};
 
@@ -249,7 +249,7 @@ impl DictionarySummary {
 
         if yomitan_version == "0.0.0.0" {
             // running development version
-        } else if let Some(minimum_yomitan_version) = &minimum_yomitan_version {
+        } else if let Some(minimum_yomitan_version) = &minimum_yomitan_version as &Option<String> {
             if dictionary_data_util::compare_revisions(&yomitan_version, minimum_yomitan_version) {
                 return Err(DictionarySummaryError::IncompatibleYomitanVersion {
                     yomitan_version,
@@ -263,7 +263,7 @@ impl DictionarySummary {
             if !is_updatable {
                 return Err(DictionarySummaryError::InvalidIndexIsNotUpdatabale);
             }
-            if let Some(index_url) = &index_url {
+            if let Some(index_url) = &index_url as &Option<String> {
                 if let Err(err) = dictionary_data_util::validate_url(index_url) {
                     return Err(DictionarySummaryError::InvalidIndexUrl {
                         url: index_url.clone(),
@@ -271,7 +271,7 @@ impl DictionarySummary {
                     });
                 }
             }
-            if let Some(download_url) = &download_url {
+            if let Some(download_url) = &download_url as &Option<String> {
                 if let Err(err) = dictionary_data_util::validate_url(download_url) {
                     return Err(DictionarySummaryError::InvalidIndexUrl {
                         url: download_url.clone(),
@@ -458,9 +458,331 @@ pub fn import_dictionary<P: AsRef<Path>>(
     db: Arc<DictionaryDatabase>,
     current_profile: Ptr<YomichanProfile>,
 ) -> Result<DictionaryOptions, ImportError> {
-    let data: DatabaseDictData = prepare_dictionary(zip_path, current_profile)?;
+    let external_data = importer::import_dictionary(&zip_path)?;
+    let dict_name = external_data.summary.title.clone();
+
+    let data = DatabaseDictData {
+        tag_list: external_data
+            .tag_list
+            .into_iter()
+            .map(|t| DatabaseTag {
+                id: t.id,
+                name: t.name,
+                category: t.category,
+                order: t.order,
+                notes: t.notes,
+                score: t.score,
+                dictionary: t.dictionary,
+            })
+            .collect(),
+        kanji_meta_list: external_data
+            .kanji_meta_list
+            .into_iter()
+            .map(|m| DatabaseMetaFrequency {
+                id: m.id,
+                freq_expression: m.freq_expression,
+                mode: match m.mode {
+                    importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
+                    importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
+                    importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
+                },
+                data: match m.data {
+                    importer::dictionary_data::TermMetaFreqDataMatchType::WithReading(wr) => {
+                        TermMetaFreqDataMatchType::WithReading(TermMetaFreqDataWithReading {
+                            reading: wr.reading,
+                            frequency: match wr.frequency {
+                                importer::dictionary_data::GenericFreqData::Object(obj) => {
+                                    GenericFreqData::Object(FreqObjectData {
+                                        value: obj.value,
+                                        display_value: obj.display_value,
+                                    })
+                                }
+                                importer::dictionary_data::GenericFreqData::Integer(i) => {
+                                    GenericFreqData::Integer(i)
+                                }
+                                importer::dictionary_data::GenericFreqData::String(s) => {
+                                    GenericFreqData::String(s)
+                                }
+                            },
+                        })
+                    }
+                    importer::dictionary_data::TermMetaFreqDataMatchType::Generic(g) => {
+                        TermMetaFreqDataMatchType::Generic(match g {
+                            importer::dictionary_data::GenericFreqData::Object(obj) => {
+                                GenericFreqData::Object(FreqObjectData {
+                                    value: obj.value,
+                                    display_value: obj.display_value,
+                                })
+                            }
+                            importer::dictionary_data::GenericFreqData::Integer(i) => {
+                                GenericFreqData::Integer(i)
+                            }
+                            importer::dictionary_data::GenericFreqData::String(s) => {
+                                GenericFreqData::String(s)
+                            }
+                        })
+                    }
+                },
+                dictionary: m.dictionary,
+            })
+            .collect(),
+        kanji_list: external_data
+            .kanji_list
+            .into_iter()
+            .map(|k| DatabaseKanjiEntry {
+                character: k.character,
+                onyomi: k.onyomi,
+                kunyomi: k.kunyomi,
+                tags: k.tags,
+                meanings: k.meanings,
+                stats: k.stats,
+                dictionary: k.dictionary,
+            })
+            .collect(),
+        term_meta_list: external_data
+            .term_meta_list
+            .into_iter()
+            .map(|m| match m {
+                importer::dictionary_database::DatabaseMetaMatchType::Frequency(f) => {
+                    DatabaseMetaMatchType::Frequency(DatabaseMetaFrequency {
+                        id: f.id,
+                        freq_expression: f.freq_expression,
+                        mode: match f.mode {
+                            importer::dictionary_data::TermMetaModeType::Freq => {
+                                TermMetaModeType::Freq
+                            }
+                            importer::dictionary_data::TermMetaModeType::Pitch => {
+                                TermMetaModeType::Pitch
+                            }
+                            importer::dictionary_data::TermMetaModeType::Ipa => {
+                                TermMetaModeType::Ipa
+                            }
+                        },
+                        data: match f.data {
+                            importer::dictionary_data::TermMetaFreqDataMatchType::WithReading(
+                                wr,
+                            ) => TermMetaFreqDataMatchType::WithReading(
+                                TermMetaFreqDataWithReading {
+                                    reading: wr.reading,
+                                    frequency: match wr.frequency {
+                                        importer::dictionary_data::GenericFreqData::Object(obj) => {
+                                            GenericFreqData::Object(FreqObjectData {
+                                                value: obj.value,
+                                                display_value: obj.display_value,
+                                            })
+                                        }
+                                        importer::dictionary_data::GenericFreqData::Integer(i) => {
+                                            GenericFreqData::Integer(i)
+                                        }
+                                        importer::dictionary_data::GenericFreqData::String(s) => {
+                                            GenericFreqData::String(s)
+                                        }
+                                    },
+                                },
+                            ),
+                            importer::dictionary_data::TermMetaFreqDataMatchType::Generic(g) => {
+                                TermMetaFreqDataMatchType::Generic(match g {
+                                    importer::dictionary_data::GenericFreqData::Object(obj) => {
+                                        GenericFreqData::Object(FreqObjectData {
+                                            value: obj.value,
+                                            display_value: obj.display_value,
+                                        })
+                                    }
+                                    importer::dictionary_data::GenericFreqData::Integer(i) => {
+                                        GenericFreqData::Integer(i)
+                                    }
+                                    importer::dictionary_data::GenericFreqData::String(s) => {
+                                        GenericFreqData::String(s)
+                                    }
+                                })
+                            }
+                        },
+                        dictionary: f.dictionary,
+                    })
+                }
+                importer::dictionary_database::DatabaseMetaMatchType::Pitch(p) => {
+                    DatabaseMetaMatchType::Pitch(DatabaseMetaPitch {
+                        id: p.id,
+                        pitch_expression: p.pitch_expression,
+                        mode: match p.mode {
+                            importer::dictionary_data::TermMetaModeType::Freq => {
+                                TermMetaModeType::Freq
+                            }
+                            importer::dictionary_data::TermMetaModeType::Pitch => {
+                                TermMetaModeType::Pitch
+                            }
+                            importer::dictionary_data::TermMetaModeType::Ipa => {
+                                TermMetaModeType::Ipa
+                            }
+                        },
+                        data: TermMetaPitchData {
+                            reading: p.data.reading,
+                            pitches: p
+                                .data
+                                .pitches
+                                .into_iter()
+                                .map(|p| DictionaryPitch {
+                                    position: p.position,
+                                    nasal: p.nasal.map(|n| match n {
+                                        importer::dictionary_data::VecNumOrNum::Vec(v) => {
+                                            VecNumOrNum::Vec(v)
+                                        }
+                                        importer::dictionary_data::VecNumOrNum::Num(n) => {
+                                            VecNumOrNum::Num(n)
+                                        }
+                                    }),
+                                    devoice: p.devoice.map(|d| match d {
+                                        importer::dictionary_data::VecNumOrNum::Vec(v) => {
+                                            VecNumOrNum::Vec(v)
+                                        }
+                                        importer::dictionary_data::VecNumOrNum::Num(n) => {
+                                            VecNumOrNum::Num(n)
+                                        }
+                                    }),
+                                    tags: p.tags,
+                                })
+                                .collect(),
+                        },
+                        dictionary: p.dictionary,
+                    })
+                }
+                importer::dictionary_database::DatabaseMetaMatchType::Phonetic(p) => {
+                    DatabaseMetaMatchType::Phonetic(DatabaseMetaPhonetic {
+                        id: p.id,
+                        phonetic_expression: p.phonetic_expression,
+                        mode: match p.mode {
+                            importer::dictionary_data::TermMetaModeType::Freq => {
+                                TermMetaModeType::Freq
+                            }
+                            importer::dictionary_data::TermMetaModeType::Pitch => {
+                                TermMetaModeType::Pitch
+                            }
+                            importer::dictionary_data::TermMetaModeType::Ipa => {
+                                TermMetaModeType::Ipa
+                            }
+                        },
+                        data: TermMetaPhoneticData {
+                            reading: p.data.reading,
+                            transcriptions: p
+                                .data
+                                .transcriptions
+                                .into_iter()
+                                .map(|t| PhoneticTranscription {
+                                    match_type: match t.match_type {
+                                        importer::dictionary_database::TermPronunciationMatchType::PitchAccent => TermPronunciationMatchType::PitchAccent,
+                                        importer::dictionary_database::TermPronunciationMatchType::PhoneticTranscription => TermPronunciationMatchType::PhoneticTranscription,
+                                    },
+                                    ipa: t.ipa,
+                                    tags: t.tags.into_iter().map(|tag| DictionaryTag {
+                                        name: tag.name,
+                                        category: tag.category,
+                                        order: tag.order,
+                                        score: tag.score,
+                                        content: tag.content,
+                                        dictionaries: tag.dictionaries,
+                                        redundant: tag.redundant,
+                                    }).collect(),
+                                })
+                                .collect(),
+                        },
+                        dictionary: p.dictionary,
+                    })
+                }
+            })
+            .collect(),
+        term_list: external_data
+            .term_list
+            .into_iter()
+            .map(|t| DatabaseTermEntryTuple(
+                t.0,
+                t.1,
+                t.2,
+                t.3,
+                t.4,
+                t.5.map(|s| s.to_string()),
+                t.6.map(|s| s.to_string()),
+                t.7.to_string(),
+                t.8,
+                t.9.into_iter().map(|g| match g {
+                    importer::structured_content::TermGlossaryGroupType::Content(c) => {
+                        TermGlossaryGroupType::Content(TermGlossaryContentGroup {
+                            plain_text: c.plain_text.to_string(),
+                            html: c.html.map(|h| h.to_string()),
+                        })
+                    }
+                    importer::structured_content::TermGlossaryGroupType::Deinflection(d) => {
+                        TermGlossaryGroupType::Deinflection(TermGlossaryDeinflection {
+                            form_of: d.form_of.to_string(),
+                            rules: d.rules.iter().map(|s| s.to_string()).collect(),
+                        })
+                    }
+                }).collect(),
+                t.10,
+                t.11.as_ref().map(|s| s.to_string()),
+                t.12,
+                t.13,
+            ))
+            .map(DatabaseTermEntry::from)
+            .collect::<Vec<DatabaseTermEntry>>(),
+        summary: DictionarySummary {
+            title: external_data.summary.title,
+            revision: external_data.summary.revision,
+            sequenced: external_data.summary.sequenced,
+            minimum_yomitan_version: external_data.summary.minimum_yomitan_version,
+            version: external_data.summary.version,
+            import_date: external_data.summary.import_date,
+            prefix_wildcards_supported: external_data.summary.prefix_wildcards_supported,
+            counts: SummaryCounts {
+                terms: SummaryItemCount { total: external_data.summary.counts.terms.total },
+                term_meta: SummaryMetaCount {
+                    total: external_data.summary.counts.term_meta.total,
+                    meta: MetaCounts {
+                        freq: external_data.summary.counts.term_meta.meta.freq,
+                        pitch: external_data.summary.counts.term_meta.meta.pitch,
+                        ipa: external_data.summary.counts.term_meta.meta.ipa,
+                    },
+                },
+                kanji: SummaryItemCount { total: external_data.summary.counts.kanji.total },
+                kanji_meta: SummaryMetaCount {
+                    total: external_data.summary.counts.kanji_meta.total,
+                    meta: MetaCounts {
+                        freq: external_data.summary.counts.kanji_meta.meta.freq,
+                        pitch: external_data.summary.counts.kanji_meta.meta.pitch,
+                        ipa: external_data.summary.counts.kanji_meta.meta.ipa,
+                    },
+                },
+                tag_meta: SummaryItemCount { total: external_data.summary.counts.tag_meta.total },
+                media: SummaryItemCount { total: external_data.summary.counts.media.total },
+            },
+            styles: external_data.summary.styles,
+            is_updatable: external_data.summary.is_updatable,
+            index_url: external_data.summary.index_url,
+            download_url: external_data.summary.download_url,
+            author: external_data.summary.author,
+            url: external_data.summary.url,
+            description: external_data.summary.description,
+            attribution: external_data.summary.attribution,
+            source_language: external_data.summary.source_language,
+            target_language: external_data.summary.target_language,
+            frequency_mode: external_data.summary.frequency_mode.map(|m| match m {
+                importer::dictionary_importer::FrequencyMode::OccurrenceBased => FrequencyMode::OccurrenceBased,
+                importer::dictionary_importer::FrequencyMode::RankBased => FrequencyMode::RankBased,
+            }),
+        },
+        dictionary_options: DictionaryOptions {
+            name: dict_name,
+            alias: "".to_string(),
+            enabled: true,
+            allow_secondary_searches: true,
+            definitions_collapsible: DictionaryDefinitionsCollapsible::default(),
+            parts_of_speech_filter: false,
+            use_deinflections: true,
+            styles: None,
+        },
+    };
+
     let rwtx = db.rw_transaction()?;
-    db_rwriter(&rwtx, data.term_list)?;
+    db_rwriter(&rwtx, data.term_list.into_iter().map(DatabaseTermEntry::from).collect())?;
     db_rwriter(&rwtx, data.kanji_list)?;
     db_rwriter(&rwtx, data.tag_list)?;
     db_rwriter(&rwtx, data.kanji_meta_list)?;
@@ -527,7 +849,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
     let tag_banks: Result<Vec<Vec<DatabaseTag>>, ImportError> =
         convert_tag_bank_files(tag_bank_paths, &dict_name);
     let tag_list: Vec<DatabaseTag> = match tag_banks {
-        Ok(kml) => kml.into_iter().flatten().collect(),
+        Ok(kml) => kml.into_iter().flatten().collect::<Vec<DatabaseTag>>(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
                 "Failed to convert tag banks | {e}"
@@ -540,7 +862,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         .map(|path| convert_term_bank_file(path, &dict_name))
         .collect::<Result<Vec<Vec<DatabaseTermEntry>>, DictionaryFileError>>();
     let term_list: Vec<DatabaseTermEntry> = match term_banks {
-        Ok(tl) => tl.into_iter().flatten().collect(),
+        Ok(tl) => tl.into_iter().flatten().collect::<Vec<DatabaseTermEntry>>(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
                 "Failed to convert term banks | {e}"
@@ -567,7 +889,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
             .collect::<Result<Vec<Vec<DatabaseMetaFrequency>>, DictionaryFileError>>();
 
     let kanji_meta_list: Vec<DatabaseMetaFrequency> = match kanji_meta_banks {
-        Ok(kml) => kml.into_iter().flatten().collect(),
+        Ok(kml) => kml.into_iter().flatten().collect::<Vec<DatabaseMetaFrequency>>(),
         Err(e) => {
             return Err(ImportError::Custom(format!(
                 "Failed to convert kanji_meta_banks | {e}"
@@ -660,8 +982,11 @@ fn convert_tag_bank_files(
 ) -> Result<Vec<Vec<DatabaseTag>>, ImportError> {
     outpaths
         .into_iter()
-        .map(|p| {
-            let tag_str = fs::read_to_string(p)?;
+        .map(|p: PathBuf| {
+            let tag_str: String = fs::read_to_string(&p).map_err(|e| DictionaryFileError::File {
+                outpath: p,
+                reason: e.to_string(),
+            })?;
             let mut tag: Vec<DictionaryDataTag> = serde_json::from_str(&tag_str)?;
             let res = tag
                 .into_iter()
@@ -701,8 +1026,8 @@ fn convert_kanji_bank(
     })?;
     let reader = BufReader::new(file);
 
-    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<KanjiBank>();
-    let mut entries = match stream.next() {
+    let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<DatabaseKanjiEntry>>();
+    let mut entries: Vec<DatabaseKanjiEntry> = match stream.next() {
         Some(Ok(entries)) => entries,
         Some(Err(reason)) => {
             return Err(crate::errors::DictionaryFileError::File {

@@ -630,7 +630,7 @@ mod dbtests {
     use tracing_test::traced_test;
 
     #[test]
-    #[traced_test]
+    //#[traced_test]
     #[ignore]
     /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {

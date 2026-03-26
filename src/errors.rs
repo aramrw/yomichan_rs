@@ -101,6 +101,14 @@ pub enum ImportError {
     Summary(#[from] DictionarySummaryError),
     #[error("profile error: {0}")]
     Profile(#[from] ProfileError),
+    #[error("external importer error: {0}")]
+    ExternalImporter(String),
+}
+
+impl From<importer::errors::ImportError> for ImportError {
+    fn from(err: importer::errors::ImportError) -> Self {
+        ImportError::ExternalImporter(err.to_string())
+    }
 }
 
 impl From<native_db::db_type::Error> for ImportError {

@@ -201,21 +201,21 @@ pub struct DatabaseTermEntry {
 }
 
 #[derive(Serialize, Deserialize)]
-struct DatabaseTermEntryTuple(
-    String,                     // id
-    String,                     // expression
-    String,                     // reading
-    String,                     // expression_reverse
-    String,                     // reading_reverse
-    Option<String>,             // definition_tags
-    Option<String>,             // tags
-    String,                     // rules
-    i128,                       // score
-    Vec<TermGlossaryGroupType>, // glossary
-    Option<i128>,               // sequence
-    Option<String>,             // term_tags
-    String,                     // dictionary
-    String,                     // file_path
+pub struct DatabaseTermEntryTuple(
+    pub String,                     // id
+    pub String,                     // expression
+    pub String,                     // reading
+    pub String,                     // expression_reverse
+    pub String,                     // reading_reverse
+    pub Option<String>,             // definition_tags
+    pub Option<String>,             // tags
+    pub String,                     // rules
+    pub i128,                       // score
+    pub Vec<TermGlossaryGroupType>, // glossary
+    pub Option<i128>,               // sequence
+    pub Option<String>,             // term_tags
+    pub String,                     // dictionary
+    pub String,                     // file_path
 );
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
