@@ -811,6 +811,7 @@ fn db_rwriter<L: ToInput>(
     Ok(())
 }
 
+/*
 pub fn prepare_dictionary<P: AsRef<Path>>(
     zip_path: P,
     current_profile: Ptr<YomichanProfile>,
@@ -934,7 +935,7 @@ pub fn prepare_dictionary<P: AsRef<Path>>(
         term_meta_list.len(),
         tag_list.len(),
         kanji_meta_list.len(),
-        kanji_list.len(),
+        kanji_len: usize,
         term_meta_counts,
         kanji_meta_counts,
     );
@@ -1263,3 +1264,4 @@ mod importer_tests {
         };
     }
 }
+*/

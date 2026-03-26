@@ -339,6 +339,7 @@ pub enum DatabaseMetaMatchType {
 }
 
 impl DatabaseMetaMatchType {
+    /*
     pub fn convert_kanji_meta_file(
         outpath: PathBuf,
         dict_name: String,
@@ -436,6 +437,7 @@ impl DatabaseMetaMatchType {
             .collect();
         Ok(term_metas)
     }
+    */
 }
 
 /// Used to store the frequency metadata of a term in the db.
