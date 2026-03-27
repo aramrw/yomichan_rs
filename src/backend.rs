@@ -113,12 +113,9 @@ impl<'a> Yomichan<'a> {
     ///
     /// ```
     pub fn set_language(&self, language_iso: &str) -> ProfileResult<()> {
-        let res: ProfileResult<()> = self.backend.options.with_ptr(|global| {
-            let mut current_profile = global.get_current_profile()?;
-            current_profile.write().set_language(language_iso);
-            Ok(())
-        });
-        res
+        self.with_profile_mut(|profile| {
+            profile.set_language(language_iso);
+        })
     }
 
     /// Deletes dictionaries from the database and options by name, in memory only.
