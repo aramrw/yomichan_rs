@@ -12,11 +12,7 @@ use crate::{
     dictionary::{
         self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
         TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
-        TermSource, TermSourceMatchSource, TermSourceMatchType, VecNumOrNum,
-    },
-    dictionary_data::{
-        FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermMetaFreqDataMatchType,
-        TermMetaModeType,
+        TermSource, TermSourceMatchSource, TermSourceMatchType,
     },
     freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
@@ -63,6 +59,7 @@ use icu::{
     datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
     locale::locale,
 };
+use importer::dictionary_data::{FrequencyInfo, GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum};
 use indexmap::{IndexMap, IndexSet};
 use native_db::*;
 use native_model::{native_model, Model};

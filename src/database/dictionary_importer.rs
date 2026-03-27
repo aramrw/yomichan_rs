@@ -1,18 +1,17 @@
 use crate::database::dictionary_database::{
     DatabaseDictData, DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType,
     DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry,
-    DatabaseTermEntryTuple, DictionaryDatabase, MediaDataArrayBufferContent, PhoneticTranscription,
-    TermMetaPhoneticData, TermPronunciationMatchType,
+    DatabaseTermEntryTuple, DictionaryDatabase, MediaDataArrayBufferContent,
 };
-use crate::dictionary::{DictionaryTag, VecNumOrNum};
-use crate::dictionary_data::{
-    self, dictionary_data_util, DictionaryDataTag, FreqObjectData, GenericFreqData, Index,
-    Pitch as DictionaryPitch, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType,
-    TermMetaFreqDataWithReading, TermMetaModeType, TermMetaPitchData, TermGlossaryType,
-};
+// use crate::dictionary_data::{
+//     self, dictionary_data_util, DictionaryDataTag, FreqObjectData, GenericFreqData, Index,
+//     Pitch as DictionaryPitch, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType,
+//     TermMetaFreqDataWithReading, TermMetaModeType, TermMetaPitchData, TermGlossaryType,
+// };
+use crate::backend::Backend;
 use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
 use crate::settings::{
-    DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, YomichanProfile
+    DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, YomichanProfile,
 };
 use crate::structured_content::{
     HtmlTag, ImageElement, ImageRendering, SizeUnits, TaggedContent, TermEntryItem, TermGlossary,
@@ -21,8 +20,14 @@ use crate::structured_content::{
 };
 use crate::Ptr;
 use crate::Yomichan;
-use crate::backend::Backend;
 
+use importer::dictionary_data::{
+    dictionary_data_util, FreqObjectData, GenericFreqData, Pitch as DictionaryPitch,
+    TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType, TermMetaFreqDataWithReading,
+    TermMetaModeType, TermMetaPitchData, VecNumOrNum, YomichanIndexFile,
+};
+use importer::dictionary_database::{DictionaryTag, PhoneticTranscription, TermMetaPhoneticData, TermPronunciationMatchType};
+use importer::dictionary_importer::FrequencyMode;
 use indexmap::IndexMap;
 use native_db::transaction::RwTransaction;
 use native_db::ToInput;
@@ -143,13 +148,13 @@ pub struct ImportDetails {
     prefix_wildcards_supported: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum FrequencyMode {
-    #[serde(rename = "occurrence-based")]
-    OccurrenceBased,
-    #[serde(rename = "rank-based")]
-    RankBased,
-}
+// #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+// pub enum FrequencyMode {
+//     #[serde(rename = "occurrence-based")]
+//     OccurrenceBased,
+//     #[serde(rename = "rank-based")]
+//     RankBased,
+// }
 
 // Final details about the Dictionary and it's import process.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -216,7 +221,7 @@ pub enum DictionarySummaryError {
 
 impl DictionarySummary {
     fn new(
-        index: Index,
+        index: YomichanIndexFile,
         prefix_wildcards_supported: bool,
         details: SummaryDetails,
     ) -> Result<Self, DictionarySummaryError> {
@@ -227,7 +232,7 @@ impl DictionarySummary {
             styles,
             yomitan_version,
         } = details;
-        let Index {
+        let YomichanIndexFile {
             title,
             revision,
             sequenced,
@@ -624,18 +629,18 @@ pub fn import_dictionary<P: AsRef<Path>>(
                                 .map(|p| DictionaryPitch {
                                     position: p.position,
                                     nasal: p.nasal.map(|n| match n {
-                                        importer::dictionary_data::VecNumOrNum::Vec(v) => {
+                                        VecNumOrNum::Vec(v) => {
                                             VecNumOrNum::Vec(v)
                                         }
-                                        importer::dictionary_data::VecNumOrNum::Num(n) => {
+                                        VecNumOrNum::Num(n) => {
                                             VecNumOrNum::Num(n)
                                         }
                                     }),
                                     devoice: p.devoice.map(|d| match d {
-                                        importer::dictionary_data::VecNumOrNum::Vec(v) => {
+                                        VecNumOrNum::Vec(v) => {
                                             VecNumOrNum::Vec(v)
                                         }
-                                        importer::dictionary_data::VecNumOrNum::Num(n) => {
+                                        VecNumOrNum::Num(n) => {
                                             VecNumOrNum::Num(n)
                                         }
                                     }),
@@ -782,7 +787,13 @@ pub fn import_dictionary<P: AsRef<Path>>(
     };
 
     let rwtx = db.rw_transaction()?;
-    db_rwriter(&rwtx, data.term_list.into_iter().map(DatabaseTermEntry::from).collect())?;
+    db_rwriter(
+        &rwtx,
+        data.term_list
+            .into_iter()
+            .map(DatabaseTermEntry::from)
+            .collect(),
+    )?;
     db_rwriter(&rwtx, data.kanji_list)?;
     db_rwriter(&rwtx, data.tag_list)?;
     db_rwriter(&rwtx, data.kanji_meta_list)?;

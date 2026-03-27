@@ -188,9 +188,11 @@ type ParseTextLine = Vec<ParseTextSegment>;
 mod ycd_tests {
     use std::{cell::RefCell, fs::File, io::BufReader};
 
+    use importer::dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType};
+
     use crate::{
         database::dictionary_database::{DatabaseMetaFrequency, DatabaseTermEntry},
-        dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
+        //dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType},
         test_utils::{self, TEST_PATHS},
         Yomichan,
     };

@@ -34,12 +34,12 @@ pub enum NumOrStr {
     Str(String),
 }
 
-/// Helper enum to match [TermMetaPitchAccent] data more accurately.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum VecNumOrNum {
-    Vec(Vec<u8>),
-    Num(u8),
-}
+// /// Helper enum to match [TermMetaPitchAccent] data more accurately.
+// #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+// pub enum VecNumOrNum {
+//     Vec(Vec<u8>),
+//     Num(u8),
+// }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 /// A tag represents some brief information about part of a dictionary entry.

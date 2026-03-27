@@ -1,14 +1,16 @@
 use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
 use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
-use crate::dictionary_data::{
-    DictionaryDataTag, MetaDataMatchType, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
-    TermMetaModeType, TermMetaPitch, TermMetaPitchData,
-};
+// use crate::dictionary_data::{
+//     DictionaryDataTag, MetaDataMatchType, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
+//     TermMetaModeType, TermMetaPitch, TermMetaPitchData,
+// };
 use crate::errors::{DBError, DictionaryFileError, ImportError};
 use crate::settings::{DictionaryOptions, YomichanOptions, YomichanProfile};
 use crate::structured_content::{StructuredContent, TermGlossary, TermGlossaryGroupType};
 use crate::test_utils::TEST_PATHS;
 use crate::translator::TagTargetItem;
+use importer::dictionary_data::{MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
+use importer::dictionary_database::TermMetaPhoneticData;
 use serde_with::skip_serializing_none;
 use serde_with::{serde_as, NoneAsEmptyString};
 
@@ -515,12 +517,12 @@ pub struct DatabaseMetaPhonetic {
     pub data: TermMetaPhoneticData,
     pub dictionary: String,
 }
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermMetaPhoneticData {
-    pub reading: String,
-    /// List of different IPA transcription information for the term and reading combination.
-    pub transcriptions: Vec<PhoneticTranscription>,
-}
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// pub struct TermMetaPhoneticData {
+//     pub reading: String,
+//     /// List of different IPA transcription information for the term and reading combination.
+//     pub transcriptions: Vec<PhoneticTranscription>,
+// }
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PhoneticTranscription {
     /// Type of the pronunciation, for disambiguation between union type members.
