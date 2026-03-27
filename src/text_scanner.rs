@@ -577,7 +577,7 @@ mod textscanner {
 
     #[test]
     fn search_dbg() {
-        let ycd = YCD.read();
+        let ycd = &YCD;
         ycd.set_language("es");
         let sentence = "espanol es muy bueno";
         let res = ycd.search(sentence);
@@ -590,7 +590,7 @@ mod textscanner {
     #[ignore]
     #[test]
     fn search() {
-        let ycd = YCD.read();
+        let ycd = &YCD;
         ycd.set_language("ja");
         let res = ycd.search("晩餐");
         let Some(res) = res else {

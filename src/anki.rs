@@ -191,7 +191,7 @@ impl DisplayAnki {
     pub fn select_deck(&self, deck_idx: usize) -> Result<(), DisplayAnkiError> {
         let profile_ptr = self.options.read().get_current_profile()?;
         let mut profile_guard = profile_ptr.write();
-        let anki_fields = profile_guard.anki_options_mut().get_mut_anki_fields();
+        let anki_fields = profile_guard.anki_options_mut().anki_fields_mut();
 
         if let Some(fields) = anki_fields {
             fields.set_selected_deck(deck_idx);
@@ -207,7 +207,7 @@ impl DisplayAnki {
     pub fn select_model(&self, model_idx: usize) -> Result<(), DisplayAnkiError> {
         let profile_ptr = self.options.read().get_current_profile()?;
         let mut profile_guard = profile_ptr.write();
-        let anki_fields = profile_guard.anki_options_mut().get_mut_anki_fields();
+        let anki_fields = profile_guard.anki_options_mut().anki_fields_mut();
 
         if let Some(fields) = anki_fields {
             fields.set_selected_model(model_idx);
@@ -240,7 +240,7 @@ impl DisplayAnki {
         };
 
         let persistent_fields = AnkiTermFieldType::from_field_indices(mappings, &model_details)?;
-        let anki_fields = profile_guard.anki_options_mut().get_mut_anki_fields();
+        let anki_fields = profile_guard.anki_options_mut().anki_fields_mut();
 
         if let Some(fields) = anki_fields {
             fields.set_fields(persistent_fields);
@@ -259,13 +259,8 @@ impl DisplayAnki {
         sentence: Option<&str>,
     ) -> Result<Vec<usize>, DisplayAnkiError> {
         let note = self.build_note_from_entry(entry, sentence)?;
-        let ids = self
-            .client
-            .read()
-            .notes()
-            .add_notes(&[note])
-            .map_err(AnkiResult::from)?;
-        Ok(ids)
+        let ids = self.client.read().notes().add_notes(&[note])?;
+        Ok(ids.into_iter().map(|id| id as usize).collect())
     }
 
     pub fn build_note_from_entry(
@@ -384,7 +379,7 @@ impl DisplayAnki {
         field_mappings: &[FieldIndex],
     ) -> Result<(), DisplayAnkiError> {
         // Step 1: Ensure all Anki data is up-to-date.
-        //self.update_all_anki_maps().await?;
+        self.update_all_anki_maps()?;
 
         // Step 2: Resolve names to indices and get model details.
         // This is done in a scoped block to release the read lock quickly.
@@ -663,7 +658,7 @@ mod displayanki {
     #[ignore]
     #[test]
     fn build_note() {
-        let mut ycd = YCD.write();
+        let mut ycd = &YCD;
         ycd.set_language("ja");
         {
             let mut anki = ycd.display_anki();
@@ -737,7 +732,7 @@ mod displayanki {
     #[ignore]
     #[test]
     fn auto_note() {
-        let mut ycd = YCD.write();
+        let mut ycd = &YCD;
         ycd.set_language("ja");
 
         ycd.display_anki()
@@ -784,7 +779,7 @@ mod displayanki {
     #[ignore]
     #[test]
     fn build_note_auto_config() {
-        let mut ycd = YCD.write();
+        let mut ycd = &YCD;
         ycd.set_language("ja");
 
         let display_anki = ycd.display_anki().read_arc();
@@ -830,8 +825,8 @@ mod displayanki {
     #[ignore]
     #[test]
     fn streamlined_anki_api_test() {
-        let mut ycd = YCD.write();
-        ycd.set_language("ja");
+        let mut ycd = &YCD;
+        ycd.set_language("es");
 
         // 1. Sync Anki data (One-time hydration)
         ycd.anki().update_all_anki_maps().unwrap();
@@ -860,7 +855,7 @@ mod displayanki {
         ]).unwrap();
 
         // 4. Action (The "Star" button)
-        let sentence = "日本語が大好きです";
+        let sentence = "espanol es muy bueno";
         let res = ycd.search(sentence).unwrap();
         let first_segment = res.into_iter().find(|s| s.results.is_some()).unwrap();
         let results = first_segment.results.unwrap();

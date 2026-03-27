@@ -19,10 +19,10 @@ pub(crate) static TEST_PATHS: LazyLock<TestPaths> = LazyLock::new(|| TestPaths {
     test_dicts_dir: PathBuf::from("tests").join("test_dicts"),
 });
 
-pub static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
+pub static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
     let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
     ycd.set_language("es");
-    RwLock::new(ycd)
+    ycd
 });
 
 pub(crate) static SHARED_DB_INSTANCE: LazyLock<DictionaryDatabase> = LazyLock::new(|| {
