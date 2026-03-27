@@ -1282,7 +1282,7 @@ impl<'a> Translator<'a> {
                             }
                         };
                         let freq_info =
-                            Translator::_get_frequency_info(frequency_data_value.clone());
+                            GenericFreqData::get_frequency_info(&frequency_data_value);
                         let frequency_value_to_store = freq_info.frequency;
                         let display_value_str = freq_info.display_value;
                         let display_value_parsed_bool = freq_info.display_value_parsed;
@@ -1469,28 +1469,6 @@ impl<'a> Translator<'a> {
             dictionary_index,
             dictionary_alias,
             pronunciations,
-        }
-    }
-    fn _get_frequency_info(frequency_data: GenericFreqData) -> FrequencyInfo {
-        match frequency_data {
-            GenericFreqData::Object(obj) => FrequencyInfo {
-                frequency: obj.value,
-                display_value: obj.display_value,
-                display_value_parsed: false,
-            },
-            GenericFreqData::Integer(num) => FrequencyInfo {
-                frequency: num,
-                display_value: None,
-                display_value_parsed: false,
-            },
-            GenericFreqData::String(s_val) => {
-                let numeric_value = Translator::_convert_string_to_number(&s_val);
-                FrequencyInfo {
-                    frequency: numeric_value,
-                    display_value: Some(s_val),
-                    display_value_parsed: true,
-                }
-            }
         }
     }
     fn _convert_string_to_number(s: &str) -> i128 {
