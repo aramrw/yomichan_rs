@@ -67,7 +67,7 @@ impl Yomichan<'_> {
     ///     }
     /// }
     /// ```
-    pub fn search(&mut self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
+    pub fn search(&self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
         let profile = self.backend.get_current_profile().ok()?;
         let profile = profile.read();
         let opts = profile.options();
@@ -285,14 +285,14 @@ impl<'a> TextScanner<'a> {
     /// The final, flat list of all found dictionary entries is then returned,
     /// ready to be consumed by the `SentenceParser`.
     pub fn search_sentence(
-        &mut self,
+        &self,
         sentence_text: &str,
         options: &ProfileOptions,
     ) -> Option<TermSearchResults> {
         let mut all_entries: Vec<TermDictionaryEntry> = Vec::new();
 
         // A helper closure to avoid duplicating the API call logic.
-        let mut find_and_extend = |text_slice: &str| {
+        let find_and_extend = |text_slice: &str, all_entries: &mut Vec<TermDictionaryEntry>| {
             if let Some(find_result) = self.find_term_dictionary_entries(text_slice, options) {
                 all_entries.extend(find_result.dictionary_entries);
             }
@@ -304,7 +304,7 @@ impl<'a> TextScanner<'a> {
             // For non-spaced languages, a search must be started from every position.
             "ja" | "zh" | "ko" => {
                 for (i, _) in sentence_text.char_indices() {
-                    find_and_extend(&sentence_text[i..]);
+                    find_and_extend(&sentence_text[i..], &mut all_entries);
                 }
             }
 
@@ -317,7 +317,7 @@ impl<'a> TextScanner<'a> {
                     if !is_whitespace && last_char_was_whitespace {
                         // This character is the start of a new word.
                         // We search the rest of the string from this point.
-                        find_and_extend(&sentence_text[i..]);
+                        find_and_extend(&sentence_text[i..], &mut all_entries);
                     }
                     last_char_was_whitespace = is_whitespace;
                 }
@@ -353,7 +353,7 @@ impl<'a> TextScanner<'a> {
     /// # Returns
     /// An option [TermSearchResults] containing the sorted dictionary entries and sentence context.
     pub fn _search_internal(
-        &mut self,
+        &self,
         full_text: &str,
         start_position: usize,
         options: &ProfileOptions,
@@ -420,7 +420,7 @@ impl<'a> TextScanner<'a> {
 
     /// Calls the core translator to find dictionary entries.
     fn find_term_dictionary_entries(
-        &mut self,
+        &self,
         search_text: &str,
         options: &ProfileOptions,
     ) -> Option<FindTermsResult> {
@@ -577,7 +577,7 @@ mod textscanner {
 
     #[test]
     fn search_dbg() {
-        let mut ycd = YCD.write();
+        let ycd = YCD.read();
         ycd.set_language("es");
         let sentence = "espanol es muy bueno";
         let res = ycd.search(sentence);
@@ -590,7 +590,7 @@ mod textscanner {
     #[ignore]
     #[test]
     fn search() {
-        let mut ycd = YCD.write();
+        let ycd = YCD.read();
         ycd.set_language("ja");
         let res = ycd.search("晩餐");
         let Some(res) = res else {

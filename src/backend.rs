@@ -106,7 +106,7 @@ impl<'a> Yomichan<'a> {
     /// }
     ///
     /// ```
-    pub fn set_language(&mut self, language_iso: &str) -> ProfileResult<()> {
+    pub fn set_language(&self, language_iso: &str) -> ProfileResult<()> {
         let res: ProfileResult<()> = self.backend.options.with_ptr(|global| {
             let mut current_profile = global.get_current_profile()?;
             current_profile.write().set_language(language_iso);
@@ -117,7 +117,7 @@ impl<'a> Yomichan<'a> {
 
     /// Deletes dictionaries from the database and options by name, in memory only.
     pub fn delete_dictionaries_by_names_in_memory(
-        &mut self,
+        &self,
         names: &[impl AsRef<str>],
     ) -> Result<(), DBError> {
         let current_profile = self.backend.get_current_profile()?;
@@ -132,7 +132,7 @@ impl<'a> Yomichan<'a> {
         Ok(())
     }
 
-    pub fn delete_dictionaries_by_indexes(&mut self, indexes: &[usize]) -> Result<(), DBError> {
+    pub fn delete_dictionaries_by_indexes(&self, indexes: &[usize]) -> Result<(), DBError> {
         let current_profile = self.backend.get_current_profile()?;
         current_profile.with_ptr_mut(|prof| {
             let dictionaries = prof.dictionaries_mut();

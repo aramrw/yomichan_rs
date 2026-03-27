@@ -13,33 +13,30 @@
 //!
 //! ```no_run
 //! use yomichan_rs::Yomichan;
-//! use std::sync::{LazyLock, RwLock};
+//! use std::sync::{LazyLock};
 //!
 //! // Best practice: Initialize Yomichan once as a static variable
 //! // to avoid repeatedly opening the database.
-//! static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
+//! static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
 //!     // Create a new Yomichan instance.
 //!     // This will create a `db.ycd` file in the specified directory.
 //!     let mut ycd = Yomichan::new("path/to/your/db_directory").unwrap();
 //!
 //!     // Import dictionaries (e.g., from a folder containing Yomitan-format dictionaries).
 //!     // This only needs to be done once.
-//!     if ycd.get_dictionaries().unwrap().is_empty() {
-//!         ycd.import_dictionaries(&["path/to/your/dictionaries"]).unwrap();
+//!     if ycd.dictionary_summaries().unwrap().is_empty() {
+//!         // ycd.import_dictionaries(&["path/to/your/dictionaries"]).unwrap();
 //!     }
 //!
 //!     // Set the language for text processing.
 //!     ycd.set_language("ja").unwrap();
 //!
-//!     RwLock::new(ycd)
+//!     ycd
 //! });
 //!
 //! fn main() {
-//!     // Lock the Yomichan instance for writing to perform a search.
-//!     let mut ycd = YCD.write().unwrap();
-//!
-//!     // Perform a search.
-//!     if let Some(results) = ycd.search("日本語を勉強している") {
+//!     // Perform a search using a shared reference (&Yomichan).
+//!     if let Some(results) = YCD.search("日本語を勉強している") {
 //!         for segment in results {
 //!             if let Some(search_results) = segment.results {
 //!                 println!("Found term: {}", segment.text);

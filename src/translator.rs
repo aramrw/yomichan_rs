@@ -78,11 +78,13 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
+use parking_lot::RwLock;
+
 /// class which finds term and kanji dictionary entries for text.
 pub struct Translator<'a> {
     pub db: Arc<DictionaryDatabase<'a>>,
     pub mlt: MultiLanguageTransformer,
-    pub tag_cache: IndexMap<String, TagCache>,
+    pub tag_cache: RwLock<IndexMap<String, TagCache>>,
     /// Invariant Locale
     /// Default: "en-US"
     pub string_comparer: CollatorBorrowed<'a>,
@@ -104,7 +106,7 @@ impl<'a> Translator<'a> {
         Self {
             db,
             mlt: MultiLanguageTransformer::default(),
-            tag_cache: IndexMap::new(),
+            tag_cache: RwLock::new(IndexMap::new()),
             string_comparer: Collator::try_new(locale!("en-US").into(), CollatorOptions::default())
                 .unwrap(),
             number_regex: &*TRANSLATOR_NUMBER_REGEX,
@@ -134,8 +136,8 @@ impl<'a> Translator<'a> {
     }
     /// Clears the database tag cache.
     /// This should be called if the database is changed.
-    fn clear_dbtag_caches(&mut self) {
-        self.tag_cache.clear();
+    fn clear_dbtag_caches(&self) {
+        self.tag_cache.write().clear();
     }
     /// Finds term definitions for the given text.
     ///
@@ -161,7 +163,7 @@ impl<'a> Translator<'a> {
     ///
     /// Returns an error if the term lookup process fails for any reason.
     pub fn find_terms(
-        &mut self,
+        &self,
         mode: FindTermsMode,
         text: &str,
         opts: &FindTermsOptions,
@@ -880,7 +882,7 @@ impl<'a> Translator<'a> {
     //     }
     // }
 
-    fn _expand_tag_groups_and_group(&mut self, tag_expansion_targets: &mut [TagExpansionTarget]) {
+    fn _expand_tag_groups_and_group(&self, tag_expansion_targets: &mut [TagExpansionTarget]) {
         self._expand_tag_groups_mut(tag_expansion_targets);
         self._group_tags_mut(tag_expansion_targets);
     }
@@ -962,7 +964,7 @@ impl<'a> Translator<'a> {
         }
     }
 
-    fn _expand_tag_groups_mut(&mut self, tag_targets: &mut [TagExpansionTarget]) {
+    fn _expand_tag_groups_mut(&self, tag_targets: &mut [TagExpansionTarget]) {
         // `all_items` was an artifact of the initial incorrect cloning strategy.
         // Given our new approach where `target_map` is the source of truth
         // and we directly modify `tag_targets` in the final loop, `all_items` is
@@ -1049,10 +1051,10 @@ impl<'a> Translator<'a> {
 
         // Second pass: Identify non-cached items and populate their database_tag
         let mut non_cached_items_refs: Vec<&mut TagTargetItem> = Vec::new();
-        let tag_cache_ref = &mut self.tag_cache;
+        let mut tag_cache_lock = self.tag_cache.write();
 
         for (dictionary_name, dictionary_items) in target_map.iter_mut() {
-            let cache_for_dict = tag_cache_ref.entry(dictionary_name.clone()).or_default();
+            let cache_for_dict = tag_cache_lock.entry(dictionary_name.clone()).or_default();
 
             for item in dictionary_items.values_mut() {
                 let database_tag_from_cache = cache_for_dict.get(item.query.as_str());
@@ -1094,7 +1096,7 @@ impl<'a> Translator<'a> {
                 // from `find_tag_meta_bulk`.
                 // Assign it directly.
                 item_ref.database_tag = database_tag_option.clone();
-                if let Some(cache) = tag_cache_ref.get_mut(&item_ref.dictionary) {
+                if let Some(cache) = tag_cache_lock.get_mut(&item_ref.dictionary) {
                     /// if the cache exists, you can directly use the Option<DatabaseTag>
                     /// as cache: &mut IndexMap<String, Option<DatabaseTag>> already.
                     cache.insert(item_ref.query.clone(), database_tag_option);
