@@ -534,3 +534,29 @@ mod init_err_impls {
         }
     }
 }
+
+#[cfg(test)]
+mod yomichan_ergonomics_tests {
+    use super::*;
+    use crate::test_utils::TEST_PATHS;
+
+    #[test]
+    fn test_with_profile_mut_ergonomics() {
+        let ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
+        
+        // Mutate and return a value
+        let lang = ycd.with_profile_mut(|profile| {
+            profile.set_language("es");
+            profile.options().general.language.clone()
+        }).expect("Should access profile");
+
+        assert_eq!(lang, "es");
+        
+        // Verify via read accessor
+        let read_lang = ycd.with_profile(|profile| {
+            profile.options().general.language.clone()
+        }).expect("Should access profile");
+        
+        assert_eq!(read_lang, "es");
+    }
+}
