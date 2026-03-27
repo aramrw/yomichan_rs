@@ -57,7 +57,6 @@ mod audio;
 mod backend;
 mod database;
 mod dictionary;
-mod dictionary_data;
 mod environment;
 mod errors;
 mod freq;
