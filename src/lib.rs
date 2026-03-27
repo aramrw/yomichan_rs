@@ -357,6 +357,46 @@ impl<'a> Yomichan<'a> {
 
         Ok(Self { db, backend })
     }
+
+    /// Executes a closure with immutable access to the current profile.
+    pub fn with_profile<F, R>(&self, f: F) -> settings::ProfileResult<R>
+    where
+        F: FnOnce(&YomichanProfile) -> R,
+    {
+        let opts = self.backend.options.read();
+        let profile_ptr = opts.get_current_profile()?;
+        let profile = profile_ptr.read();
+        Ok(f(&profile))
+    }
+
+    /// Executes a closure with mutable access to the current profile.
+    pub fn with_profile_mut<F, R>(&self, f: F) -> settings::ProfileResult<R>
+    where
+        F: FnOnce(&mut YomichanProfile) -> R,
+    {
+        let opts = self.backend.options.read();
+        let profile_ptr = opts.get_current_profile()?;
+        let mut profile = profile_ptr.write();
+        Ok(f(&mut profile))
+    }
+
+    #[cfg(feature = "anki")]
+    /// Executes a closure with immutable access to the current profile's AnkiOptions.
+    pub fn with_anki_options<F, R>(&self, f: F) -> settings::ProfileResult<R>
+    where
+        F: FnOnce(&settings::AnkiOptions) -> R,
+    {
+        self.with_profile(|p| f(p.anki_options()))
+    }
+
+    #[cfg(feature = "anki")]
+    /// Executes a closure with mutable access to the current profile's AnkiOptions.
+    pub fn with_anki_options_mut<F, R>(&self, f: F) -> settings::ProfileResult<R>
+    where
+        F: FnOnce(&mut settings::AnkiOptions) -> R,
+    {
+        self.with_profile_mut(|p| f(p.anki_options_mut()))
+    }
 }
 
 /// Determines the correct database file path based on the user's input.
