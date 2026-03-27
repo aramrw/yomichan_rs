@@ -13,24 +13,16 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnki;
 use crate::{
-    database::{
+    Ptr, PtrRGaurd, Yomichan, database::{
         dictionary_database::{DictionaryDatabase, DictionaryDatabaseError},
         dictionary_importer::DictionarySummary,
-    },
-    dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchSource, TermSourceMatchType},
-    environment::{EnvironmentInfo, CACHED_ENVIRONMENT_INFO},
-    errors::{DBError, YomichanError},
-    settings::{
+    }, dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchSource, TermSourceMatchType}, environment::{CACHED_ENVIRONMENT_INFO, EnvironmentInfo}, errors::{DBError, YomichanError}, settings::{
         DictionaryOptions, GeneralOptions, ProfileError, ProfileOptions, ProfileResult,
         ScanningOptions, SearchResolution, TranslationOptions, TranslationTextReplacementGroup,
         TranslationTextReplacementOptions, YomichanOptions,
-    },
-    text_scanner::{TermSearchResults, TextScanner},
-    translation::{
+    }, text_scanner::{TermSearchResults, TextScanner}, translation::{
         FindTermDictionary, FindTermsMatchType, FindTermsOptions, TermEnabledDictionaryMap,
-    },
-    translator::{EnabledDictionaryMapType, FindTermsMode, FindTermsResult, Translator},
-    Ptr, Yomichan,
+    }, translator::{EnabledDictionaryMapType, FindTermsMode, FindTermsResult, Translator}
 };
 
 /// `yomichan_rs` private engine
@@ -86,9 +78,23 @@ impl<'a> Yomichan<'a> {
     /// Saves global options for all profiles to the database;
     /// Meant to be called after you mutate a profile
     /// (ie. via [Self::mod_options_mut().get_current_profile_mut])
+    /// Saves global options for all profiles to the database;
+    /// Meant to be called after you mutate a profile
+    /// (ie. via [Self::mod_options_mut().get_current_profile_mut])
     pub fn update_options(&self) -> Result<(), Box<native_db::db_type::Error>> {
         self.backend._update_options_internal(None)?;
         Ok(())
+    }
+
+    /// Alias for [Self::update_options]
+    pub fn save_settings(&self) -> Result<(), Box<native_db::db_type::Error>> {
+        self.update_options()
+    }
+
+    #[cfg(feature = "anki")]
+    /// Returns a direct handle to the Anki integration for the current profile.
+    pub fn anki(&self) -> PtrRGaurd<DisplayAnki> {
+        self.backend.anki.read_arc()
     }
 
     /// Sets the current profile's main language.
