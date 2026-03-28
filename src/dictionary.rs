@@ -159,7 +159,7 @@ pub struct DictionaryOrder {
 /*************** Term ***************/
 
 /// Enum representing what database field was used to match the source term.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TermSourceMatchSource {
     Term,
@@ -227,7 +227,7 @@ pub struct TermHeadword {
 ///
 /// A term can have multiple definitions, and this struct holds the content
 /// of one such definition, along with metadata about its source and relevance.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub struct TermDefinition {
     /// A unique identifier for this specific definition.
     pub id: String,
@@ -302,7 +302,7 @@ pub struct TermSource {
 ///
 /// This is one of the core data structures returned by a search. It contains all the
 /// information associated with a single term as found in one or more dictionaries.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub struct TermDictionaryEntry {
     /// The type of entry, indicating how it was matched (e.g., as a term).
     /// This should always be [`TermSourceMatchSource::Term`].

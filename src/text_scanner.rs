@@ -81,7 +81,7 @@ impl Yomichan<'_> {
 /// A `TermSearchResultsSegment` is a self-contained piece of the original input text.
 /// It holds the text for that segment and, if it was successfully matched to one or more
 /// dictionary entries, an `Option` containing the `TermSearchResults`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TermSearchResultsSegment {
     /// The text of this specific segment.
     pub text: String,
@@ -201,7 +201,7 @@ impl SentenceParser {
 ///
 /// * text the full unchanged string looked up
 /// * offset: The character offset of the original search text within the full sentence text.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Sentence {
     pub text: String,
     pub offset: usize,
@@ -216,7 +216,7 @@ pub struct Sentence {
 ///
 /// The `SentenceParser` consumes this struct to produce the final, segmented
 /// display output (`Vec<TermSearchResultsSegment>`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TermSearchResults {
     /// A flat list of all dictionary entries that matched the searched term.
     ///
