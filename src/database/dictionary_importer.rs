@@ -70,10 +70,10 @@ impl Yomichan<'_> {
             zip_paths,
             self.options().read().get_current_profile()?,
             self.db.clone(),
-        );
+        )?;
 
         let rwtx = self.db.rw_transaction()?;
-        db_rwriter(&rwtx, vec![self.options().read().clone()]);
+        db_rwriter(&rwtx, vec![self.options().read().clone()])?;
         rwtx.commit()?;
 
         Ok(())
@@ -440,24 +440,6 @@ pub type TermBank = Vec<TermEntryItem>;
 pub type TermMetaBank = Vec<TermMeta>;
 pub type KanjiBank = Vec<DatabaseKanjiEntry>;
 
-fn extract_dict_zip<P: AsRef<std::path::Path>>(
-    zip_path: P,
-) -> Result<std::path::PathBuf, ImportZipError> {
-    let temp_dir = tempdir()?;
-    let temp_dir_path = temp_dir.path().to_owned();
-    let temp_dir_path_clone = temp_dir_path.clone();
-
-    {
-        let file = fs::File::open(zip_path)?;
-        let mut archive = zip::ZipArchive::new(file)?;
-        let extract_handle = std::thread::spawn(move || archive.extract(temp_dir_path_clone));
-        extract_handle.join().unwrap().unwrap();
-    }
-
-    temp_dir.close()?;
-    Ok(temp_dir_path)
-}
-
 pub fn import_dictionary<P: AsRef<Path>>(
     zip_path: P,
     db: Arc<DictionaryDatabase>,
@@ -800,9 +782,9 @@ pub fn import_dictionary<P: AsRef<Path>>(
     {
         for item in data.term_meta_list {
             match item {
-                DatabaseMetaMatchType::Frequency(freq) => rwtx.insert(freq)?,
-                DatabaseMetaMatchType::Pitch(pitch) => rwtx.insert(pitch)?,
-                DatabaseMetaMatchType::Phonetic(ipa) => rwtx.insert(ipa)?,
+                DatabaseMetaMatchType::Frequency(freq) => { rwtx.upsert(freq)?; },
+                DatabaseMetaMatchType::Pitch(pitch) => { rwtx.upsert(pitch)?; },
+                DatabaseMetaMatchType::Phonetic(ipa) => { rwtx.upsert(ipa)?; },
             }
         }
     }
@@ -817,10 +799,10 @@ fn db_rwriter<L: ToInput>(
     list: Vec<L>,
 ) -> Result<(), Box<native_db::db_type::Error>> {
     for item in list {
-        rwtx.insert(item)?;
+        rwtx.upsert(item)?;
     }
     Ok(())
-}
+    }
 
 /*
 pub fn prepare_dictionary<P: AsRef<Path>>(
