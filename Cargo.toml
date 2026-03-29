@@ -73,8 +73,8 @@ rayon = []
 anki = []
 tracing = ["dep:tracing"]
 
-# pprof is linux only
-[target.'cfg(unix)'.dependencies]
+# pprof is linux/macos only
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 pprof = { version = "0.13", features = ["flamegraph"] }
 
 [profile.release]
