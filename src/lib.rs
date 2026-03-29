@@ -309,6 +309,44 @@ pub struct Yomichan<'a> {
 }
 
 impl<'a> Yomichan<'a> {
+    /// Deletes all database files and directories associated with Yomichan in the given path.
+    /// 
+    /// This is a "nuke" option that will permanently delete all dictionary data and settings.
+    /// This should only be called when the Yomichan instance is NOT active.
+    pub fn nuke_database(path: impl AsRef<Path>) -> std::io::Result<()> {
+        let path = path.as_ref();
+        if !path.exists() {
+            return Ok(());
+        }
+
+        // 1. If it's a file, delete it if it ends in .ycd
+        if path.is_file() {
+            if path.extension() == Some(std::ffi::OsStr::new("ycd")) {
+                std::fs::remove_file(path)?;
+            }
+            return Ok(());
+        }
+
+        // 2. If it's a directory, look for *.ycd files and the yomichan_rs subdirectory
+        if path.is_dir() {
+            for entry in std::fs::read_dir(path)? {
+                let entry = entry?;
+                let entry_path = entry.path();
+                if entry_path.is_file() {
+                    if entry_path.extension() == Some(std::ffi::OsStr::new("ycd")) {
+                        std::fs::remove_file(entry_path)?;
+                    }
+                } else if entry_path.is_dir() {
+                    if entry_path.file_name() == Some(std::ffi::OsStr::new("yomichan_rs")) {
+                        std::fs::remove_dir_all(entry_path)?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Opens or creates a Yomichan database at the specified path.
     ///
     /// This function provides a flexible and robust way to initialize the database,

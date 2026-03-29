@@ -23,6 +23,7 @@ use native_model::{native_model, Model as NativeModelTrait};
 use serde::{Deserialize, Serialize};
 use serde_json::Deserializer as JsonDeserializer;
 use uuid::Uuid;
+use log;
 
 use std::ffi::OsString;
 use std::io::BufReader;
@@ -921,6 +922,70 @@ impl DictionaryDatabase<'_> {
         let mut summaries = summaries?;
         summaries.sort_by_key(|s| s.import_date);
         Ok(summaries)
+    }
+
+    pub fn remove_dictionary_by_name(
+        &self,
+        name: &str,
+    ) -> Result<(), Box<DictionaryDatabaseError>> {
+        log::info!("Database: Removing dictionary '{}'...", name);
+        let rwtx = self.db.rw_transaction()?;
+
+        // 1. Remove from DictionarySummary (Primary key is title)
+        log::info!("  - Removing DictionarySummary...");
+        let summary: Option<DictionarySummary> = rwtx.get().primary(name)?;
+        if let Some(s) = summary {
+            rwtx.remove(s)?;
+        }
+
+        // 2. Remove associated terms
+        log::info!("  - Removing associated terms (this may take a while)...");
+        let terms: Vec<DatabaseTermEntry> = rwtx.scan().primary::<DatabaseTermEntry>()?.all()?.flatten().filter(|t| t.dictionary == name).collect();
+        log::info!("    Found {} terms to remove", terms.len());
+        for term in terms {
+            rwtx.remove(term)?;
+        }
+
+        // 3. Remove associated metadata
+        log::info!("  - Removing metadata...");
+        let freqs: Vec<DatabaseMetaFrequency> = rwtx.scan().primary::<DatabaseMetaFrequency>()?.all()?.flatten().filter(|f| f.dictionary == name).collect();
+        for freq in freqs {
+            rwtx.remove(freq)?;
+        }
+
+        let pitches: Vec<DatabaseMetaPitch> = rwtx.scan().primary::<DatabaseMetaPitch>()?.all()?.flatten().filter(|p| p.dictionary == name).collect();
+        for pitch in pitches {
+            rwtx.remove(pitch)?;
+        }
+
+        let phonetics: Vec<DatabaseMetaPhonetic> = rwtx.scan().primary::<DatabaseMetaPhonetic>()?.all()?.flatten().filter(|p| p.dictionary == name).collect();
+        for phonetic in phonetics {
+            rwtx.remove(phonetic)?;
+        }
+
+        // 4. Remove associated kanji
+        log::info!("  - Removing kanji...");
+        let kanjis: Vec<DatabaseKanjiEntry> = rwtx.scan().primary::<DatabaseKanjiEntry>()?.all()?.flatten().filter(|k| k.dictionary.as_deref() == Some(name)).collect();
+        for kanji in kanjis {
+            rwtx.remove(kanji)?;
+        }
+
+        let kanji_metas: Vec<DatabaseKanjiMeta> = rwtx.scan().primary::<DatabaseKanjiMeta>()?.all()?.flatten().filter(|k| k.dictionary == name).collect();
+        for kanji_meta in kanji_metas {
+            rwtx.remove(kanji_meta)?;
+        }
+
+        // 5. Remove associated tags
+        log::info!("  - Removing tags...");
+        let tags: Vec<DatabaseTag> = rwtx.scan().primary::<DatabaseTag>()?.all()?.flatten().filter(|t| t.dictionary == name).collect();
+        for tag in tags {
+            rwtx.remove(tag)?;
+        }
+
+        log::info!("  - Committing database changes...");
+        rwtx.commit()?;
+        log::info!("Database: Dictionary '{}' removed successfully.", name);
+        Ok(())
     }
 
     fn get_field_from_entry(entry: &DatabaseTermEntry, kind: SecondaryKeyQueryKind) -> &str {

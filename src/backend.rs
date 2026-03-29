@@ -148,12 +148,31 @@ impl<'a> Yomichan<'a> {
         Ok(())
     }
 
-    /// Gets all dictionary summaries from the database.
-    /// [DictionarySummary] is different from [DictionaryOptions]
     pub fn dictionary_summaries(
         &self,
     ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
         self.db.get_dictionary_summaries()
+    }
+
+    pub fn remove_dictionary(&self, name: &str) -> Result<(), DBError> {
+        // 1. Remove from database
+        self.db.remove_dictionary_by_name(name)?;
+
+        // 2. Remove from all profiles in memory
+        {
+            let opts_ptr = self.options();
+            let mut opts = opts_ptr.write();
+            for profile in opts.profiles.values_mut() {
+                profile.with_ptr_mut(|p| {
+                    p.dictionaries_mut().swap_remove(name);
+                });
+            }
+        }
+
+        // 3. Persist updated options
+        self.update_options()?;
+
+        Ok(())
     }
 }
 

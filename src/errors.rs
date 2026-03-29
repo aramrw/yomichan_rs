@@ -127,8 +127,16 @@ pub enum DBError {
     NoneFound(String),
     #[error("import err: {0}")]
     Import(#[from] ImportError),
-    #[error("(-)[yc_error::profile]")]
+    #[error("profile err: {0}")]
     Profile(#[from] ProfileError),
+    #[error("dictionary database err: {0}")]
+    DictionaryDatabase(Box<crate::database::dictionary_database::DictionaryDatabaseError>),
+}
+
+impl From<Box<crate::database::dictionary_database::DictionaryDatabaseError>> for DBError {
+    fn from(e: Box<crate::database::dictionary_database::DictionaryDatabaseError>) -> Self {
+        DBError::DictionaryDatabase(e)
+    }
 }
 
 impl From<native_db::db_type::Error> for DBError {
