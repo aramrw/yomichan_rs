@@ -314,7 +314,7 @@ pub struct DatabaseTag {
     pub name: String,
     #[secondary_key]
     pub category: String,
-    pub order: u64,
+    pub order: i64,
     pub notes: String,
     pub score: i128,
     /// dictionary gets added afterwards

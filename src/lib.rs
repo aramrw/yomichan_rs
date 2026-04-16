@@ -75,7 +75,6 @@ use backend::Backend;
 use database::dictionary_database::DictionaryDatabase;
 use database::dictionary_database::DB_MODELS;
 use derive_more::derive::DerefMut;
-use icu::time::scaffold::IntoOption;
 pub use indexmap;
 use indexmap::IndexMap;
 pub use parking_lot::{

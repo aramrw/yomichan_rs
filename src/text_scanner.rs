@@ -641,7 +641,7 @@ mod dbtests {
         }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let mut ycd = Yomichan::new(td).unwrap();
-        let paths = [tdcs.join("kotobankesjp")];
+        let paths = [tdcs.join("kotobankesjp"), tdcs.join("wty-es-en")];
         match ycd.import_dictionaries(&paths) {
             Ok(_) => {}
             Err(e) => {

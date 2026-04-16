@@ -2,6 +2,7 @@
 *.svg
 *.yc
 tests/yomichan_rs/*
+tests/test_dicts/wty-es-en
 db.ycd
 GEMINI.md
 *.txt

@@ -35,7 +35,7 @@ derive_more = { version = "1.0.0", features = [
 ] }
 indexmap = { version = "2.7.1", features = ["serde"] }
 deinflector = { path = "../deinflector" }
-importer = { path = "../importer" }
+importer = { path = "../importer", features = ["full"]}
 icu = "2.0.0"
 fancy-regex = "0.14.0"
 getset = "0.1.6"

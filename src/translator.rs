@@ -56,7 +56,6 @@ use derive_more::From;
 use fancy_regex::Regex;
 use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
-    datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
     locale::locale,
 };
 use importer::dictionary_data::{FrequencyInfo, GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum};
