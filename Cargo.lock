@@ -559,7 +559,7 @@ dependencies = [
  "derive_more 2.0.1",
  "fancy-regex",
  "indexmap 2.7.1",
- "kanji_processor 0.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kanji_processor",
  "phf",
  "pretty_assertions",
  "serde",
@@ -1817,16 +1817,6 @@ checksum = "1cfaf33c695fc6e08064efbc1f72ec937429614f25eef83af942d0e227c3a28f"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "kanji_processor"
-version = "0.0.11"
-dependencies = [
- "indexmap 2.7.1",
- "regex",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -4023,7 +4013,6 @@ dependencies = [
  "icu",
  "importer",
  "indexmap 2.7.1",
- "kanji_processor 0.0.11",
  "log",
  "native_db",
  "native_model",
@@ -4032,7 +4021,6 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "rmp-serde",
- "rmpv",
  "scopeguard",
  "serde",
  "serde-untagged",
