@@ -72,35 +72,26 @@ mod translator;
 pub use anki_direct;
 use backend::Backend;
 use database::dictionary_database::DictionaryDatabase;
-use database::dictionary_database::DB_MODELS;
 use derive_more::derive::DerefMut;
 pub use indexmap;
-use indexmap::IndexMap;
 pub use parking_lot::{
     ArcRwLockReadGuard, ArcRwLockUpgradableReadGuard, ArcRwLockWriteGuard, RawRwLock, RwLock,
 };
 use serde::Deserialize;
 use serde::Serialize;
-use settings::{YomichanOptions, YomichanProfile};
+use settings::YomichanProfile;
 
 use native_db::*;
-use native_model::{native_model, Model};
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::hash::Hasher;
-use text_scanner::TextScanner;
-use transaction::RTransaction;
-use translation::FindTermsOptions;
-use translator::FindTermsMode;
-use translator::Translator;
 
-use std::collections::HashSet;
 use std::fs::DirEntry;
 use std::sync::Arc;
 use std::{
-    ffi::{OsStr, OsString},
+    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };

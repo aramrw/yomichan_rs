@@ -18,25 +18,19 @@ use derivative::Derivative;
 use derive_more::derive::Deref;
 use derive_more::derive::DerefMut;
 use derive_more::derive::From;
-use derive_where::derive_where;
 use getset::Getters;
 use getset::MutGetters;
 use getset::Setters;
 use indexmap::IndexMap;
-use indexmap::IndexSet;
 use native_db::native_db;
 use native_db::ToKey;
 use native_model::native_model;
 use native_model::Model;
-use parking_lot::{ArcRwLockReadGuard, ArcRwLockUpgradableReadGuard, RawRwLock, RwLock};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use serde_with::SerializeDisplay;
 use url::form_urlencoded::Target;
 
-use crate::{
-    database::dictionary_importer::DictionarySummary, translation::FindTermsSortOrder,
-    translator::FindTermsMode,
-};
+use crate::{translation::FindTermsSortOrder, translator::FindTermsMode};
 
 /// Global application-level options.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -113,7 +107,7 @@ impl YomichanOptions {
     /// - `Ok(Ptr<YomichanProfile>)` if the profile is found.
     /// - `Err(ProfileError::SelectedOutofBounds)` if the index is out of bounds.
     pub fn get_current_profile(&self) -> ProfileResult<Ptr<YomichanProfile>> {
-        let Some((name, pf)) = self.profiles.get_index(self.current_profile) else {
+        let Some((_name, pf)) = self.profiles.get_index(self.current_profile) else {
             return Err(ProfileError::SelectedOutofBounds {
                 selected: *self.current_profile(),
                 len: self.profiles.len(),
@@ -152,7 +146,7 @@ impl YomichanOptions {
         &self,
         name: &str,
     ) -> ProfileResult<(usize, &str, Ptr<YomichanProfile>)> {
-        let ((i, k, ptr)) = {
+        let (i, k, ptr) = {
             let profiles = self.profiles();
             let Some((i, k, ptr)) = profiles.get_full(name) else {
                 return Err(ProfileError::ProfileNotFound {
@@ -205,7 +199,7 @@ impl YomichanOptions {
             .chars()
             .take(7)
             .collect::<String>();
-        self.create_new_profile(&name);
+        let _ = self.create_new_profile(&name);
         Ok(name)
     }
 }
@@ -357,23 +351,6 @@ pub struct ProfileCondition {
     pub value: String,
 }
 
-fn compare_prog_opts(a: &Arc<RwLock<AnkiOptions>>, b: &Arc<RwLock<AnkiOptions>>) -> bool {
-    // If the pointers are the same, they are equal.
-    if Arc::ptr_eq(a, b) {
-        return true;
-    }
-    // Otherwise, lock and compare the inner data.
-    // We use try_read() to avoid deadlocks in more complex scenarios,
-    // though unwrap() is fine if you're sure it won't deadlock.
-    if let (Some(a_lock), Some(b_lock)) = (a.try_read(), b.try_read()) {
-        *a_lock == *b_lock
-    } else {
-        // Handle the case where locking fails.
-        // maybe means they are not equal, (or want to panic).
-        false
-    }
-}
-
 /// A struct used for managing Profiles
 ///
 /// # Usage
@@ -400,7 +377,7 @@ pub struct ProfileOptions {
 impl ProfileOptions {
     fn new_default(global_anki_options: Ptr<GlobalAnkiOptions>) -> Self {
         let mut default = Self::default();
-        let mut anki_opts = &mut default.anki;
+        let anki_opts = &mut default.anki;
         anki_opts.global_anki_options = global_anki_options;
         default
     }
@@ -1004,22 +981,6 @@ impl AnkiTermFieldType {
         }
 
         Ok(resolved_fields)
-    }
-    /// Constructs a new [AnkiTermFieldType] from a `T`
-    /// Helper function to construct a variant from a value and a constructor function.
-    ///
-    /// This generic function avoids repetitive code by taking a value of any type `T`
-    /// and a `constructor` (like `TermFieldType::Term` or `TermFieldType::Image`)
-    /// and applying the constructor to the value.
-    ///
-    /// # Type Parameters
-    /// * `T`: The type of the value to be wrapped in the enum (e.g., `String`, `MediaSource`).
-    /// * `F`: A function or closure that takes `T` and returns `Self`.
-    fn from_value<T, F>(value: T, constructor: F) -> Self
-    where
-        F: FnOnce(T) -> Self,
-    {
-        constructor(value)
     }
 }
 

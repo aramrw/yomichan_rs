@@ -1,27 +1,18 @@
-use anki_direct::{
-    cache::model::ModelCache, error::AnkiResult, model::FullModelDetails, notes::Note, AnkiClient,
-};
+use anki_direct::{error::AnkiResult, notes::Note, AnkiClient};
 use derive_more::derive::From;
 use getset::Getters;
 use indexmap::IndexMap;
-use parking_lot::{
-    ArcRwLockReadGuard, ArcRwLockWriteGuard, MappedRwLockReadGuard, RawRwLock, RwLock,
-    RwLockReadGuard, RwLockWriteGuard,
-};
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-use std::{ops::Deref, sync::Arc};
+use parking_lot::{ArcRwLockReadGuard, ArcRwLockWriteGuard, RawRwLock, RwLock};
+use std::sync::Arc;
 
 #[cfg(feature = "anki")]
 use crate::database::dictionary_database::DictionaryDatabase;
 use crate::{
-    errors::{error_helpers, DBError},
+    errors::error_helpers,
     settings::{
-        AnkiDuplicateScope, AnkiFields, AnkiFieldsError, AnkiNoteOptions, AnkiOptions,
-        AnkiTermFieldType, DecksMap, FieldIndex, GlobalAnkiOptions, NoteModelsMap, ProfileError,
-        ProfileOptions, ProfileResult, YomichanOptions, YomichanProfile,
+        AnkiFields, AnkiFieldsError, AnkiOptions, AnkiTermFieldType, DecksMap, FieldIndex,
+        NoteModelsMap, ProfileError, ProfileResult, YomichanOptions, YomichanProfile,
     },
-    text_scanner::BuildNoteError,
     Ptr, TermDictionaryEntry, Yomichan,
 };
 
@@ -94,10 +85,10 @@ impl<'a> crate::Backend<'a> {
             None => YomichanOptions::new(),
         };
         let options: Ptr<YomichanOptions> = options.into();
-        let profile: Ptr<YomichanProfile> = options.read_arc().get_current_profile()?;
+        let _profile: Ptr<YomichanProfile> = options.read_arc().get_current_profile()?;
         let anki = Ptr::new(DisplayAnki::default_latest(options.clone()));
         let backend = Self {
-            environment: EnvironmentInfo::default(),
+            _environment: EnvironmentInfo::default(),
             text_scanner: TextScanner::new(&db),
             anki,
             db: db.clone(),

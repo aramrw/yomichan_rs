@@ -1,14 +1,7 @@
-use std::{cmp::Ordering, collections::VecDeque, path::Path, sync::Arc};
+use std::sync::Arc;
 
-use anki_direct::AnkiClient;
-use deinflector::{
-    ja::japanese::{distribute_furigana_inflected, is_code_point_japanese, FuriganaSegment},
-    language_d::FindTermsTextReplacement,
-};
-use fancy_regex::Regex;
-use indexmap::{IndexMap, IndexSet};
+use deinflector::ja::japanese::FuriganaSegment;
 use native_db::transaction::RwTransaction;
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnki;
@@ -16,18 +9,14 @@ use crate::{
     Ptr, PtrRGaurd, Yomichan, database::{
         dictionary_database::{DictionaryDatabase, DictionaryDatabaseError},
         dictionary_importer::DictionarySummary,
-    }, dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchSource, TermSourceMatchType}, environment::{CACHED_ENVIRONMENT_INFO, EnvironmentInfo}, errors::{DBError, YomichanError}, settings::{
-        DictionaryOptions, GeneralOptions, ProfileError, ProfileOptions, ProfileResult,
-        ScanningOptions, SearchResolution, TranslationOptions, TranslationTextReplacementGroup,
-        TranslationTextReplacementOptions, YomichanOptions,
-    }, text_scanner::{TermSearchResults, TextScanner}, translation::{
-        FindTermDictionary, FindTermsMatchType, FindTermsOptions, TermEnabledDictionaryMap,
-    }, translator::{EnabledDictionaryMapType, FindTermsMode, FindTermsResult, Translator}
+    }, environment::EnvironmentInfo, errors::DBError, settings::{
+        ProfileResult, YomichanOptions,
+    }, text_scanner::TextScanner, translation::FindTermsMatchType
 };
 
 /// `yomichan_rs` private engine
 pub struct Backend<'a> {
-    pub environment: EnvironmentInfo,
+    pub _environment: EnvironmentInfo,
     #[cfg(feature = "anki")]
     pub anki: Ptr<DisplayAnki>,
     pub text_scanner: TextScanner<'a>,
@@ -45,7 +34,7 @@ impl<'a> Backend<'a> {
             None => YomichanOptions::new(),
         };
         let backend = Self {
-            environment: EnvironmentInfo::default(),
+            _environment: EnvironmentInfo::default(),
             text_scanner: TextScanner::new(&db),
             db,
             options: Ptr::new(options),
@@ -191,18 +180,3 @@ impl Default for FindTermsDetails {
         }
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ParseTextSegment {
-    text: String,
-    reading: String,
-}
-impl From<FuriganaSegment> for ParseTextSegment {
-    fn from(value: FuriganaSegment) -> Self {
-        Self {
-            text: value.text,
-            reading: value.reading.unwrap_or_default(),
-        }
-    }
-}
-type ParseTextLine = Vec<ParseTextSegment>;

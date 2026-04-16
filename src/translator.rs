@@ -58,22 +58,16 @@ use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
     locale::locale,
 };
-use importer::dictionary_data::{FrequencyInfo, GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum};
+use importer::dictionary_data::{GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum};
 use indexmap::{IndexMap, IndexSet};
 use native_db::*;
 use native_model::{native_model, Model};
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::RefCell,
     cmp::Ordering,
     collections::VecDeque,
-    fmt::Display,
     hash::Hash,
-    iter, mem,
-    ops::Index,
-    path::Path,
-    rc::Rc,
-    str::FromStr,
+    iter,
     sync::{Arc, LazyLock},
 };
 
@@ -377,7 +371,7 @@ impl<'a> Translator<'a> {
 
     fn _get_translator_enabled_dictionary_map(opts: &ProfileOptions) -> TermEnabledDictionaryMap {
         let mut enabled_dictionary_map: TermEnabledDictionaryMap = IndexMap::new();
-        for (key, dictionary) in &opts.dictionaries {
+        for (_, dictionary) in &opts.dictionaries {
             if !dictionary.enabled {
                 continue;
             }
@@ -385,10 +379,8 @@ impl<'a> Translator<'a> {
                 name,
                 alias,
                 allow_secondary_searches,
-                definitions_collapsible,
                 parts_of_speech_filter,
                 use_deinflections,
-                styles,
                 ..
             } = dictionary;
             let new = FindTermDictionary {
@@ -1613,7 +1605,6 @@ impl<'a> Translator<'a> {
         terms: &[TermType],
         exclude_dictionary_definitions: &IndexSet<String>,
     ) -> Vec<TermType> {
-        let mut changed = false;
         terms
             .iter()
             .filter_map(|term| {
@@ -1759,108 +1750,11 @@ impl<'a> Translator<'a> {
         // from grouped_dictionary_entries that share the same term/reading.
         // Rust equivalent:
         // term_list will store TermExactQueryRequest structs.
-        // target_list_indices will store indices into `grouped_dictionary_entries`
-        // that correspond to the term/reading at the same index in `term_list`.
-        // target_map_for_grouping maps the string key (term + normalized_reading) to a list of indices
-        // of groups in `grouped_dictionary_entries` that share this term/reading.
+        // `term_list`: Stores unique TermExactQueryRequest.
         let mut term_list: Vec<TermExactQueryRequest> = Vec::new();
-        // In the JS, targetList stores references to the objects { groups: [] } which are also the values in targetMap.
-        // In Rust, we need a way to associate a term/reading (from term_list) back to the
-        // original groups in `grouped_dictionary_entries` that it came from,
-        // and also to any *new* groups that might be formed or related.
-        // The JS `target.groups.push(group)` effectively links a term/reading to one or more original groups.
-        //
-        // Let's rethink `target_list` and `target_map` for Rust.
-        // `target_map_for_original_groups`: Maps a key (term+normalized_reading) to a list of indices
-        // of groups in `grouped_dictionary_entries` that contain this term/reading.
-        // This helps identify which original groups are associated with a unique term/reading.
-        let mut target_map_for_original_groups: IndexMap<String, Vec<usize>> = IndexMap::new();
-        // `term_list_to_original_group_indices`: Parallel to `term_list`. For each term in `term_list`,
-        // this stores the list of indices from `grouped_dictionary_entries` that this term/reading corresponds to.
-        let mut term_list_to_original_group_indices: Vec<Vec<usize>> = Vec::new();
         let reading_normalizer = self.reading_normalizers.get(language);
-        // Iterate over the original grouped_dictionary_entries to populate
-        // term_list and target_map_for_original_groups.
-        for (group_idx, group) in grouped_dictionary_entries.iter().enumerate() {
-            for dictionary_entry in &group.dictionary_entries {
-                // Ensure headwords exist.
-                let headword = dictionary_entry.headwords.first().unwrap_or_else(|| {
-                    panic!(
-                        "DictionaryEntry is missing headwords in _add_secondary_related_dictionary_entries for group processing, group_idx: {group_idx}"
-                    )
-                });
-                let term = &headword.term;
-                let reading = &headword.reading;
-                let normalized_reading =
-                    Translator::_get_or_default_normalized_reading(reading_normalizer, reading);
-                let key =
-                    Translator::_create_map_key(&(term.as_str(), normalized_reading.as_str()));
-                // Update target_map_for_original_groups
-                let groups_for_this_key = target_map_for_original_groups
-                    .entry(key.clone())
-                    .or_default();
-                if !groups_for_this_key.contains(&group_idx) {
-                    groups_for_this_key.push(group_idx);
-                }
-                // If this key is new for term_list, add it.
-                // We need to ensure term_list only contains unique term/reading pairs.
-                // A simple way is to check if the key is already a key in a map that tracks term_list entries.
-                // Or, more directly, check if we've already added this term/reading to term_list.
-                // The JS logic uses `targetMap.get(key)` and if undefined, adds to termList.
-                // We can find the index of the key in `target_map_for_original_groups.keys()`
-                // or maintain a separate set for quick lookups for `term_list`.
-                if !term_list
-                    .iter()
-                    .any(|tr| tr.term == *term && tr.reading == *reading)
-                {
-                    term_list.push(TermExactQueryRequest {
-                        term: term.clone(),
-                        reading: reading.clone(),
-                    });
-                    // For the newly added term_list entry, associate it with the current group_idx.
-                    // Since term_list_to_original_group_indices is parallel to term_list,
-                    // we add a new vector for this term.
-                    // This assumes that if a term/reading appears in multiple original groups,
-                    // `target_map_for_original_groups` will correctly list all such group indices for that key.
-                    // And `term_list_to_original_group_indices` will store these lists of group indices,
-                    // corresponding to each unique term/reading in `term_list`.
-                    // When a new unique term/reading is added to term_list,
-                    // we fetch all group indices associated with its key from target_map_for_original_groups.
-                    // This seems slightly off from the direct JS logic where targetList.push(target) happens
-                    // when a new key is encountered. 'target' in JS is { groups: [] }, and this 'target'
-                    // is then populated with original groups.
-                    // Let's align more closely:
-                    // `term_list_associated_group_indices`: Parallel to `term_list`.
-                    // Each element is a Vec<usize> of indices from `grouped_dictionary_entries`.
-                    // When a new term/reading is added to `term_list`, we initialize its entry
-                    // in `term_list_associated_group_indices` with the current `group_idx`.
-                    // If the term/reading was already in `term_list`, we find its index
-                    // and add the current `group_idx` to the corresponding list in `term_list_associated_group_indices`.
-                    // Let's refine:
-                    // `term_list`: Stores unique TermExactQueryRequest.
-                    // `term_to_group_indices_map`: Maps a key (term+normalized_reading) to Vec<usize> (indices in `grouped_dictionary_entries`).
-                    // This map helps collect all original group associations for each unique term/reading.
-                    // Populate term_list and term_to_group_indices_map
-                    // The outer loop is already iterating `grouped_dictionary_entries`
-                }
-            }
-        }
-        // Rebuild term_list and a parallel list of associated original group indices
-        // from target_map_for_original_groups to ensure term_list is unique.
-        term_list.clear(); // Start fresh for unique entries
-        let mut term_list_associated_original_group_indices: Vec<Vec<usize>> = Vec::new();
-        for (key, original_group_indices) in target_map_for_original_groups.iter() {
-            // We need to parse the key back to term and reading to populate term_list.
-            // This is inefficient. It's better to populate term_list directly when a new key is first seen.
-            // Let's retry the logic for populating term_list and its associated group indices:
-            // `term_list`: Vec<TermExactQueryRequest> - unique term/reading pairs for DB query.
-            // `target_list_data`: Vec<Vec<usize>> - parallel to `term_list`. Each Vec<usize> stores
-            // indices of groups in `grouped_dictionary_entries` that correspond to the term/reading
-            // at the same index in `term_list`.
-            // `key_to_term_list_idx_map`: IndexMap<String, usize> - maps a term/reading key to its index in `term_list`.
-        }
+
         // Reset and rebuild term_list and its parallel association list
-        term_list.clear();
         let mut target_list_data: Vec<Vec<usize>> = Vec::new(); // Stores indices of groups from `grouped_dictionary_entries`
         let mut key_to_term_list_idx_map: IndexMap<String, usize> = IndexMap::new();
         for (group_idx, group) in grouped_dictionary_entries.iter().enumerate() {
@@ -2444,7 +2338,7 @@ impl<'a> Translator<'a> {
                     && src.match_type == *match_type
                     && src.match_source == *match_source
                 {
-                    if (*is_primary) {
+                    if *is_primary {
                         src.is_primary = true;
                     }
                     return true;

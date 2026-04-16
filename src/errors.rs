@@ -149,3 +149,16 @@ impl From<(u32, serde_json::error::Error)> for ImportError {
         ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
     }
 }
+
+pub mod error_helpers {
+    pub fn fmterr_module(modules: Vec<&str>) -> String {
+        modules.join("::")
+    }
+}
+
+#[macro_export]
+macro_rules! fmt_mod_error {
+    ($($mod:expr),*) => {
+        $crate::errors::error_helpers::fmterr_module(vec![$($mod),*])
+    };
+}
