@@ -50,7 +50,6 @@
 //! }
 //! ```
 
-#![allow(unused)]
 #[cfg(feature = "anki")]
 pub mod anki;
 mod audio;

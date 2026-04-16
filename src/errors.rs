@@ -10,13 +10,6 @@ use std::{
 };
 use thiserror::Error;
 
-/// Abstraction over results for
-pub enum YomichanResult<T> {
-    Result(T),
-    Err(YomichanError),
-}
-
-/// All possible `yomichan_rs` [Error] paths
 #[derive(Error, Debug)]
 pub enum YomichanError {
     #[error("(-)[<yc_error::import>] -> \n{0}")]
@@ -145,24 +138,6 @@ impl From<native_db::db_type::Error> for DBError {
     }
 }
 
-#[macro_export]
-macro_rules! try_with_line {
-    () => {
-        macro_rules! line_number {
-            () => {
-                line!()
-            };
-        }
-
-        ($expr:expr) => {
-            match $expr {
-                Ok(val) => val,
-                Err(err) => return Err(errors::ImportError::from((line_number!(), err))),
-            }
-        };
-    };
-}
-
 impl From<(u32, std::io::Error)> for ImportError {
     fn from(err: (u32, std::io::Error)) -> ImportError {
         ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
@@ -173,25 +148,4 @@ impl From<(u32, serde_json::error::Error)> for ImportError {
     fn from(err: (u32, serde_json::error::Error)) -> ImportError {
         ImportError::LineErr(err.0, Box::new(ImportError::from(err.1)))
     }
-}
-
-pub mod error_helpers {
-    /// # Example
-    ///
-    /// ```
-    /// #[error("[error::{}]", fmterr_module(vec!["main", "database"]))]
-    /// // [error::main::database]
-    /// ```
-    pub fn fmterr_module(mods: Vec<&str>) -> String {
-        mods.join("::")
-    }
-
-    /// A helper macro to create a standard module error message attribute.
-    #[macro_export]
-    macro_rules! fmt_mod_error {
-    ( $($path_part:literal),* ) => {
-        // This macro expands to the full #[error(...)] attribute
-        #[error("[{}]", error_helpers::fmterr_module(&[ $($path_part),* ]))]
-    };
-}
 }

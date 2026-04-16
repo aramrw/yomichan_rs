@@ -806,81 +806,6 @@ impl<'a> Translator<'a> {
         }
     }
 
-    // fn _update_sort_frequencies(
-    //     dictionary_entries: &mut [InternalTermDictionaryEntry],
-    //     dictionary: &str,
-    //     ascending: bool,
-    // ) {
-    //     let mut frequency_map: IndexMap<usize, i128> = IndexMap::new();
-    //     for InternalTermDictionaryEntry {
-    //         definitions,
-    //         frequencies,
-    //         mut frequency_order,
-    //         ..
-    //     } in dictionary_entries.iter_mut()
-    //     {
-    //         let mut frequency_min = i128::MAX;
-    //         let mut frequency_max = i128::MIN;
-    //         for TermFrequency {
-    //             headword_index,
-    //             frequency,
-    //             dictionary: term_freq_dictionary,
-    //             ..
-    //         } in frequencies
-    //         {
-    //             if term_freq_dictionary != dictionary {
-    //                 continue;
-    //             }
-    //             // JS does this for some reason,
-    //             // checking type TermFrequency, it's garunteed to be a number..idk
-    //             // if (typeof frequency !== 'number') { continue; }
-    //
-    //             frequency_map.insert(*headword_index, *frequency);
-    //             frequency_min = frequency_min.min(*frequency);
-    //             frequency_max = frequency_max.max(*frequency);
-    //         }
-    //         frequency_order = match frequency_min <= frequency_max {
-    //             true => match ascending {
-    //                 true => frequency_min,
-    //                 false => -frequency_max,
-    //             },
-    //             false => match ascending {
-    //                 true => i128::MAX,
-    //                 false => 0,
-    //             },
-    //         };
-    //         for TermDefinition {
-    //             headword_indices,
-    //             mut frequency_order,
-    //             ..
-    //         } in definitions.iter_mut()
-    //         {
-    //             frequency_min = i128::MAX;
-    //             frequency_max = i128::MIN;
-    //             for headword_index in headword_indices {
-    //                 // in js the type for the map is literally <number, number>
-    //                 // idk what this is supposed to mean
-    //                 //if (typeof frequency !== 'number') { continue; }
-    //                 if let Some(frequency) = frequency_map.get(headword_index) {
-    //                     frequency_min = frequency_min.min(*frequency);
-    //                     frequency_max = frequency_max.max(*frequency);
-    //                 }
-    //             }
-    //             frequency_order = match frequency_min <= frequency_max {
-    //                 true => match ascending {
-    //                     true => frequency_min,
-    //                     false => -frequency_max,
-    //                 },
-    //                 false => match ascending {
-    //                     true => i128::MAX,
-    //                     false => 0,
-    //                 },
-    //             };
-    //         }
-    //         frequency_map.clear();
-    //     }
-    // }
-
     fn _expand_tag_groups_and_group(&self, tag_expansion_targets: &mut [TagExpansionTarget]) {
         self._expand_tag_groups_mut(tag_expansion_targets);
         self._group_tags_mut(tag_expansion_targets);
@@ -1472,9 +1397,6 @@ impl<'a> Translator<'a> {
             pronunciations,
         }
     }
-    fn _convert_string_to_number(s: &str) -> i128 {
-        s.parse::<i128>().unwrap_or(-1)
-    }
     fn find_terms_internal(
         &self,
         text: &mut String,
@@ -1548,79 +1470,6 @@ impl<'a> Translator<'a> {
             true // Keep the entry
         });
     }
-
-    // fn _remove_excluded_definitions(
-    //     dictionary_entries: &mut Vec<InternalTermDictionaryEntry>,
-    //     exclude_dictionary_definitions: &IndexSet<String>,
-    // ) {
-    //     dictionary_entries.retain_mut(|dictionary_entry| {
-    //         // ---- definitions ----
-    //         let definitions: Vec<TermType> = iter_type_to_iter_variant!(
-    //             dictionary_entry.definitions.clone(),
-    //             TermType::Definition
-    //         )
-    //         .collect();
-    //         let filtered_definitions = Translator::_remove_array_items_with_dictionary(
-    //             &definitions,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         let definitions_changed =
-    //             dictionary_entry.definitions.len() == filtered_definitions.len();
-    //         if (definitions_changed) {
-    //             dictionary_entry.definitions =
-    //                 iter_variant_to_iter_type!(filtered_definitions, TermType::Definition);
-    //         }
-    //         // ---- frequencies ----
-    //         let frequencies: Vec<TermType> = iter_type_to_iter_variant!(
-    //             dictionary_entry.frequencies.clone(),
-    //             TermType::Frequency
-    //         )
-    //         .collect();
-    //         let filtered_frequencies = Translator::_remove_array_items_with_dictionary(
-    //             &frequencies,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         dictionary_entry.frequencies =
-    //             iter_variant_to_iter_type!(filtered_definitions, TermType::Frequency);
-    //         // ---- pronunciation ----
-    //         let pronunciations: Vec<TermType> = iter_type_to_iter_variant!(
-    //             dictionary_entry.pronunciations.clone(),
-    //             TermType::Pronunciation
-    //         )
-    //         .collect();
-    //         let filtered_pronunciations = Translator::_remove_array_items_with_dictionary(
-    //             &pronunciations,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         dictionary_entry.pronunciations =
-    //             iter_variant_to_iter_type!(filtered_definitions, TermType::Pronunciation);
-    //         // ---- tags ----
-    //         Translator::_remove_tag_groups_with_dictionary_mut(
-    //             &mut dictionary_entry.definitions,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         Translator::_remove_tag_groups_with_dictionary_mut(
-    //             &mut dictionary_entry.headwords,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         if !definitions_changed {
-    //             return true;
-    //         }
-    //         // definitions_changed is true
-    //         // check the current state of `dictionary_entry.definitions` (after all filtering).
-    //         if dictionary_entry.definitions.is_empty() {
-    //             // If all definitions were removed (by the first filter or tag filter),
-    //             // then remove this entire dictionary entry.
-    //             false // `retain_mut` will remove this item.
-    //         } else {
-    //             // Definitions were changed, but some remain.
-    //             // Call `_remove_unused_headwords` to clean up.
-    //             Translator::_remove_unused_headwords(dictionary_entry);
-    //             // keep
-    //             true
-    //         }
-    //     });
-    // }
 
     fn _remove_unused_headwords(dictionary_entry: &mut InternalTermDictionaryEntry) {
         let mut remove_headword_indices: IndexSet<usize> = IndexSet::new();
@@ -3073,16 +2922,6 @@ impl<'a> Translator<'a> {
         deinflections.extend(dictionary_deinflections);
         for deinflection in &mut deinflections {
             for mut entry in deinflection.database_entries.iter_mut() {
-                for def in &entry.definitions {
-                    // if matches!(def, TermGlossaryGroupType::Deinflection(_)) {
-                    //     let incorrect_values_path = test_utils::TEST_PATHS
-                    //         .tests_dir
-                    //         .join("incorrect")
-                    //         .with_extension("json");
-                    //     let json = serde_json::to_string_pretty(&def).unwrap();
-                    //     std::fs::write(incorrect_values_path, json);
-                    // }
-                }
                 entry
                     .definitions
                     .retain(|def| !matches!(def, TermGlossaryGroupType::Deinflection(_)))
@@ -3091,7 +2930,6 @@ impl<'a> Translator<'a> {
                 .database_entries
                 .retain(|entry| !entry.definitions.is_empty());
         }
-        //eprintln!("_get_deinflections: final deinflections list (after all processing & filtering): count={}, content={:#?}", deinflections.len(), deinflections);
         deinflections.retain(|deinflection| !deinflection.database_entries.is_empty());
         deinflections
     }
@@ -3405,62 +3243,6 @@ impl<'a> Translator<'a> {
         );
     }
 
-    // fn _add_entries_to_deinflections(
-    //     &self,
-    //     language: &str,
-    //     deinflections: &mut [DatabaseDeinflection],
-    //     enabled_dictionary_map: &FindTermDictionaryMap,
-    //     match_type: TermSourceMatchType,
-    // ) {
-    //     if deinflections.is_empty() {
-    //         return;
-    //     }
-    //
-    //     // 1. Group deinflections by term, storing mutable references to the originals.
-    //     // This is equivalent to `_groupDeinflectionsByTerm` in JS.
-    //     let mut unique_deinflections_map: IndexMap<String, Vec<&mut DatabaseDeinflection>> =
-    //         IndexMap::new();
-    //     for deinflection in deinflections.iter_mut() {
-    //         if deinflection.deinflected_text.is_empty() {
-    //             continue;
-    //         }
-    //         unique_deinflections_map
-    //             .entry(deinflection.deinflected_text.clone())
-    //             .or_default()
-    //             .push(deinflection);
-    //     }
-    //
-    //     // 2. Get the unique terms for the DB query and the arrays of mutable references.
-    //     let mut unique_deinflection_terms: Vec<String> =
-    //         unique_deinflections_map.keys().cloned().collect();
-    //     //unique_deinflection_terms.retain(|term| !term.is_empty());
-    //     let mut unique_deinflection_arrays: Vec<Vec<&mut DatabaseDeinflection>> =
-    //         unique_deinflections_map.into_values().collect();
-    //
-    //     // 3. Query the database with the unique terms.
-    //     dbg!(
-    //         "Calling findTermsBulk with the following terms:",
-    //         &unique_deinflection_terms
-    //     );
-    //     let database_entries = self
-    //         .db
-    //         .find_terms_bulk(
-    //             &unique_deinflection_terms,
-    //             &enabled_dictionary_map,
-    //             match_type,
-    //         )
-    //         .unwrap_or_default();
-    //     //dbg!("term entries len: {}", database_entries.len());
-    //
-    //     // 4. Match the results back to the original deinflections via the grouped mutable references.
-    //     self._match_entries_to_deinflections(
-    //         language,
-    //         &database_entries,
-    //         &mut unique_deinflection_arrays,
-    //         enabled_dictionary_map,
-    //     );
-    // }
-
     fn _match_entries_to_deinflections(
         &self,
         language: &str,
@@ -3502,51 +3284,6 @@ impl<'a> Translator<'a> {
             }
         }
     }
-
-    // fn _match_entries_to_deinflections(
-    //     &self,
-    //     language: &str,
-    //     database_entries: &[TermEntry],
-    //     unique_deinflection_arrays: &mut Vec<&mut Vec<DatabaseDeinflection>>,
-    //     enabled_dictionary_map: &FindTermDictionaryMap,
-    // ) {
-    //     for entry in database_entries {
-    //         let entry_dictionary = enabled_dictionary_map
-    //             .get(&entry.dictionary)
-    //             .unwrap_or_else(|| {
-    //                 panic!(
-    //                     "{} was not found in enabled_dictionary_map",
-    //                     &entry.dictionary
-    //                 )
-    //             });
-    //         let parts_of_speech_filter = entry_dictionary.parts_of_speech_filter;
-    //         if parts_of_speech_filter {
-    //             eprintln!("parts_of_speech_filter for {entry_dictionary:?} is true, it will not push the entry to the deinflection.database_entries");
-    //             continue;
-    //         }
-    //         let definition_conditions = self
-    //             .mlt
-    //             .get_condition_flags_from_parts_of_speech(language, &entry.rules);
-    //         for deinflection in &mut **unique_deinflection_arrays
-    //             .get_mut(entry.index)
-    //             .unwrap_or_else(|| {
-    //                 panic!(
-    //                     "unique_deinflection_array.get({}) doesn't exist inside the array",
-    //                     entry.index
-    //                 )
-    //             })
-    //         {
-    //             if LanguageTransformer::conditions_match(
-    //                 deinflection.conditions,
-    //                 definition_conditions,
-    //             ) {
-    //                 deinflection.database_entries.push(entry.clone());
-    //             } else {
-    //                 eprintln!("conditons_match returned false for deinflection conditions: {deinflection:#?}");
-    //             }
-    //         }
-    //     }
-    // }
 
     /// this might be incorrect based on the javascript function
     fn _group_deinflections_by_term(
