@@ -1,22 +1,15 @@
+use crate::backend::Backend;
 use crate::database::dictionary_database::{
     DatabaseDictData, DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType,
     DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry,
     DatabaseTermEntryTuple, DictionaryDatabase, MediaDataArrayBufferContent,
 };
-// use crate::dictionary_data::{
-//     self, dictionary_data_util, DictionaryDataTag, FreqObjectData, GenericFreqData, Index,
-//     Pitch as DictionaryPitch, TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType,
-//     TermMetaFreqDataWithReading, TermMetaModeType, TermMetaPitchData, TermGlossaryType,
-// };
-use crate::backend::Backend;
-use crate::errors::{DBError, DictionaryFileError, ImportError, ImportZipError};
+use crate::errors::{ImportError, ImportZipError};
 use crate::settings::{
     DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, YomichanProfile,
 };
 use crate::structured_content::{
-    HtmlTag, ImageElement, ImageRendering, SizeUnits, TaggedContent, TermEntryItem, TermGlossary,
-    TermGlossaryContent, TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
-    VerticalAlign,
+    TermEntryItem, TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
 };
 use crate::Ptr;
 use crate::Yomichan;
@@ -26,37 +19,24 @@ use importer::dictionary_data::{
     TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType, TermMetaFreqDataWithReading,
     TermMetaModeType, TermMetaPitchData, VecNumOrNum, YomichanIndexFile,
 };
-use importer::dictionary_database::{DictionaryTag, PhoneticTranscription, TermMetaPhoneticData, TermPronunciationMatchType};
-use importer::dictionary_importer::FrequencyMode;
+use importer::dictionary_database::{
+    DictionaryTag, PhoneticTranscription, TermMetaPhoneticData, TermPronunciationMatchType,
+};
 use indexmap::IndexMap;
 use native_db::transaction::RwTransaction;
 use native_db::ToInput;
-use native_db::{native_db, transaction::query::PrimaryScan, Builder as DBBuilder, ToKey};
+use native_db::{native_db, ToKey};
 use native_model::{native_model, Model};
 
 use chrono::prelude::*;
 
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::Deserializer as JsonDeserializer;
-use serde_untagged::UntaggedEnumVisitor;
+use serde::{Deserialize, Serialize};
 
 use rayon::prelude::*;
 
-use tempfile::tempdir;
-use uuid::Uuid;
-
-use std::collections::VecDeque;
-use std::ffi::OsString;
-use std::fs::File;
-use std::io::BufReader;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::Arc;
 
-use std::time::Instant;
 use std::{fs, io, mem};
 
 //use chrono::{DateTime, Local};
@@ -739,9 +719,15 @@ pub fn import_dictionary<P: AsRef<Path>>(
     {
         for item in data.term_meta_list {
             match item {
-                DatabaseMetaMatchType::Frequency(freq) => { rwtx.upsert(freq)?; },
-                DatabaseMetaMatchType::Pitch(pitch) => { rwtx.upsert(pitch)?; },
-                DatabaseMetaMatchType::Phonetic(ipa) => { rwtx.upsert(ipa)?; },
+                DatabaseMetaMatchType::Frequency(freq) => {
+                    rwtx.upsert(freq)?;
+                }
+                DatabaseMetaMatchType::Pitch(pitch) => {
+                    rwtx.upsert(pitch)?;
+                }
+                DatabaseMetaMatchType::Phonetic(ipa) => {
+                    rwtx.upsert(ipa)?;
+                }
             }
         }
     }
@@ -773,7 +759,7 @@ fn read_dir_helper<P: AsRef<Path>>(
     for entry in fs::read_dir(path)? {
         let entry = entry?;
         let path = entry.path();
-        
+
         if path.is_dir() {
             read_dir_helper(
                 &path,
@@ -786,7 +772,7 @@ fn read_dir_helper<P: AsRef<Path>>(
             )?;
         } else {
             let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            
+
             if file_name.contains("term_bank") {
                 term_banks.push(path);
             } else if file_name.contains("index.json") {

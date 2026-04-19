@@ -1,35 +1,27 @@
-use crate::database::dictionary_importer::{DictionarySummary, TermMetaBank};
+use crate::database::dictionary_importer::DictionarySummary;
 use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
-// use crate::dictionary_data::{
-//     DictionaryDataTag, MetaDataMatchType, TermMeta, TermMetaFreqDataMatchType, TermMetaFrequency,
-//     TermMetaModeType, TermMetaPitch, TermMetaPitchData,
-// };
-use crate::errors::{DBError, DictionaryFileError, ImportError};
-use crate::settings::{DictionaryOptions, YomichanOptions, YomichanProfile};
-use crate::structured_content::{StructuredContent, TermGlossary, TermGlossaryGroupType};
-use crate::test_utils::TEST_PATHS;
+use crate::errors::DBError;
+use crate::settings::{DictionaryOptions, YomichanOptions};
+use crate::structured_content::TermGlossaryGroupType;
 use crate::translator::TagTargetItem;
-use importer::dictionary_data::{MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
+use importer::dictionary_data::{
+    MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData,
+};
 use importer::dictionary_database::TermMetaPhoneticData;
 use serde_with::skip_serializing_none;
 use serde_with::{serde_as, NoneAsEmptyString};
 
 use db_type::{KeyOptions, ToKeyDefinition};
 use indexmap::{IndexMap, IndexSet};
-use native_db::{transaction::query::PrimaryScan, Builder as DBBuilder, *};
+use native_db::{Builder as DBBuilder, *};
 // Renamed to avoid conflict if Model is used for DB Model
 use native_model::{native_model, Model as NativeModelTrait};
 
-use serde::{Deserialize, Serialize};
-use serde_json::Deserializer as JsonDeserializer;
-use uuid::Uuid;
 use log;
+use serde::{Deserialize, Serialize};
 
-use std::ffi::OsString;
-use std::io::BufReader;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock};
-use std::{fs, marker};
+use std::path::Path;
+use std::sync::LazyLock;
 
 // Helper macro for creating enum variants like NativeDbQueryInfo::Exact(value)
 // Exporting in case it's useful in other modules of this crate.
@@ -62,29 +54,29 @@ impl<V: Send + Sync> DictionarySet for &IndexMap<String, V> {
     }
 }
 
+/// in js, freq, pitch, and phonetic are grouped under an enum
+/// native_model doesn't support this you can only have a single primary key
+/// so we add all 3 types
+
+/// native_db doesn't like generics for the model struct
+/// until then don't serialize
 pub static DB_MODELS: LazyLock<Models> = LazyLock::new(|| {
     let mut models = Models::new();
     models.define::<YomichanOptions>().unwrap();
     models.define::<DictionarySummary>().unwrap();
     models.define::<DatabaseTermEntry>().unwrap();
-    /// in js, freq, pitch, and phonetic are grouped under an enum
-    /// native_model doesn't support this you can only have a single primary key
-    /// so we add all 3 types
     models.define::<DatabaseMetaFrequency>().unwrap();
     models.define::<DatabaseMetaPitch>().unwrap();
     models.define::<DatabaseMetaPhonetic>().unwrap();
     models.define::<DatabaseKanjiEntry>().unwrap();
     models.define::<DatabaseKanjiMeta>().unwrap();
     models.define::<DatabaseTag>().unwrap();
-    /// serialization is not implemented for this yet
-    /// native_db doesn't like generics for the model struct
-    /// until then don't serialize
     //models.define::<MediaDataArrayBufferContent>().unwrap();
     models
 });
 
 pub type MediaDataArrayBufferContent = MediaDataBase<Vec<u8>>;
-pub type MediaDataStringContent = MediaDataBase<String>;
+//pub type MediaDataStringContent = MediaDataBase<String>;
 
 // #[native_db]
 // #[native_model(id = 11, version = 1)]
@@ -107,11 +99,11 @@ pub enum MediaType {
     String(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Media<T = MediaType> {
-    index: usize,
-    data: T,
-}
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// pub struct Media<T = MediaType> {
+//     index: usize,
+//     data: T,
+// }
 
 /// Represents a single term metadata entry found by find_term_meta_bulk.
 /// This structure matches the output of the JavaScript _createTermMeta function.
@@ -596,6 +588,7 @@ pub struct DatabaseKanjiEntry {
     pub dictionary: Option<String>,
 }
 
+/// This is never used?
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KanjiEntry {
     pub index: usize,
@@ -612,18 +605,18 @@ pub struct KanjiEntry {
 
 pub type DictionaryCountGroup = IndexMap<String, u16>;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DictionaryCounts {
-    total: Option<DictionaryCountGroup>,
-    counts: Vec<DictionaryCountGroup>,
-}
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// pub struct DictionaryCounts {
+//     total: Option<DictionaryCountGroup>,
+//     counts: Vec<DictionaryCountGroup>,
+// }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DeleteDictionaryProgressData {
     count: u64,
     processed: u64,
     store_count: u16,
-    stores_processed: u64, // Corrected typo: stores_processed
+    stores_processed: u64,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -821,17 +814,8 @@ pub trait DictionarySet: Sync + Send {
 }
 
 // native_db imports are fine
-use native_db::{
-    db_type::KeyRange, // KeyRange unused
-    db_type::{KeyDefinition, ToKey},
-    native_model::Model as NativeDbModelTrait, // Already aliased above as NativeModelTrait
-    Key,                                       // Key unused
-};
-// std::marker::PhantomData is unused
-// use std::marker::PhantomData;
+use native_db::{db_type::ToKey, native_model::Model as NativeDbModelTrait};
 use std::ops::{Bound, Deref, RangeBounds};
-
-use super::dictionary_importer::DictionarySummaryKey; // RangeBounds unused
 
 /// Describes the kind of secondary key to query.
 /// This enum IS `Clone` and `Copy`.
@@ -861,12 +845,13 @@ pub enum NativeDbQueryInfo<K: ToKey + Clone> {
     Range { start: Bound<K>, end: Bound<K> },
 }
 
-// Definition of the CreateQueryFn type alias using dyn Fn
+/// Definition of the CreateQueryFn type alias using dyn Fn
 type CreateQueryFn<Item, KeyVal> =
     dyn Fn(&Item, IndexQueryIdentifier) -> NativeDbQueryInfo<KeyVal> + Sync + Send;
 
 pub struct DictionaryDatabase<'a> {
     db: Database<'a>,
+    //never used..?
     db_name: &'a str,
 }
 
@@ -940,7 +925,13 @@ impl DictionaryDatabase<'_> {
 
         // 2. Remove associated terms
         log::info!("  - Removing associated terms (this may take a while)...");
-        let terms: Vec<DatabaseTermEntry> = rwtx.scan().primary::<DatabaseTermEntry>()?.all()?.flatten().filter(|t| t.dictionary == name).collect();
+        let terms: Vec<DatabaseTermEntry> = rwtx
+            .scan()
+            .primary::<DatabaseTermEntry>()?
+            .all()?
+            .flatten()
+            .filter(|t| t.dictionary == name)
+            .collect();
         log::info!("    Found {} terms to remove", terms.len());
         for term in terms {
             rwtx.remove(term)?;
@@ -948,36 +939,72 @@ impl DictionaryDatabase<'_> {
 
         // 3. Remove associated metadata
         log::info!("  - Removing metadata...");
-        let freqs: Vec<DatabaseMetaFrequency> = rwtx.scan().primary::<DatabaseMetaFrequency>()?.all()?.flatten().filter(|f| f.dictionary == name).collect();
+        let freqs: Vec<DatabaseMetaFrequency> = rwtx
+            .scan()
+            .primary::<DatabaseMetaFrequency>()?
+            .all()?
+            .flatten()
+            .filter(|f| f.dictionary == name)
+            .collect();
         for freq in freqs {
             rwtx.remove(freq)?;
         }
 
-        let pitches: Vec<DatabaseMetaPitch> = rwtx.scan().primary::<DatabaseMetaPitch>()?.all()?.flatten().filter(|p| p.dictionary == name).collect();
+        let pitches: Vec<DatabaseMetaPitch> = rwtx
+            .scan()
+            .primary::<DatabaseMetaPitch>()?
+            .all()?
+            .flatten()
+            .filter(|p| p.dictionary == name)
+            .collect();
         for pitch in pitches {
             rwtx.remove(pitch)?;
         }
 
-        let phonetics: Vec<DatabaseMetaPhonetic> = rwtx.scan().primary::<DatabaseMetaPhonetic>()?.all()?.flatten().filter(|p| p.dictionary == name).collect();
+        let phonetics: Vec<DatabaseMetaPhonetic> = rwtx
+            .scan()
+            .primary::<DatabaseMetaPhonetic>()?
+            .all()?
+            .flatten()
+            .filter(|p| p.dictionary == name)
+            .collect();
         for phonetic in phonetics {
             rwtx.remove(phonetic)?;
         }
 
         // 4. Remove associated kanji
         log::info!("  - Removing kanji...");
-        let kanjis: Vec<DatabaseKanjiEntry> = rwtx.scan().primary::<DatabaseKanjiEntry>()?.all()?.flatten().filter(|k| k.dictionary.as_deref() == Some(name)).collect();
+        let kanjis: Vec<DatabaseKanjiEntry> = rwtx
+            .scan()
+            .primary::<DatabaseKanjiEntry>()?
+            .all()?
+            .flatten()
+            .filter(|k| k.dictionary.as_deref() == Some(name))
+            .collect();
         for kanji in kanjis {
             rwtx.remove(kanji)?;
         }
 
-        let kanji_metas: Vec<DatabaseKanjiMeta> = rwtx.scan().primary::<DatabaseKanjiMeta>()?.all()?.flatten().filter(|k| k.dictionary == name).collect();
+        let kanji_metas: Vec<DatabaseKanjiMeta> = rwtx
+            .scan()
+            .primary::<DatabaseKanjiMeta>()?
+            .all()?
+            .flatten()
+            .filter(|k| k.dictionary == name)
+            .collect();
         for kanji_meta in kanji_metas {
             rwtx.remove(kanji_meta)?;
         }
 
         // 5. Remove associated tags
         log::info!("  - Removing tags...");
-        let tags: Vec<DatabaseTag> = rwtx.scan().primary::<DatabaseTag>()?.all()?.flatten().filter(|t| t.dictionary == name).collect();
+        let tags: Vec<DatabaseTag> = rwtx
+            .scan()
+            .primary::<DatabaseTag>()?
+            .all()?
+            .flatten()
+            .filter(|t| t.dictionary == name)
+            .collect();
         for tag in tags {
             rwtx.remove(tag)?;
         }
@@ -1556,21 +1583,12 @@ mod ycd {
     // use crate::to_variant; // Only if to_variant! is exported from crate root and not in this module.
 
     use super::{
-        DatabaseTermEntry,
-        DatabaseTermEntryKey,
-        DictionaryDatabase,
         GenericQueryRequest,
-        IndexQueryIdentifier,
-        NativeDbQueryInfo,
-        QueryRequestMatchType,
-        QueryType,
-        SecondaryKeyQueryKind,
-        TermExactQueryRequest, // Added TermExactQueryRequest
+        QueryType, // Added TermExactQueryRequest
     };
     use crate::{
-        database::dictionary_database::DictionarySet,
         dictionary::TermSourceMatchType,
-        test_utils::{self, TEST_PATHS}, // TEST_PATHS unused
+        test_utils::{self}, // TEST_PATHS unused
     };
 
     #[test]
@@ -1620,8 +1638,6 @@ mod ycd {
         let match_type = TermSourceMatchType::Exact;
         // Pass term_list directly as it implements AsRef<str> for String
         let result = ycd.find_terms_bulk(&term_list, &dictionaries, match_type);
-        dbg!(result);
+        let _ = dbg!(result);
     }
 }
-
-

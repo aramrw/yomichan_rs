@@ -2,15 +2,15 @@
 use std::any::Any;
 
 use deinflector::language_d::TextProcessorSetting;
-use deinflector::transformer::{
-    InflectionRuleChainCandidate, InternalInflectionRuleChainCandidate,
-};
+use deinflector::transformer::
+    InternalInflectionRuleChainCandidate
+;
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
 use crate::database::dictionary_database::TermEntry;
 use crate::dictionary::{
-    self, TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
+    TermDefinition, TermFrequency, TermHeadword, TermPronunciation,
     TermSourceMatchSource,
 };
 

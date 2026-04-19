@@ -1,31 +1,23 @@
 use crate::{
     backend::FindTermsDetails,
-    collect_variant_data_ref,
-    database::{
-        self,
-        dictionary_database::{
-            DatabaseTag, DatabaseTermMeta, DictionaryDatabase, DictionarySet, GenericQueryRequest,
-            PhoneticTranscription, PitchAccent, Pronunciation, QueryRequestMatchType, QueryType,
-            TermEntry, TermExactQueryRequest, TermPronunciationMatchType,
-        },
+    database::dictionary_database::{
+        DatabaseTag, DatabaseTermMeta, DictionaryDatabase, DictionarySet, GenericQueryRequest,
+        PhoneticTranscription, PitchAccent, Pronunciation, QueryType, TermEntry,
+        TermExactQueryRequest, TermPronunciationMatchType,
     },
     dictionary::{
-        self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
-        TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
-        TermSource, TermSourceMatchSource, TermSourceMatchType,
+        DictionaryTag, TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword,
+        TermPronunciation, TermSource, TermSourceMatchSource, TermSourceMatchType,
     },
-    freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
+    iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
     settings::{
         DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
-        SortFrequencyDictionaryOrder, TranslationOptions, TranslationTextReplacementGroup,
-        TranslationTextReplacementOptions,
+        TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
     },
     structured_content::{
-        TermGlossary, TermGlossaryContent, TermGlossaryContentGroup, TermGlossaryDeinflection,
-        TermGlossaryGroupType,
+        TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
     },
-    test_utils, to_variant,
     translation::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
         FindTermsOptions, FindTermsSortOrder,
@@ -58,10 +50,11 @@ use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
     locale::locale,
 };
-use importer::dictionary_data::{GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum};
+use importer::dictionary_data::{
+    GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum,
+};
 use indexmap::{IndexMap, IndexSet};
 use native_db::*;
-use native_model::{native_model, Model};
 use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
@@ -1165,7 +1158,6 @@ impl<'a> Translator<'a> {
                 &EnabledDictionaryMapType::Term(enabled_dictionary_map),
             );
 
-            /// --- OLD CODE ---
             // JS: const map2 = headwordReadingMaps[index];
             if index >= headword_reading_maps.len() {
                 eprintln!(
@@ -1177,7 +1169,6 @@ impl<'a> Translator<'a> {
             }
 
             let map2 = &headword_reading_maps[index];
-            /// --- END OLD CODE ---
             for (reading_key_str, targets_vec) in map2.iter() {
                 match &data {
                     MetaDataMatchType::Frequency(ref freq_match_type) => {
@@ -1199,8 +1190,7 @@ impl<'a> Translator<'a> {
                                 generic_data.clone()
                             }
                         };
-                        let freq_info =
-                            GenericFreqData::get_frequency_info(&frequency_data_value);
+                        let freq_info = GenericFreqData::get_frequency_info(&frequency_data_value);
                         let frequency_value_to_store = freq_info.frequency;
                         let display_value_str = freq_info.display_value;
                         let display_value_parsed_bool = freq_info.display_value_parsed;
@@ -2993,6 +2983,7 @@ impl<'a> Translator<'a> {
             }
             raw_source = Translator::_get_next_substring(opts.search_resolution, &raw_source);
         }
+        // unused
         let has_bueno_candidate = db_deinflections
             .iter()
             .any(|d| d.deinflected_text == "bueno");
@@ -3643,13 +3634,3 @@ struct TermMetaHeadword {
     frequencies: Vec<TermFrequency>,
 }
 type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadword>>>;
-
-#[cfg(test)]
-mod translator_tests {
-    use super::{FindTermsMode, Translator};
-    use crate::{test_utils::TEST_PATHS, translation::FindTermsOptions};
-
-    // #[test]
-    // fn find_terms() {
-    // }
-}

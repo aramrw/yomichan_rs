@@ -1,15 +1,12 @@
-use std::{fmt, fs::File, hash::Hash, io::BufReader, marker::PhantomData};
+use std::{fmt, hash::Hash, marker::PhantomData};
 
 use indexmap::IndexMap;
 use serde::{
-    de::{self, Error, MapAccess, SeqAccess, Visitor},
+    de::{self, MapAccess, SeqAccess, Visitor},
     Deserialize, Deserializer, Serialize,
 };
 use serde_json::Value;
-use serde_untagged::UntaggedEnumVisitor;
 use serde_with::skip_serializing_none;
-
-use crate::{database::dictionary_database::DatabaseTermEntry, test_utils};
 
 /// Represents the structured content of a dictionary entry, which is a tree-like
 /// structure that can be rendered into various formats.
@@ -450,21 +447,21 @@ impl<'de> Deserialize<'de> for TaggedContent {
             {
                 // The first element is the tag string.
                 let tag: String = seq
-                    .next_element()?.
-                    ok_or_else(|| de::Error::invalid_length(0, &"a [tag, payload] sequence"))?;
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &"a [tag, payload] sequence"))?;
 
                 // The second element is the payload, which depends on the tag.
                 let content = match tag.as_str() {
                     "text" => {
                         let text: String = seq
-                            .next_element()?.
-                            ok_or_else(|| de::Error::invalid_length(1, &"a text payload"))?;
+                            .next_element()?
+                            .ok_or_else(|| de::Error::invalid_length(1, &"a text payload"))?;
                         TaggedContent::Text { text }
                     }
                     "img" => {
                         let image_payload: Box<ImageElement> = seq
-                            .next_element()?.
-                            ok_or_else(|| de::Error::invalid_length(1, &"an image payload"))?;
+                            .next_element()?
+                            .ok_or_else(|| de::Error::invalid_length(1, &"an image payload"))?;
                         TaggedContent::Image(image_payload)
                     }
                     "structured-content" => {
@@ -926,8 +923,8 @@ impl<'de> Deserialize<'de> for TableElement {
             {
                 // Field 1: Tag (required, always first)
                 let tag: HtmlTag = seq
-                    .next_element()?.
-                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 // Now, we handle the rest of the fields which might be optional or in any order.
                 // The most robust way is to read them all as generic values and then pick them apart.
@@ -1043,11 +1040,14 @@ pub struct FlexibleElementVisitor<T> {
     _marker: PhantomData<T>,
 }
 
-impl<T> FlexibleElementVisitor<T> {
-    pub fn new() -> Self {
-        FlexibleElementVisitor { _marker: PhantomData }
-    }
-}
+// NEVER USED
+// impl<T> FlexibleElementVisitor<T> {
+//     pub fn new() -> Self {
+//         FlexibleElementVisitor {
+//             _marker: PhantomData,
+//         }
+//     }
+// }
 
 impl<'de, T> Visitor<'de> for FlexibleElementVisitor<T>
 where
@@ -1068,8 +1068,8 @@ where
 
         // Tag is always first and required.
         let tag: String = seq
-            .next_element()?.
-            ok_or_else(|| de::Error::invalid_length(0, &"tag"))?;
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(0, &"tag"))?;
         map.insert("tag".to_string(), Value::String(tag));
 
         // Loop through the rest of the optional, unordered fields.
@@ -1266,8 +1266,8 @@ impl<'de> Deserialize<'de> for StyledElement {
                 A: SeqAccess<'de>,
             {
                 let tag: HtmlTag = seq
-                    .next_element()?.
-                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 let mut content = None;
                 let mut data = None;
@@ -1407,8 +1407,8 @@ impl<'de> Deserialize<'de> for UnstyledElement {
                 A: SeqAccess<'de>,
             {
                 let tag: HtmlTag = seq
-                    .next_element()?.
-                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 let mut content = None;
                 let mut data = None;
@@ -1481,8 +1481,8 @@ impl<'de> Deserialize<'de> for LinkElement {
                 A: SeqAccess<'de>,
             {
                 let tag: HtmlTag = seq
-                    .next_element()?.
-                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 let mut content = None;
                 let mut href = None;
@@ -1597,14 +1597,14 @@ impl<'de> Deserialize<'de> for ImageElement {
                 // Based on the log, the sequence appears to be:
                 // [tag, size_units, path, width, height, alt, appearance, pixelated, collapsed, collapsible]
                 let tag: HtmlTag = seq
-                    .next_element()?.
-                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
                 // The rest of the fields have a fixed order in this compact format.
                 let size_units: Option<SizeUnits> = seq.next_element()?.unwrap_or(None);
                 let path: String = seq
-                    .next_element()?.
-                    ok_or_else(|| de::Error::invalid_length(2, &self))?;
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
                 let width: Option<f32> = seq.next_element()?.unwrap_or(None);
                 let height: Option<f32> = seq.next_element()?.unwrap_or(None);
                 let alt: Option<String> = seq.next_element()?.unwrap_or(None);
@@ -1681,8 +1681,8 @@ impl<'de> Deserialize<'de> for LineBreak {
                 A: SeqAccess<'de>,
             {
                 let tag: HtmlTag = seq
-                    .next_element()?.
-                    ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
                 let data: Option<IndexMap<String, String>> = seq.next_element()?.unwrap_or(None);
 
                 Ok(LineBreak { tag, data })

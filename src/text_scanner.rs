@@ -1,22 +1,14 @@
 use std::{cmp, collections::HashSet, sync::Arc};
 
-use anki_direct::{
-    decks::DeckConfig,
-    error::AnkiResult,
-    model::FullModelDetails,
-    notes::{Note, NoteBuilder},
-    ReqwestClient,
-};
 use indexmap::IndexMap;
-use parking_lot::{ArcRwLockReadGuard, RawRwLock};
 
 use crate::{
     backend::FindTermsDetails,
     database::dictionary_database::DictionaryDatabase,
     dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
-    settings::{AnkiOptions, DecksMap, ProfileOptions, YomichanProfile},
+    settings::ProfileOptions,
     translator::{FindTermsMode, FindTermsResult, Translator},
-    Ptr, Yomichan,
+    Yomichan,
 };
 
 impl Yomichan<'_> {
@@ -564,16 +556,8 @@ impl<'a> TextScanner<'a> {
 
 #[cfg(test)]
 mod textscanner {
-    use crate::{
-        structured_content::TermGlossary,
-        test_utils::{self, YCD},
-        Yomichan,
-    };
-    use std::{
-        fs::OpenOptions,
-        io::Write,
-        sync::{LazyLock, RwLock},
-    };
+    use crate::test_utils::{self, YCD};
+    use std::{fs::OpenOptions, io::Write};
 
     #[test]
     fn search_dbg() {
@@ -630,7 +614,7 @@ mod dbtests {
     use tracing_test::traced_test;
 
     #[test]
-    //#[traced_test]
+    #[traced_test]
     #[ignore]
     /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {
@@ -640,8 +624,29 @@ mod dbtests {
             remove_dir_all(yomichan_rs_folder).unwrap();
         }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
-        let mut ycd = Yomichan::new(td).unwrap();
+        let ycd = Yomichan::new(td).unwrap();
         let paths = [tdcs.join("kotobankesjp"), tdcs.join("wty-es-en")];
+
+        // remove any non-existant paths
+        // use any dictionary you want without breaking upstream
+        let paths = paths
+            .into_iter()
+            .enumerate()
+            .filter_map(|(i, path)| match path.exists() {
+                true => path.into(),
+                false => {
+                    println!(
+                        "[skipped] {:#?}",
+                        path.file_name().expect("path has no file name")
+                    );
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        if paths.is_empty() {
+            panic!("you don't have any dictionaries in tests/dictionaries");
+        }
+
         match ycd.import_dictionaries(&paths) {
             Ok(_) => {}
             Err(e) => {

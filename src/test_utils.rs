@@ -57,48 +57,48 @@ pub(crate) fn set_backtrace(kind: BacktraceKind) {
     std::env::set_var("RUST_BACKTRACE", kind.to_string());
 }
 
-/// Copies the test database to a temporary directory.
-/// Necessary because native_db cannot have two test threads
-/// with different Database connections open the same file at the same time.
-pub(crate) fn copy_test_db() -> (PathBuf, TempDir) {
-    let dir = tempdir_in(&*TEST_PATHS.tests_dir).unwrap();
-    let tydbp = &*TEST_PATHS.tests_yomichan_db_path;
-    let f_path = dir.path().join("data.ycd");
-    if !tydbp.exists() {
-        panic!("tests/yomichan_db_path doesn't exist! : {tydbp:?}");
-    }
-    std::fs::copy(tydbp, &f_path).unwrap();
-    if !f_path.exists() {
-        panic!("path doesn't exist! : {f_path:?}");
-    }
-    (f_path, dir)
-}
-
-pub(crate) fn print_timer<T>(inst: std::time::Instant, print: T)
-where
-    T: std::fmt::Debug,
-{
-    let duration = inst.elapsed();
-    #[allow(unused_assignments)]
-    let mut time = String::new();
-    {
-        let dur_sec = duration.as_secs();
-        let dur_mill = duration.as_millis();
-        let dur_nan = duration.as_nanos();
-        if dur_sec == 0 {
-            if dur_mill == 0 {
-                time = format!("{dur_mill}ns");
-            } else {
-                time = format!("{dur_nan}ms");
-            }
-        } else if dur_sec > 60 {
-            let min = dur_sec / 60;
-            let sec = dur_sec % 60;
-            time = format!("{min}m{sec}s");
-        } else {
-            time = format!("{dur_sec}s");
-        }
-    }
-    println!("{print:?} files");
-    println!("in {time}");
-}
+// Copies the test database to a temporary directory.
+// Necessary because native_db cannot have two test threads
+// with different Database connections open the same file at the same time.
+// pub(crate) fn copy_test_db() -> (PathBuf, TempDir) {
+//     let dir = tempdir_in(&*TEST_PATHS.tests_dir).unwrap();
+//     let tydbp = &*TEST_PATHS.tests_yomichan_db_path;
+//     let f_path = dir.path().join("data.ycd");
+//     if !tydbp.exists() {
+//         panic!("tests/yomichan_db_path doesn't exist! : {tydbp:?}");
+//     }
+//     std::fs::copy(tydbp, &f_path).unwrap();
+//     if !f_path.exists() {
+//         panic!("path doesn't exist! : {f_path:?}");
+//     }
+//     (f_path, dir)
+// }
+//
+// pub(crate) fn print_timer<T>(inst: std::time::Instant, print: T)
+// where
+//     T: std::fmt::Debug,
+// {
+//     let duration = inst.elapsed();
+//     #[allow(unused_assignments)]
+//     let mut time = String::new();
+//     {
+//         let dur_sec = duration.as_secs();
+//         let dur_mill = duration.as_millis();
+//         let dur_nan = duration.as_nanos();
+//         if dur_sec == 0 {
+//             if dur_mill == 0 {
+//                 time = format!("{dur_mill}ns");
+//             } else {
+//                 time = format!("{dur_nan}ms");
+//             }
+//         } else if dur_sec > 60 {
+//             let min = dur_sec / 60;
+//             let sec = dur_sec % 60;
+//             time = format!("{min}m{sec}s");
+//         } else {
+//             time = format!("{dur_sec}s");
+//         }
+//     }
+//     println!("{print:?} files");
+//     println!("in {time}");
+// }

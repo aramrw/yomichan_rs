@@ -1,8 +1,57 @@
+//! # Anki Integration Module
+//!
+//! This module provides the `DisplayAnki` API to interact with AnkiConnect
+//!
+//! ## Example 1: Fully Automatic Configuration
+//!
+//! Picks the first available deck and model + automatically map dictionary fields to Anki fields.
+//!
+//! ```rust,no_run
+//! let mut ycd = Yomichan::new("path/to/db").unwrap();
+//! ycd.set_language("ja");
+//!
+//! let display_anki = ycd.display_anki().read_arc();
+//!
+//! // Auto-configure everything
+//! display_anki.configure_note_creation_auto().unwrap();
+//!
+//! // Search and add
+//! let res = ycd.search("日本語が好きです").unwrap();
+//! let first_entry = &res[0].results.as_ref().unwrap().dictionary_entries[0];
+//!
+//! let note_ids = display_anki.add_entry(first_entry, Some("日本語が好きです")).unwrap();
+//! println!("Added note ID: {}", note_ids[0]);
+//! ```
+//!
+//! ## Example 2: Streamlined Manual Setup
+//!
+//! Could populate a multi choice & let the user pick exactly which
+//! deck, model, and fields to map to:
+//!
+//! ```rust,no_run
+//! # use my_crate::{Yomichan, settings::FieldIndex};
+//! # let mut ycd = Yomichan::new("path/to/db").unwrap();
+//! // pulls anki maps from open anki connection
+//! ycd.anki().update_all_anki_maps().unwrap();
+//!
+//! // 2. store deck & [Note] model names
+//! let decks = ycd.anki().deck_names();
+//! let models = ycd.anki().model_names();
+//!
+//! // 3. Configure via indices 
+//! ycd.anki().select_deck(0).unwrap();
+//! ycd.anki().select_model(0).unwrap();
+//!
+//! // Map fields by index
+//! ycd.anki().set_field_mappings(&[
+//!     FieldIndex::Term(0),
+//!     FieldIndex::Reading(2),
+//!     FieldIndex::Definition(3),
+//! ]).unwrap();
+//! ```
+
 use anki_direct::{error::AnkiResult, notes::Note, AnkiClient};
-use derive_more::derive::From;
 use getset::Getters;
-use indexmap::IndexMap;
-use parking_lot::{ArcRwLockReadGuard, ArcRwLockWriteGuard, RawRwLock, RwLock};
 use std::sync::Arc;
 
 #[cfg(feature = "anki")]
@@ -128,7 +177,9 @@ impl DisplayAnki {
         Ok(result)
     }
 
-    /// Updates in memory [anki_direct::cache::Cache] & [YomichanOptions] to contain up to date note & deck models
+    /// Updates in memory [anki_direct::cache::Cache] & [YomichanOptions]
+    /// to contain up to date note & deck models. Does not persist to db.
+    ///
     /// To persist to the database, call [Yomichan::update_options]
     pub fn update_all_anki_maps(&self) -> AnkiResult<()> {
         // --- Phase 1: Fetch Data ---
@@ -189,7 +240,9 @@ impl DisplayAnki {
         } else {
             let mut new_fields = AnkiFields::default();
             new_fields.set_selected_deck(deck_idx);
-            profile_guard.anki_options_mut().set_anki_fields(Some(new_fields));
+            profile_guard
+                .anki_options_mut()
+                .set_anki_fields(Some(new_fields));
         }
         Ok(())
     }
@@ -205,7 +258,9 @@ impl DisplayAnki {
         } else {
             let mut new_fields = AnkiFields::default();
             new_fields.set_selected_model(model_idx);
-            profile_guard.anki_options_mut().set_anki_fields(Some(new_fields));
+            profile_guard
+                .anki_options_mut()
+                .set_anki_fields(Some(new_fields));
         }
         Ok(())
     }
@@ -238,7 +293,9 @@ impl DisplayAnki {
         } else {
             let mut new_fields = AnkiFields::default();
             new_fields.set_fields(persistent_fields);
-            profile_guard.anki_options_mut().set_anki_fields(Some(new_fields));
+            profile_guard
+                .anki_options_mut()
+                .set_anki_fields(Some(new_fields));
         }
         Ok(())
     }
@@ -597,10 +654,7 @@ mod displayanki {
         test_utils::{TEST_PATHS, YCD},
         Ptr, Yomichan,
     };
-    use anki_direct::model::{FullModelDetails, TemplateInfo};
-    use indexmap::IndexMap;
     use parking_lot::{Mutex, RwLock};
-    use pretty_assertions::assert_eq;
     use scopeguard;
     use std::sync::{Arc, LazyLock};
 
@@ -638,7 +692,7 @@ mod displayanki {
     #[ignore]
     #[test]
     fn update_all_anki_maps() {
-        let mut anki = DISPLAYANKI.lock();
+        let anki = DISPLAYANKI.lock();
         anki.update_all_anki_maps().unwrap();
         let opts = anki.options().read();
         let anki = opts.anki().read();
@@ -649,10 +703,10 @@ mod displayanki {
     #[ignore]
     #[test]
     fn build_note() {
-        let mut ycd = &YCD;
-        ycd.set_language("ja");
+        let ycd = &YCD;
+        ycd.set_language("ja").unwrap();
         {
-            let mut anki = ycd.display_anki();
+            let anki = ycd.display_anki();
             anki.read().update_all_anki_maps().unwrap();
             let anki = anki.read_arc();
             let global_opts = anki.options().read_arc();
@@ -667,7 +721,7 @@ mod displayanki {
             let current_model = global_anki_opts.get_selected_model(0).unwrap();
             let current_profile = global_opts.get_current_profile().unwrap();
             let mut current_profile = current_profile.write();
-            let mut anki_opts: &mut AnkiOptions = current_profile.anki_options_mut();
+            let anki_opts: &mut AnkiOptions = current_profile.anki_options_mut();
             let fields = anki_opts.anki_fields();
             let fields: AnkiFields = match fields {
                 Some(f) => f.clone(),
@@ -724,7 +778,7 @@ mod displayanki {
     #[test]
     fn auto_note() {
         let mut ycd = &YCD;
-        ycd.set_language("ja");
+        ycd.set_language("ja").unwrap();
 
         ycd.display_anki()
             .read_arc()
@@ -825,12 +879,12 @@ mod displayanki {
         // 2. Discover (Populate GUI dropdowns)
         let decks = ycd.anki().deck_names();
         let models = ycd.anki().model_names();
-        
+
         println!("Available Decks: {:?}", decks);
         println!("Available Models: {:?}", models);
 
         if models.is_empty() {
-             return; // Skip if no models available in local Anki
+            return; // Skip if no models available in local Anki
         }
 
         // 3. Configure (The "Hooking Up" part via indices)
@@ -839,11 +893,13 @@ mod displayanki {
         ycd.anki().select_model(0).unwrap();
 
         // Map fields by index (GUI friendly)
-        ycd.anki().set_field_mappings(&[
-            FieldIndex::Term(0),
-            FieldIndex::Reading(2),
-            FieldIndex::Definition(3),
-        ]).unwrap();
+        ycd.anki()
+            .set_field_mappings(&[
+                FieldIndex::Term(0),
+                FieldIndex::Reading(2),
+                FieldIndex::Definition(3),
+            ])
+            .unwrap();
 
         // 4. Action (The "Star" button)
         let sentence = "espanol es muy bueno";
@@ -858,6 +914,10 @@ mod displayanki {
 
         // 5. Cleanup
         let client = ycd.anki().client().clone();
-        client.read_arc().notes().delete_notes_by_ids(&note_ids).unwrap();
+        client
+            .read_arc()
+            .notes()
+            .delete_notes_by_ids(&note_ids)
+            .unwrap();
     }
 }

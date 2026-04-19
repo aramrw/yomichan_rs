@@ -1,14 +1,8 @@
-use std::sync::Arc;
-
 use crate::{
-    database::dictionary_database::{Pronunciation, TermPronunciationMatchType},
-    structured_content::{TermGlossaryContent, TermGlossaryContentGroup},
+    database::dictionary_database::Pronunciation, structured_content::TermGlossaryContentGroup,
     translation_internal::TextProcessorRuleChainCandidate,
-    translator::TermType,
 };
 use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
-use derive_more::derive::From;
-use getset::MutGetters;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -79,12 +73,12 @@ impl DictionaryTag {
 
 /*************** Kanji ***************/
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum DictionaryEntry {
-    KanjiDictEntry(KanjiDictionaryEntry),
-    TermDictEntry(TermDictionaryEntry),
-}
-
+// // #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// // pub enum DictionaryEntry {
+// //     KanjiDictEntry(KanjiDictionaryEntry),
+// //     TermDictEntry(TermDictionaryEntry),
+// // }
+// //
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DictionaryEntryType {
@@ -150,11 +144,11 @@ pub struct KanjiDictionaryEntry {
     frequencies: Vec<KanjiFrequency>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DictionaryOrder {
-    index: u16,
-    priority: u16,
-}
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// pub struct DictionaryOrder {
+//     index: u16,
+//     priority: u16,
+// }
 
 /*************** Term ***************/
 

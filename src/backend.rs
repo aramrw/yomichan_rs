@@ -1,17 +1,20 @@
 use std::sync::Arc;
 
-use deinflector::ja::japanese::FuriganaSegment;
 use native_db::transaction::RwTransaction;
 
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnki;
 use crate::{
-    Ptr, PtrRGaurd, Yomichan, database::{
+    database::{
         dictionary_database::{DictionaryDatabase, DictionaryDatabaseError},
         dictionary_importer::DictionarySummary,
-    }, environment::EnvironmentInfo, errors::DBError, settings::{
-        ProfileResult, YomichanOptions,
-    }, text_scanner::TextScanner, translation::FindTermsMatchType
+    },
+    environment::EnvironmentInfo,
+    errors::DBError,
+    settings::{ProfileResult, YomichanOptions},
+    text_scanner::TextScanner,
+    translation::FindTermsMatchType,
+    Ptr, PtrRGaurd, Yomichan,
 };
 
 /// `yomichan_rs` private engine
@@ -41,11 +44,9 @@ impl<'a> Backend<'a> {
         };
         Ok(backend)
     }
-}
 
-impl<'a> Backend<'a> {
     /// The internal impl to write global options to the database.
-    /// Takes a [Option<RwTransaction>] so rwtx's can be reused if necessary.
+    /// Takes an [Option<RwTransaction>] so rwtx's can be reused if necessary.
     ///
     /// # Returns
     ///
@@ -64,9 +65,6 @@ impl<'a> Backend<'a> {
 }
 
 impl<'a> Yomichan<'a> {
-    /// Saves global options for all profiles to the database;
-    /// Meant to be called after you mutate a profile
-    /// (ie. via [Self::mod_options_mut().get_current_profile_mut])
     /// Saves global options for all profiles to the database;
     /// Meant to be called after you mutate a profile
     /// (ie. via [Self::mod_options_mut().get_current_profile_mut])
@@ -143,11 +141,11 @@ impl<'a> Yomichan<'a> {
         self.db.get_dictionary_summaries()
     }
 
+    // 1. Remove from databasel + all profiles in memory
+    // 2. Persist updated options to database via
     pub fn remove_dictionary(&self, name: &str) -> Result<(), DBError> {
-        // 1. Remove from database
         self.db.remove_dictionary_by_name(name)?;
 
-        // 2. Remove from all profiles in memory
         {
             let opts_ptr = self.options();
             let mut opts = opts_ptr.write();
@@ -158,7 +156,6 @@ impl<'a> Yomichan<'a> {
             }
         }
 
-        // 3. Persist updated options
         self.update_options()?;
 
         Ok(())
