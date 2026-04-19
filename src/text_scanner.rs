@@ -614,10 +614,10 @@ mod textscanner {
 mod dbtests {
     use crate::{test_utils, Yomichan};
     use std::fs::remove_dir_all;
-    use tracing_test::traced_test;
+    //use tracing_test::traced_test;
 
     #[test]
-    #[traced_test]
+    //#[traced_test]
     #[ignore]
     /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {
@@ -628,7 +628,7 @@ mod dbtests {
         }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let ycd = Yomichan::new(td).unwrap();
-        let paths = [tdcs.join("kotobankesjp") /* tdcs.join("wty-es-en") */];
+        let paths = [/* tdcs.join("kotobankesjp") */ tdcs.join("wty-es-en")];
 
         // remove any non-existant paths
         // use any dictionary you want without breaking upstream
