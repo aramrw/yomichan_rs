@@ -1,13 +1,13 @@
 use crate::database::dictionary_importer::DictionarySummary;
-use crate::dictionary::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType};
 use crate::errors::DBError;
 use crate::settings::{DictionaryOptions, YomichanOptions};
-use crate::structured_content::TermGlossaryGroupType;
 use crate::translator::TagTargetItem;
 use importer::dictionary_data::{
     MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData,
 };
-use importer::dictionary_database::TermMetaPhoneticData;
+use importer::dictionary_database::{DictionaryTag, TermEntry, TermMetaPhoneticData};
+use importer::dictionary_database::{TermSourceMatchSource, TermSourceMatchType};
+use importer::structured_content::TermGlossaryGroupType;
 use serde_with::skip_serializing_none;
 use serde_with::{serde_as, NoneAsEmptyString};
 
@@ -213,23 +213,23 @@ pub struct DatabaseTermEntryTuple(
     pub String,                     // file_path
 );
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TermEntry {
-    pub id: String,
-    pub index: usize,
-    pub match_type: TermSourceMatchType,
-    pub match_source: TermSourceMatchSource,
-    pub term: String,
-    pub reading: String,
-    pub definition_tags: Vec<String>,
-    pub term_tags: Vec<String>,
-    pub rules: Vec<String>,
-    pub definitions: Vec<TermGlossaryGroupType>,
-    pub score: i128,
-    pub dictionary: String,
-    pub sequence: i128,
-}
-
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// pub struct TermEntry {
+//     pub id: String,
+//     pub index: usize,
+//     pub match_type: TermSourceMatchType,
+//     pub match_source: TermSourceMatchSource,
+//     pub term: String,
+//     pub reading: String,
+//     pub definition_tags: Vec<String>,
+//     pub term_tags: Vec<String>,
+//     pub rules: Vec<String>,
+//     pub definitions: Vec<TermGlossaryGroupType>,
+//     pub score: i128,
+//     pub dictionary: String,
+//     pub sequence: i128,
+// }
+//
 impl DatabaseTermEntry {
     pub fn into_term_generic(
         self,
@@ -331,108 +331,6 @@ pub enum DatabaseMetaMatchType {
     Frequency(DatabaseMetaFrequency),
     Pitch(DatabaseMetaPitch),
     Phonetic(DatabaseMetaPhonetic),
-}
-
-impl DatabaseMetaMatchType {
-    /*
-    pub fn convert_kanji_meta_file(
-        outpath: PathBuf,
-        dict_name: String,
-    ) -> Result<Vec<DatabaseMetaFrequency>, DictionaryFileError> {
-        let file = fs::File::open(&outpath).map_err(|reason| DictionaryFileError::FailedOpen {
-            outpath: outpath.clone(),
-            reason: reason.to_string(),
-        })?;
-        let reader = BufReader::new(file);
-
-        // Kanji metas are only frequencies
-        let mut stream =
-            JsonDeserializer::from_reader(reader).into_iter::<Vec<DatabaseMetaFrequency>>();
-
-        let mut entries = match stream.next() {
-            Some(Ok(entries)) => entries,
-            Some(Err(reason)) => {
-                return Err(crate::errors::DictionaryFileError::File {
-                    outpath,
-                    reason: reason.to_string(),
-                })
-            }
-            None => return Err(DictionaryFileError::Empty(outpath)),
-        };
-        entries.iter_mut().for_each(|entry| {
-            entry.id = Uuid::now_v7().to_string();
-            entry.dictionary = dict_name.clone();
-        });
-        Ok(entries)
-    }
-
-    pub fn convert_term_meta_file(
-        outpath: PathBuf,
-        dict_name: String,
-    ) -> Result<Vec<DatabaseMetaMatchType>, DictionaryFileError> {
-        let file = fs::File::open(&outpath).map_err(|reason| DictionaryFileError::FailedOpen {
-            outpath: outpath.clone(),
-            reason: reason.to_string(),
-        })?;
-        let reader = BufReader::new(file);
-
-        let mut stream = JsonDeserializer::from_reader(reader).into_iter::<Vec<TermMeta>>();
-        let mut entries = match stream.next() {
-            Some(Ok(entries)) => entries,
-            Some(Err(reason)) => {
-                return Err(crate::errors::DictionaryFileError::File {
-                    outpath,
-                    reason: reason.to_string(),
-                })
-            }
-            None => return Err(DictionaryFileError::Empty(outpath)),
-        };
-
-        let term_metas: Vec<DatabaseMetaMatchType> = entries
-            // entries is TermMetaBank which is Vec<TermMetaData>
-            .into_iter()
-            .map(|entry| {
-                let id = Uuid::now_v7().to_string();
-                let TermMeta {
-                    expression,
-                    mode,
-                    data,
-                } = entry;
-
-                match data {
-                    MetaDataMatchType::Frequency(data) => {
-                        DatabaseMetaMatchType::Frequency(DatabaseMetaFrequency {
-                            id,
-                            freq_expression: expression,
-                            mode: TermMetaModeType::Freq,
-                            data,
-                            dictionary: dict_name.clone(),
-                        })
-                    }
-                    MetaDataMatchType::Pitch(data) => {
-                        DatabaseMetaMatchType::Pitch(DatabaseMetaPitch {
-                            id,
-                            pitch_expression: expression,
-                            mode: TermMetaModeType::Pitch,
-                            data,
-                            dictionary: dict_name.clone(),
-                        })
-                    }
-                    MetaDataMatchType::Phonetic(data) => {
-                        DatabaseMetaMatchType::Phonetic(DatabaseMetaPhonetic {
-                            id,
-                            phonetic_expression: expression,
-                            mode: TermMetaModeType::Ipa,
-                            data,
-                            dictionary: dict_name.clone(),
-                        })
-                    }
-                }
-            })
-            .collect();
-        Ok(term_metas)
-    }
-    */
 }
 
 /// Used to store the frequency metadata of a term in the db.
@@ -588,19 +486,19 @@ pub struct DatabaseKanjiEntry {
     pub dictionary: Option<String>,
 }
 
-/// This is never used?
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct KanjiEntry {
-    pub index: usize,
-    pub character: String,
-    pub onyomi: Vec<String>,
-    pub kunyomi: Vec<String>,
-    pub tags: Vec<String>,
-    pub definitions: Vec<String>,
-    pub stats: IndexMap<String, String>,
-    pub dictionary: String,
-}
-
+// /// This is never used?
+// #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+// pub struct KanjiEntry {
+//     pub index: usize,
+//     pub character: String,
+//     pub onyomi: Vec<String>,
+//     pub kunyomi: Vec<String>,
+//     pub tags: Vec<String>,
+//     pub definitions: Vec<String>,
+//     pub stats: IndexMap<String, String>,
+//     pub dictionary: String,
+// }
+//
 /*************** Database Dictionary ***************/
 
 pub type DictionaryCountGroup = IndexMap<String, u16>;
@@ -793,6 +691,7 @@ pub struct DictionaryDataDetails {
     pub dictionary_options: DictionaryOptions,
 }
 
+// Unique to yomichan_rs
 pub struct DatabaseDictData {
     pub tag_list: Vec<DatabaseTag>,
     pub kanji_meta_list: Vec<DatabaseMetaFrequency>,
@@ -1150,7 +1049,7 @@ impl DictionaryDatabase<'_> {
         &self,
         term_list: &[TermExactQueryRequest],
         dictionaries: &impl DictionarySet,
-    ) -> Result<Vec<TermEntry>, Box<DictionaryDatabaseError>> {
+    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
         let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
             SecondaryKeyQueryKind::Expression,
         )];
@@ -1287,7 +1186,7 @@ impl DictionaryDatabase<'_> {
     pub fn find_terms_by_sequence_bulk(
         &self,
         items_to_query_vec: Vec<GenericQueryRequest>, // Renamed
-    ) -> Result<Vec<TermEntry>, Box<DictionaryDatabaseError>> {
+    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
         let index_query_identifiers = [IndexQueryIdentifier::SecondaryKey(
             SecondaryKeyQueryKind::Sequence,
         )];
@@ -1574,6 +1473,7 @@ pub fn split_string_field(field: String) -> Vec<String> {
 
 #[cfg(test)]
 mod ycd {
+    use importer::dictionary_database::TermSourceMatchType;
     use indexmap::IndexSet;
     use pretty_assertions::assert_eq;
 
@@ -1587,7 +1487,6 @@ mod ycd {
         QueryType, // Added TermExactQueryRequest
     };
     use crate::{
-        dictionary::TermSourceMatchType,
         test_utils::{self}, // TEST_PATHS unused
     };
 

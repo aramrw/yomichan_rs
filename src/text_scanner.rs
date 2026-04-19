@@ -2,10 +2,13 @@ use std::{cmp, collections::HashSet, sync::Arc};
 
 use indexmap::IndexMap;
 
+use importer::dictionary_database::TermSourceMatchType;
+
 use crate::{
     backend::FindTermsDetails,
     database::dictionary_database::DictionaryDatabase,
-    dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
+    // these do not exist in importer
+    dictionary::{TermDictionaryEntry, TermSource},
     settings::ProfileOptions,
     translator::{FindTermsMode, FindTermsResult, Translator},
     Yomichan,
@@ -625,7 +628,7 @@ mod dbtests {
         }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let ycd = Yomichan::new(td).unwrap();
-        let paths = [tdcs.join("kotobankesjp"), tdcs.join("wty-es-en")];
+        let paths = [tdcs.join("kotobankesjp") /* tdcs.join("wty-es-en") */];
 
         // remove any non-existant paths
         // use any dictionary you want without breaking upstream

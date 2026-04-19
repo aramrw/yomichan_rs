@@ -2,17 +2,12 @@
 use std::any::Any;
 
 use deinflector::language_d::TextProcessorSetting;
-use deinflector::transformer::
-    InternalInflectionRuleChainCandidate
-;
+use deinflector::transformer::InternalInflectionRuleChainCandidate;
+use importer::dictionary_database::{TermEntry, TermSourceMatchSource};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
-use crate::database::dictionary_database::TermEntry;
-use crate::dictionary::{
-    TermDefinition, TermFrequency, TermHeadword, TermPronunciation,
-    TermSourceMatchSource,
-};
+use crate::dictionary::{TermDefinition, TermFrequency, TermHeadword, TermPronunciation};
 
 pub type TextProcessorRuleChainCandidate = Vec<String>;
 

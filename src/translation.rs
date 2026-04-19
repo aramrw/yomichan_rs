@@ -1,12 +1,9 @@
-use fancy_regex::Regex;
-use indexmap::{IndexMap, IndexSet};
 use deinflector::language_d::FindTermsTextReplacements;
+use importer::dictionary_database::TermSourceMatchType;
+use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    database::dictionary_database::DictionarySet, dictionary::TermSourceMatchType,
-    settings::SearchResolution,
-};
+use crate::settings::SearchResolution;
 
 // Kanji
 

@@ -2,15 +2,10 @@ use crate::backend::Backend;
 use crate::database::dictionary_database::{
     DatabaseDictData, DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType,
     DatabaseMetaPhonetic, DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry,
-    DatabaseTermEntryTuple, DictionaryDatabase, MediaDataArrayBufferContent,
+    DatabaseTermEntryTuple, DictionaryDatabase,
 };
 use crate::errors::{ImportError, ImportZipError};
-use crate::settings::{
-    DictionaryDefinitionsCollapsible, DictionaryOptions, ProfileError, YomichanProfile,
-};
-use crate::structured_content::{
-    TermEntryItem, TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
-};
+use crate::settings::{DictionaryDefinitionsCollapsible, DictionaryOptions, YomichanProfile};
 use crate::Ptr;
 use crate::Yomichan;
 
@@ -22,9 +17,11 @@ use importer::dictionary_data::{
 use importer::dictionary_database::{
     DictionaryTag, PhoneticTranscription, TermMetaPhoneticData, TermPronunciationMatchType,
 };
+use importer::structured_content::{
+    TermEntryItem, TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
+};
 use indexmap::IndexMap;
-use native_db::transaction::RwTransaction;
-use native_db::ToInput;
+use native_db::{ToInput, transaction::RwTransaction};
 use native_db::{native_db, ToKey};
 use native_model::{native_model, Model};
 
@@ -128,14 +125,7 @@ pub struct ImportDetails {
     prefix_wildcards_supported: bool,
 }
 
-// #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-// pub enum FrequencyMode {
-//     #[serde(rename = "occurrence-based")]
-//     OccurrenceBased,
-//     #[serde(rename = "rank-based")]
-//     RankBased,
-// }
-
+// Overwrites importers DictionaryImporter with nativedb
 // Final details about the Dictionary and it's import process.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[native_db]
@@ -380,11 +370,13 @@ pub struct StructuredContentImageImportRequirement {
     entry: DatabaseTermEntry,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ImportRequirementContext {
-    //file_map: ArchiveFileMap,
-    media: IndexMap<String, MediaDataArrayBufferContent>,
-}
+// // this is not used
+// #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// pub struct ImportRequirementContext {
+//     //file_map: ArchiveFileMap,
+//     media: IndexMap<String, MediaDataArrayBufferContent>,
+// }
+//
 /// Deserializable type mapping a `term_bank_$i.json` file.
 pub type TermBank = Vec<TermEntryItem>;
 pub type TermMetaBank = Vec<TermMeta>;
@@ -643,14 +635,14 @@ pub fn import_dictionary<P: AsRef<Path>>(
                 t.9.into_iter().map(|g| match g {
                     importer::structured_content::TermGlossaryGroupType::Content(c) => {
                         TermGlossaryGroupType::Content(TermGlossaryContentGroup {
-                            plain_text: c.plain_text.to_string(),
-                            html: c.html.map(|h| h.to_string()),
+                            plain_text: c.plain_text,
+                            html: c.html.map(|h| h),
                         })
                     }
                     importer::structured_content::TermGlossaryGroupType::Deinflection(d) => {
                         TermGlossaryGroupType::Deinflection(TermGlossaryDeinflection {
-                            form_of: d.form_of.to_string(),
-                            rules: d.rules.iter().map(|s| s.to_string()).collect(),
+                            form_of: d.form_of,
+                            rules: d.rules.iter().map(|s| s.to_owned()).collect(),
                         })
                     }
                 }).collect(),

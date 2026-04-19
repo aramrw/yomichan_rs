@@ -2,21 +2,18 @@ use crate::{
     backend::FindTermsDetails,
     database::dictionary_database::{
         DatabaseTag, DatabaseTermMeta, DictionaryDatabase, DictionarySet, GenericQueryRequest,
-        PhoneticTranscription, PitchAccent, Pronunciation, QueryType, TermEntry,
-        TermExactQueryRequest, TermPronunciationMatchType,
+        PhoneticTranscription, PitchAccent, Pronunciation, QueryType, TermExactQueryRequest,
+        TermPronunciationMatchType,
     },
     dictionary::{
-        DictionaryTag, TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword,
-        TermPronunciation, TermSource, TermSourceMatchSource, TermSourceMatchType,
+        TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
+        TermSource,
     },
     iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
     settings::{
         DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
         TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
-    },
-    structured_content::{
-        TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
     },
     translation::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
@@ -32,16 +29,16 @@ use deinflector::transformer::{
     InflectionRuleChainCandidate, InflectionSource, InternalInflectionRuleChainCandidate,
 };
 use deinflector::{
-    descriptors::{PreAndPostProcessors, PreAndPostProcessorsWithId},
+    descriptors::PreAndPostProcessorsWithId,
     ja::japanese::is_code_point_japanese,
     language_d::{
-        AnyTextProcessor, FindTermsTextReplacement, FindTermsTextReplacements,
-        LanguageAndProcessors, LanguageAndReadingNormalizer, ReadingNormalizer, TextProcessor,
-        TextProcessorFn, TextProcessorSetting, TextProcessorWithId,
+        FindTermsTextReplacement, FindTermsTextReplacements, LanguageAndProcessors,
+        LanguageAndReadingNormalizer, ReadingNormalizer, TextProcessor, TextProcessorSetting,
+        TextProcessorWithId,
     },
     languages::{get_all_language_reading_normalizers, get_all_language_text_processors},
     multi_language_transformer::MultiLanguageTransformer,
-    transformer::{InflectionRule, LanguageTransformer, TransformedText},
+    transformer::{LanguageTransformer, TransformedText},
     zh::chinese::is_code_point_chinese,
 };
 use derive_more::From;
@@ -50,11 +47,17 @@ use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
     locale::locale,
 };
-use importer::dictionary_data::{
-    GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum,
+use importer::{
+    dictionary_data::{
+        GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType,
+        VecNumOrNum,
+    },
+    dictionary_database::{DictionaryTag, TermEntry, TermSourceMatchSource, TermSourceMatchType},
+    structured_content::{
+        TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
+    },
 };
 use indexmap::{IndexMap, IndexSet};
-use native_db::*;
 use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
@@ -1905,10 +1908,11 @@ impl<'a> Translator<'a> {
     ) {
         // should match result instead of empty vec but
         // this is how yomitan_js does
-        let mut database_entries = self
+        let database_entries: Vec<importer::dictionary_database::TermEntry> = self
             .db
             .find_terms_by_sequence_bulk(sequence_list)
             .unwrap_or_default();
+
         for db_entry in database_entries {
             let TermEntry {
                 id, term, index, ..
@@ -2539,7 +2543,7 @@ impl<'a> Translator<'a> {
     }
     /// [TermGlossary]
     fn _create_internal_term_dictionary_entry_from_database_entry(
-        database_entry: TermEntry,
+        database_entry: importer::dictionary_database::TermEntry,
         original_text: &str,
         transformed_text: &str,
         deinflected_text: &str,
@@ -2874,7 +2878,7 @@ impl<'a> Translator<'a> {
                                 let inflection_rule_chain_candidates: Vec<String> = alg_inflections
                                     .iter()
                                     .cloned()
-                                    .chain(inflection_rules.iter().cloned())
+                                    .chain(inflection_rules.iter().map(|rule| rule.to_string()))
                                     .collect();
                                 InternalInflectionRuleChainCandidate {
                                     source,

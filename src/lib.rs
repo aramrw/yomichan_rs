@@ -62,7 +62,6 @@ mod freq;
 mod method_modules;
 mod regex_util;
 pub mod settings;
-mod structured_content;
 mod test_utils;
 pub mod text_scanner;
 mod translation;
@@ -299,7 +298,7 @@ pub struct Yomichan<'a> {
 
 impl<'a> Yomichan<'a> {
     /// Deletes all database files and directories associated with Yomichan in the given path.
-    /// 
+    ///
     /// This is a "nuke" option that will permanently delete all dictionary data and settings.
     /// This should only be called when the Yomichan instance is NOT active.
     pub fn nuke_database(path: impl AsRef<Path>) -> std::io::Result<()> {
@@ -569,20 +568,22 @@ mod yomichan_ergonomics_tests {
     #[test]
     fn test_with_profile_mut_ergonomics() {
         let ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
-        
+
         // Mutate and return a value
-        let lang = ycd.with_profile_mut(|profile| {
-            profile.set_language("es");
-            profile.options().general.language.clone()
-        }).expect("Should access profile");
+        let lang = ycd
+            .with_profile_mut(|profile| {
+                profile.set_language("es");
+                profile.options().general.language.clone()
+            })
+            .expect("Should access profile");
 
         assert_eq!(lang, "es");
-        
+
         // Verify via read accessor
-        let read_lang = ycd.with_profile(|profile| {
-            profile.options().general.language.clone()
-        }).expect("Should access profile");
-        
+        let read_lang = ycd
+            .with_profile(|profile| profile.options().general.language.clone())
+            .expect("Should access profile");
+
         assert_eq!(read_lang, "es");
     }
 }

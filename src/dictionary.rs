@@ -1,8 +1,12 @@
 use crate::{
-    database::dictionary_database::Pronunciation, structured_content::TermGlossaryContentGroup,
+    database::dictionary_database::Pronunciation,
     translation_internal::TextProcessorRuleChainCandidate,
 };
 use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
+use importer::{
+    dictionary_database::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType},
+    structured_content::TermGlossaryContentGroup,
+};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -35,42 +39,42 @@ pub enum NumOrStr {
 //     Num(u8),
 // }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-/// A tag represents some brief information about part of a dictionary entry.
-pub struct DictionaryTag {
-    /// The name of the tag.
-    pub name: String,
-    /// The category of the tag.
-    pub category: String,
-    /// A number indicating the sorting order of the tag.
-    pub order: usize,
-    /// A score value for the tag.
-    pub score: usize,
-    /// An array of descriptions for the tag. If there are multiple entries,
-    /// the values will typically have originated from different dictionaries.
-    /// However, there is no correlation between the length of this array and
-    /// the length of the `dictionaries` field, as duplicates are removed.
-    pub content: Vec<String>,
-    /// An array of dictionary names that contained a tag with this name and category.
-    pub dictionaries: Vec<String>,
-    /// Whether or not this tag is redundant with previous tags.
-    pub redundant: bool,
-}
-impl DictionaryTag {
-    /// sets the category to "default"
-    pub fn new_default(name: String, dictionary: String) -> Self {
-        Self {
-            name,
-            category: "default".to_string(),
-            order: 0,
-            score: 0,
-            content: vec![],
-            dictionaries: vec![dictionary],
-            redundant: false,
-        }
-    }
-}
-
+// #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+// /// A tag represents some brief information about part of a dictionary entry.
+// pub struct DictionaryTag {
+//     /// The name of the tag.
+//     pub name: String,
+//     /// The category of the tag.
+//     pub category: String,
+//     /// A number indicating the sorting order of the tag.
+//     pub order: usize,
+//     /// A score value for the tag.
+//     pub score: usize,
+//     /// An array of descriptions for the tag. If there are multiple entries,
+//     /// the values will typically have originated from different dictionaries.
+//     /// However, there is no correlation between the length of this array and
+//     /// the length of the `dictionaries` field, as duplicates are removed.
+//     pub content: Vec<String>,
+//     /// An array of dictionary names that contained a tag with this name and category.
+//     pub dictionaries: Vec<String>,
+//     /// Whether or not this tag is redundant with previous tags.
+//     pub redundant: bool,
+// }
+// impl DictionaryTag {
+//     /// sets the category to "default"
+//     pub fn new_default(name: String, dictionary: String) -> Self {
+//         Self {
+//             name,
+//             category: "default".to_string(),
+//             order: 0,
+//             score: 0,
+//             content: vec![],
+//             dictionaries: vec![dictionary],
+//             redundant: false,
+//         }
+//     }
+// }
+//
 /*************** Kanji ***************/
 
 // // #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -152,23 +156,23 @@ pub struct KanjiDictionaryEntry {
 
 /*************** Term ***************/
 
-/// Enum representing what database field was used to match the source term.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TermSourceMatchSource {
-    Term,
-    Reading,
-    Sequence,
-}
+// /// Enum representing what database field was used to match the source term.
+// #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+// #[serde(rename_all = "lowercase")]
+// pub enum TermSourceMatchSource {
+//     Term,
+//     Reading,
+//     Sequence,
+// }
 
-/// Enum representing how the search term relates to the final term.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TermSourceMatchType {
-    Exact,
-    Prefix,
-    Suffix,
-}
+// /// Enum representing how the search term relates to the final term.
+// #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+// #[serde(rename_all = "lowercase")]
+// pub enum TermSourceMatchType {
+//     Exact,
+//     Prefix,
+//     Suffix,
+// }
 
 /// Frequency information corresponds to how frequently a term appears in a corpus,
 /// which can be a number of occurrences or an overall rank.
@@ -273,8 +277,9 @@ pub struct TermPronunciation {
     pub pronunciations: Vec<Pronunciation>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// !IMPORTANT DO NOT DELETE
 /// Source information represents how the original text was transformed to get to the final term.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TermSource {
     /// The original text that was searched.
     pub original_text: String,
