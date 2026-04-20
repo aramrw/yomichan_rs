@@ -1,4 +1,5 @@
 use crate::database::dictionary_importer::DictionarySummary;
+use crate::dictionary_importer::CHUNKS;
 use crate::settings::{DictionaryOptions, YomichanOptions};
 use crate::translator::TagTargetItem;
 use importer::dictionary_data::{TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
@@ -564,7 +565,7 @@ impl DictionaryDatabase {
             return Ok(all_final_results);
         }
         let conn = self.conn.lock();
-        for chunk in processed_term_list.chunks(900) {
+        for chunk in processed_term_list.chunks(CHUNKS) {
             let placeholders: String = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
             let query = format!(
                 "SELECT data, expression, reading FROM terms WHERE ({} IN ({}) OR {} IN ({}))",
@@ -688,7 +689,7 @@ impl DictionaryDatabase {
         }
         let mut all_term_meta_results: Vec<DatabaseTermMeta> = Vec::new();
         let conn = self.conn.lock();
-        for chunk in terms_as_strings.chunks(900) {
+        for chunk in terms_as_strings.chunks(CHUNKS) {
             let placeholders: String = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
             let query = format!(
                 "SELECT term, mode, data, dictionary FROM term_meta WHERE term IN ({})",
