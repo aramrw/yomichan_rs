@@ -76,7 +76,7 @@ anki = []
 pprof = { version = "0.13", features = ["flamegraph"] }
 
 [profile.release]
-opt-level = 2
+opt-level = 3
 
 # compiles the test with --release
 [profile.test]

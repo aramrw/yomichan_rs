@@ -38,7 +38,7 @@
 //! let decks = ycd.anki().deck_names();
 //! let models = ycd.anki().model_names();
 //!
-//! // 3. Configure via indices 
+//! // 3. Configure via indices
 //! ycd.anki().select_deck(0).unwrap();
 //! ycd.anki().select_model(0).unwrap();
 //!
@@ -50,10 +50,6 @@
 //! ]).unwrap();
 //! ```
 
-use anki_direct::{error::AnkiResult, notes::Note, AnkiClient};
-use getset::Getters;
-use std::sync::Arc;
-
 #[cfg(feature = "anki")]
 use crate::database::dictionary_database::DictionaryDatabase;
 use crate::{
@@ -64,6 +60,9 @@ use crate::{
     },
     Ptr, TermDictionaryEntry, Yomichan,
 };
+use anki_direct::{error::AnkiResult, notes::Note, AnkiClient};
+use getset::Getters;
+use std::sync::Arc;
 
 #[derive(thiserror::Error, Debug)]
 pub enum DisplayAnkiError {
@@ -124,13 +123,18 @@ impl DisplayAnki {
 
 #[cfg(feature = "anki")]
 impl<'a> crate::Backend<'a> {
-    pub fn default_sync(db: Arc<DictionaryDatabase<'a>>) -> Result<Self, DisplayAnkiError> {
+    pub fn default_sync(db: Arc<DictionaryDatabase>) -> Result<Self, DisplayAnkiError> {
         use crate::{environment::EnvironmentInfo, text_scanner::TextScanner};
 
-        let rtx = db.r_transaction()?;
-        let opts: Option<YomichanOptions> = rtx.get().primary("global_user_options")?;
-        let options = match opts {
-            Some(opts) => opts,
+        // TODO: r_transaction was part of native_db.
+        // Need to implement settings retrieval via DictionaryService (sqlite).
+        let opts_blob = db.get_settings().map_err(|e| {
+            DisplayAnkiError::AnkiFields(AnkiFieldsError::ModelNotFound(e.to_string()))
+        })?;
+        let options: YomichanOptions = match opts_blob {
+            Some(blob) => native_model::decode::<YomichanOptions>(blob)
+                .map(|(t, _)| t)
+                .expect("Failed to decode options"),
             None => YomichanOptions::new(),
         };
         let options: Ptr<YomichanOptions> = options.into();
@@ -138,7 +142,7 @@ impl<'a> crate::Backend<'a> {
         let anki = Ptr::new(DisplayAnki::default_latest(options.clone()));
         let backend = Self {
             _environment: EnvironmentInfo::default(),
-            text_scanner: TextScanner::new(&db),
+            text_scanner: TextScanner::new(db.clone()),
             anki,
             db: db.clone(),
             options: options.clone(),

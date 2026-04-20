@@ -3,7 +3,7 @@
 # This script provides an interactive menu to choose which test to run.
 
 export RUSTFLAGS="-Awarnings"
-CARGO_ARGS="--release --features tracing -- --nocapture"
+CARGO_ARGS="--release  -- --nocapture"
 CARGO_ARGS_IGNORED="--release -- --nocapture --ignored --test-threads=1"
 
 # PS3 is the prompt message for the 'select' command
