@@ -1,3 +1,4 @@
+use crate::translator::regex_util::apply_text_replacement;
 use crate::{
     backend::FindTermsDetails,
     database::{
@@ -9,16 +10,17 @@ use crate::{
         TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
         TermSource,
     },
-    regex_util::apply_text_replacement,
-    settings::{
+    settings::core::{
         DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
         TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
     },
-    translation::{
+};
+use crate::translator::{
+    types::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
         FindTermsOptions, FindTermsSortOrder,
     },
-    translation_internal::{
+    internal_types::{
         DatabaseDeinflection, DictionaryEntryGroup, FindInternalTermsResult,
         InternalTermDictionaryEntry, TextCache, TextProcessorRuleChainCandidate,
         VariantAndTextProcessorRuleChainCandidatesMap,
@@ -3329,7 +3331,7 @@ pub struct TagGroup {
     tag_names: Vec<String>,
 }
 
-type TagCache = IndexMap<String, Option<DatabaseTag>>;
+pub type TagCache = IndexMap<String, Option<DatabaseTag>>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TagTargetItem {
@@ -3649,8 +3651,8 @@ pub struct FindTermsResult {
     pub original_text_length: i128,
 }
 
-type TextProcessorMap = IndexMap<&'static str, PreAndPostProcessorsWithId>;
-type ReadingNormalizerMap = IndexMap<&'static str, ReadingNormalizer>;
+pub type TextProcessorMap = IndexMap<&'static str, PreAndPostProcessorsWithId>;
+pub type ReadingNormalizerMap = IndexMap<&'static str, ReadingNormalizer>;
 #[derive(thiserror::Error, Debug)]
 pub enum TranslatorError {
     #[error("Unsupported Language: {0}")]

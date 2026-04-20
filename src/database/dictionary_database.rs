@@ -1,7 +1,7 @@
 use crate::database::dictionary_importer::DictionarySummary;
 use crate::dictionary_importer::CHUNKS;
-use crate::settings::{DictionaryOptions, YomichanOptions};
-use crate::translator::TagTargetItem;
+use crate::settings::core::{DictionaryOptions, YomichanOptions};
+use crate::translator::core::TagTargetItem;
 use importer::dictionary_data::{TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
 use importer::dictionary_database::{DictionaryTag, TermEntry, TermMetaPhoneticData};
 use importer::dictionary_database::{TermSourceMatchSource, TermSourceMatchType};

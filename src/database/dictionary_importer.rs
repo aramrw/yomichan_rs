@@ -4,7 +4,7 @@ use crate::database::dictionary_database::{
     DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry, DatabaseTermEntryTuple, DictionaryDatabase,
 };
 use crate::utils::errors::{ImportError, ImportZipError};
-use crate::settings::{DictionaryDefinitionsCollapsible, DictionaryOptions, YomichanProfile};
+use crate::settings::core::{DictionaryDefinitionsCollapsible, DictionaryOptions, YomichanProfile};
 use crate::Ptr;
 use crate::Yomichan;
 

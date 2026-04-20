@@ -54,7 +54,7 @@
 use crate::database::dictionary_database::DictionaryDatabase;
 use crate::{
     utils::errors::error_helpers,
-    settings::{
+    settings::core::{
         AnkiFields, AnkiFieldsError, AnkiOptions, AnkiTermFieldType, DecksMap, FieldIndex,
         NoteModelsMap, ProfileError, ProfileResult, YomichanOptions, YomichanProfile,
     },
@@ -118,44 +118,6 @@ impl DisplayAnki {
             client: AnkiClient::default().into(),
             options,
         }
-    }
-}
-
-#[cfg(feature = "anki")]
-impl<'a> crate::Backend<'a> {
-    pub fn default_sync(db: Arc<DictionaryDatabase>) -> Result<Self, DisplayAnkiError> {
-        use crate::{environment::EnvironmentInfo, text_scanner::TextScanner};
-
-        // TODO: r_transaction was part of native_db.
-        // Need to implement settings retrieval via DictionaryService (sqlite).
-        let opts_blob = db.get_settings().map_err(|e| {
-            DisplayAnkiError::AnkiFields(AnkiFieldsError::ModelNotFound(e.to_string()))
-        })?;
-        let options: YomichanOptions = match opts_blob {
-            Some(blob) => native_model::decode::<YomichanOptions>(blob)
-                .map(|(t, _)| t)
-                .expect("Failed to decode options"),
-            None => YomichanOptions::new(),
-        };
-        let options: Ptr<YomichanOptions> = options.into();
-        let _profile: Ptr<YomichanProfile> = options.read_arc().get_current_profile()?;
-        let anki = Ptr::new(DisplayAnki::default_latest(options.clone()));
-        let backend = Self {
-            _environment: EnvironmentInfo::default(),
-            text_scanner: TextScanner::new(db.clone()),
-            anki,
-            db: db.clone(),
-            options: options.clone(),
-        };
-        Ok(backend)
-    }
-}
-
-impl Yomichan<'_> {
-    /// Returns a clone of [Ptr<DisplayAnki>]
-    /// Can be used across threads or async points w/ [RwLock::read_arc]
-    pub fn display_anki(&self) -> Ptr<DisplayAnki> {
-        self.backend.anki.clone()
     }
 }
 

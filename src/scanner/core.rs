@@ -9,8 +9,8 @@ use crate::{
     database::{dictionary_database::DictionaryDatabase, DictionaryService},
     // these do not exist in importer
     models::dictionary::{TermDictionaryEntry, TermSource},
-    settings::ProfileOptions,
-    translator::{FindTermsMode, FindTermsResult, Translator},
+    settings::core::ProfileOptions,
+    translator::{core::{FindTermsMode, FindTermsResult, Translator}},
     Yomichan,
 };
 
@@ -66,7 +66,7 @@ impl Yomichan<'_> {
         let profile = self.backend.get_current_profile().ok()?;
         let profile = profile.read();
         let opts = profile.options();
-        let res = self.backend.text_scanner.search_sentence(text, opts)?;
+        let res = self.backend.scanner.search_sentence(text, opts)?;
         Some(SentenceParser::parse(res))
     }
 }

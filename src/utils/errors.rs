@@ -1,8 +1,6 @@
 #[cfg(feature = "anki")]
 use crate::anki::core::DisplayAnkiError;
-use crate::{
-    settings::ProfileError, InitError,
-};
+use crate::settings::core::ProfileError;
 use importer::dictionary_importer::DictionarySummaryError;
 use native_db::db_type;
 use std::{
@@ -10,6 +8,61 @@ use std::{
     path::{Path, PathBuf},
 };
 use thiserror::Error;
+
+#[derive(Error, Debug)]
+#[error("could not create yomichan_rs dictionary database:")]
+pub enum InitError {
+    #[error(
+        r#"
+invalid path: {p} | help:
+  1. "~/.home/db.ycd" - opens a ycd instance
+  2. "~/.home/test"   - creates a new (blank) .ycd file"#
+    )]
+    InvalidPath { p: PathBuf },
+    #[error("path does not have a parent: {p}")]
+    MissingParent { p: PathBuf },
+    #[error("db conn err: {0}")]
+    DatabaseConnectionFailed(#[from] Box<db_type::Error>),
+    #[error("io err: {0}")]
+    Io(#[from] std::io::Error),
+    #[cfg(feature = "anki")]
+    #[error("display anki: {0}")]
+    DisplayAnki(#[from] DisplayAnkiError),
+}
+
+mod init_err_impls {
+    use super::InitError;
+    #[cfg(feature = "anki")]
+    mod anki {
+        use super::super::InitError;
+        use crate::anki::core::DisplayAnkiError;
+        impl From<Box<DisplayAnkiError>> for InitError {
+            fn from(e: Box<DisplayAnkiError>) -> Self {
+                InitError::DisplayAnki(*e)
+            }
+        }
+        impl From<Box<DisplayAnkiError>> for Box<InitError> {
+            fn from(e: Box<DisplayAnkiError>) -> Self {
+                Box::new(InitError::DisplayAnki(*e))
+            }
+        }
+    }
+    impl From<native_db::db_type::Error> for InitError {
+        fn from(e: native_db::db_type::Error) -> Self {
+            InitError::DatabaseConnectionFailed(Box::new(e))
+        }
+    }
+    impl From<native_db::db_type::Error> for Box<InitError> {
+        fn from(e: native_db::db_type::Error) -> Self {
+            Box::new(InitError::DatabaseConnectionFailed(Box::new(e)))
+        }
+    }
+    impl From<Box<native_db::db_type::Error>> for Box<InitError> {
+        fn from(e: Box<native_db::db_type::Error>) -> Self {
+            Box::new(InitError::DatabaseConnectionFailed(e))
+        }
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum YomichanError {

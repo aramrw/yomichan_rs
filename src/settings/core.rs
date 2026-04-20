@@ -27,7 +27,7 @@ use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use url::form_urlencoded::Target;
 
-use crate::{translation::FindTermsSortOrder, translator::FindTermsMode};
+use crate::translator::{types::FindTermsSortOrder, core::FindTermsMode};
 
 /// Global application-level options.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]

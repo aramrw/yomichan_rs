@@ -1,52 +1,57 @@
 # Domain-Centric Restructuring Design
 
 ## Goal
-Reorganize the `yomichan_rs` project structure to follow idiomatic Rust module conventions. Consolidate logic based on domain (e.g., translator, scanner, settings) rather than keeping everything as flat files in `src/`. This will improve findability, reduce cognitive load, and simplify `lib.rs`.
+Reorganize the `yomichan_rs` project structure to follow idiomatic Rust module conventions. Consolidate logic based on domain (e.g., translator, scanner, settings) rather than keeping everything as flat files in `src/`. This improves findability, reduces cognitive load, and simplifies `lib.rs` to a clean entry point.
 
 ## Architecture
-The project will be restructured into the following specialized module directories:
+The project is restructured into specialized module directories. Each module follows a `mod.rs` (public exports) and internal file pattern.
 
 ### 1. `src/translator/` (Text Analysis & Translation)
 Consolidates all translation logic and internal types.
 * `mod.rs`: Public exports.
-* `core.rs`: Currently `translator.rs` & `translator.rs_top`.
-* `types.rs`: Combines `translation.rs` and `translation_internal.rs`.
-* `regex_util.rs`: Used heavily by the translator.
+* `core.rs`: Main `Translator` implementation.
+* `top.rs`: Legacy/Compatibility layer for top-level translation.
+* `types.rs`: Publicly exposed translation types.
+* `internal_types.rs`: Logic-internal deinflection and candidate types.
+* `regex_util.rs`: Regex helpers for text replacement.
 
 ### 2. `src/settings/` (Configuration & Environment)
-Consolidates everything related to user preferences and the environment.
+Consolidates user preferences, profiles, and environment metadata.
 * `mod.rs`: Public exports.
-* `core.rs`: Currently `settings.rs`.
-* `environment.rs`: Moved from `src/environment.rs`.
-* `options.rs`: Moved from `src/method_modules/options.rs`.
-* `dictionary_options.rs`: Moved from `src/method_modules/dictionary_options.rs`.
+* `core.rs`: `YomichanProfile` and `YomichanOptions`.
+* `environment.rs`: `EnvironmentInfo` (OS, paths).
+* `options.rs`: General application settings.
+* `dictionary_options.rs`: Per-dictionary settings.
 
 ### 3. `src/models/` (Shared Data Structures)
-A central place for core domain types to prevent circular dependencies and organize scattered structs.
+Central place for core domain types to prevent circular dependencies.
 * `mod.rs`: Public exports.
-* `dictionary.rs`: Currently `dictionary.rs` (contains `TermDefinition`, `TermFrequency`, etc.).
-* `freq.rs`: Moved from `src/freq.rs`.
+* `dictionary.rs`: `TermDefinition`, `TermDictionaryEntry`.
+* `freq.rs`: Frequency data structures.
 
 ### 4. `src/scanner/` (Text Processing)
 * `mod.rs`: Public exports.
-* `core.rs`: Currently `text_scanner.rs`.
+* `core.rs`: `TextScanner` and search result types.
 
-### 5. `src/anki/`, `src/audio/`, `src/utils/`
-Small, focused modules for specific integrations and helpers.
-* `src/anki/mod.rs` & `src/anki/core.rs`: Currently `anki.rs`.
-* `src/audio/mod.rs` & `src/audio/core.rs`: Currently `audio.rs`.
-* `src/utils/mod.rs` & `src/utils/errors.rs`, `src/utils/test_utils.rs`: Currently `errors.rs` and `test_utils.rs`.
+### 5. `src/utils/` (Helpers & Errors)
+Logic-agnostic utilities and centralized error handling.
+* `mod.rs`: Contains the `Ptr<T>` abstraction (Arc+RwLock wrapper) and shared macros (`iter_type_to_iter_variant!`).
+* `errors.rs`: Centralized `YomichanError`, `DBError`, and `InitError`.
+* `test_utils.rs`: Shared testing helpers.
 
-### 6. `src/backend.rs` & `src/lib.rs`
-* `src/lib.rs`: Significantly simplified to only expose the public API of the new modules.
-* `src/backend.rs`: Remains at the root as the core orchestrator.
-* `src/database/`: Remains mostly as-is, focusing purely on data persistence.
-* `src/method_modules/`: Will be deleted after its contents are migrated to `src/settings/`.
+### 6. `src/anki/` & `src/audio/`
+Focused integration modules.
+* `src/anki/`: AnkiConnect integration logic.
+* `src/audio/`: Audio source and playback abstractions.
+
+### 7. `src/backend.rs` & `src/lib.rs`
+* `src/lib.rs`: Simplified to a high-level API entry point. It handles database resolution, instance management, and public re-exports.
+* `src/backend.rs`: Core orchestrator that ties the database, scanner, and options together.
 
 ## Data Flow & Error Handling
-Data flow remains conceptually identical. The primary change is how structs and functions are imported across the codebase.
-* `use crate::translator::...` instead of `use crate::translation::...`.
-* Errors will be centralized in `crate::utils::errors` instead of `crate::errors`.
+* **Imports:** Use domain-centric paths (e.g., `use crate::translator::Translator;`).
+* **Errors:** All significant errors are unified in `crate::utils::errors::YomichanError`.
+* **State Management:** Shared state is managed via `Ptr<T>` (defined in `utils`), which provides thread-safe interior mutability with ergonomic `with_ptr` and `with_ptr_mut` accessors.
 
 ## Testing
-Tests in `tests/` and `src/test_utils.rs` (now `src/utils/test_utils.rs`) will need their import statements updated to reflect the new module paths. No new tests are required for this purely structural change, but all existing tests must pass.
+Existing integration tests in `tests/` and unit tests in `src/utils/test_utils.rs` verify that functionality remains intact after restructuring. The `yomichan_ergonomics_tests` in `lib.rs` confirm the API usability.

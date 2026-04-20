@@ -1,4 +1,4 @@
-use crate::settings::AudioSourceType;
+use crate::settings::core::AudioSourceType;
 
 pub struct AudioSourceShort {
     audio_type: AudioSourceType,

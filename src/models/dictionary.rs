@@ -1,5 +1,5 @@
 use crate::{
-    translation_internal::TextProcessorRuleChainCandidate,
+    translator::internal_types::TextProcessorRuleChainCandidate,
 };
 use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
 use importer::{

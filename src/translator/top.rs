@@ -1,3 +1,5 @@
+use crate::translator::{TagCache, TextProcessorMap, ReadingNormalizerMap};
+use crate::translator::regex_util::apply_text_replacement;
 use crate::{
     backend::FindTermsDetails,
     database::{
@@ -8,16 +10,17 @@ use crate::{
         TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
         TermSource,
     },
-    regex_util::apply_text_replacement,
-    settings::{
+    settings::core::{
         DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
         TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
     },
-    translation::{
+};
+use crate::translator::{
+    types::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
         FindTermsOptions, FindTermsSortOrder,
     },
-    translation_internal::{
+    internal_types::{
         DatabaseDeinflection, DictionaryEntryGroup, FindInternalTermsResult,
         InternalTermDictionaryEntry, TextCache, TextProcessorRuleChainCandidate,
         VariantAndTextProcessorRuleChainCandidatesMap,

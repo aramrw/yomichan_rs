@@ -4,23 +4,23 @@ use crate::{
     database::{
         DictionaryService, DictionaryDatabaseError, DictionarySummary,
     },
-    environment::EnvironmentInfo,
-    text_scanner::TextScanner,
-    settings::{YomichanOptions, ProfileResult},
+    settings::core::{YomichanOptions, ProfileResult},
+    settings::environment::EnvironmentInfo,
+    scanner::core::TextScanner,
     utils::errors::DBError,
     Ptr, Yomichan,
 };
-use crate::translation::FindTermsMatchType;
+use crate::translator::types::FindTermsMatchType;
 use native_model::decode;
 
 #[cfg(feature = "anki")]
-use crate::anki::core::DisplayAnki;
+use crate::anki::core::{DisplayAnki, DisplayAnkiError};
 
 pub struct Backend<'a> {
     pub _environment: EnvironmentInfo,
     #[cfg(feature = "anki")]
     pub anki: Ptr<DisplayAnki>,
-    pub text_scanner: TextScanner<'a>,
+    pub scanner: TextScanner<'a>,
     pub db: Arc<dyn DictionaryService>,
     pub options: Ptr<YomichanOptions>,
 }
@@ -35,9 +35,34 @@ impl<'a> Backend<'a> {
         };
         let backend = Self {
             _environment: EnvironmentInfo::default(),
-            text_scanner: TextScanner::new(db.clone()),
+            scanner: TextScanner::new(db.clone()),
             db: db.clone(),
             options: Ptr::new(options),
+        };
+        Ok(backend)
+    }
+
+    #[cfg(feature = "anki")]
+    pub fn default_sync(db: Arc<dyn DictionaryService>) -> Result<Self, DisplayAnkiError> {
+        // TODO: r_transaction was part of native_db.
+        // Need to implement settings retrieval via DictionaryService (sqlite).
+        let opts_blob = db.get_settings().map_err(|e| {
+            DisplayAnkiError::Custom(e.to_string())
+        })?;
+        let options: YomichanOptions = match opts_blob {
+            Some(blob) => native_model::decode::<YomichanOptions>(blob)
+                .map(|(t, _)| t)
+                .expect("Failed to decode options"),
+            None => YomichanOptions::new(),
+        };
+        let options: Ptr<YomichanOptions> = options.into();
+        let anki = Ptr::new(DisplayAnki::default_latest(options.clone()));
+        let backend = Self {
+            _environment: EnvironmentInfo::default(),
+            scanner: TextScanner::new(db.clone()),
+            anki,
+            db: db.clone(),
+            options: options.clone(),
         };
         Ok(backend)
     }
@@ -75,7 +100,7 @@ impl<'a> Yomichan<'a> {
 
     #[cfg(feature = "anki")]
     /// Returns a direct handle to the Anki integration for the current profile.
-    pub fn anki(&self) -> crate::PtrRGaurd<DisplayAnki> {
+    pub fn anki(&self) -> crate::utils::PtrRGaurd<DisplayAnki> {
         self.backend.anki.read_arc()
     }
 
@@ -106,7 +131,7 @@ impl<'a> Yomichan<'a> {
         names: &[impl AsRef<str>],
     ) -> Result<(), DBError> {
         let opts = self.options();
-        let mut opts_guard = opts.write();
+        let opts_guard = opts.read();
         let current_profile_ptr = opts_guard.get_current_profile().map_err(|e| DBError::from(e))?;
         current_profile_ptr.with_ptr_mut(|prof| {
             let dictionaries = prof.dictionaries_mut();
@@ -120,7 +145,7 @@ impl<'a> Yomichan<'a> {
 
     pub fn delete_dictionaries_by_indexes(&self, indexes: &[usize]) -> Result<(), DBError> {
         let opts = self.options();
-        let mut opts_guard = opts.write();
+        let opts_guard = opts.read();
         let current_profile_ptr = opts_guard.get_current_profile().map_err(|e| DBError::from(e))?;
         current_profile_ptr.with_ptr_mut(|prof| {
             let dictionaries = prof.dictionaries_mut();
