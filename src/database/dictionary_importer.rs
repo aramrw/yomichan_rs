@@ -339,7 +339,7 @@ pub fn import_dictionary<P: AsRef<Path>>(
 
     {
         db.begin_import_session().expect("Failed to start import session");
-        let mut conn_lock = db.conn.lock();
+        let conn_lock = db.conn.lock();
         let conn = conn_lock.unchecked_transaction().expect("Failed to start transaction");
         
         for chunk in serialized_terms.chunks(100) {
@@ -443,44 +443,64 @@ pub fn import_dictionary<P: AsRef<Path>>(
         let conn = conn_lock
             .unchecked_transaction()
             .expect("Failed to start transaction");
-        {
-            let mut stmt = conn.prepare("INSERT OR REPLACE INTO term_meta (id, term, mode, dictionary, data) VALUES (?, ?, ?, ?, ?)").expect("Failed to prepare stmt");
-            for item in term_meta_list {
-                let (id, term, mode, dictionary, data_blob) = match item {
+
+        for chunk in term_meta_list.chunks(100) {
+            let mut sql = String::from(
+                "INSERT OR REPLACE INTO term_meta (id, term, mode, dictionary, data) VALUES ",
+            );
+            let placeholders: Vec<String> = (0..chunk.len())
+                .map(|_| "(?, ?, ?, ?, ?)".to_string())
+                .collect();
+            sql.push_str(&placeholders.join(", "));
+
+            let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+            let mut data = Vec::with_capacity(chunk.len());
+
+            for item in chunk {
+                match item {
                     DatabaseMetaMatchType::Frequency(freq) => {
-                        let data_blob = encode(&freq).unwrap();
-                        (
-                            freq.id,
-                            freq.freq_expression,
+                        let data_blob = encode(freq).unwrap();
+                        data.push((
+                            &freq.id,
+                            &freq.freq_expression,
                             "freq",
-                            freq.dictionary,
+                            &freq.dictionary,
                             data_blob,
-                        )
+                        ));
                     }
                     DatabaseMetaMatchType::Pitch(pitch) => {
-                        let data_blob = encode(&pitch).unwrap();
-                        (
-                            pitch.id,
-                            pitch.pitch_expression,
+                        let data_blob = encode(pitch).unwrap();
+                        data.push((
+                            &pitch.id,
+                            &pitch.pitch_expression,
                             "pitch",
-                            pitch.dictionary,
+                            &pitch.dictionary,
                             data_blob,
-                        )
+                        ));
                     }
                     DatabaseMetaMatchType::Phonetic(ipa) => {
-                        let data_blob = encode(&ipa).unwrap();
-                        (
-                            ipa.id,
-                            ipa.phonetic_expression,
+                        let data_blob = encode(ipa).unwrap();
+                        data.push((
+                            &ipa.id,
+                            &ipa.phonetic_expression,
                             "ipa",
-                            ipa.dictionary,
+                            &ipa.dictionary,
                             data_blob,
-                        )
+                        ));
                     }
-                };
-                stmt.execute(params![id, term, mode, dictionary, data_blob])
-                    .expect("Failed to execute stmt");
+                }
             }
+
+            for i in 0..chunk.len() {
+                params.push(data[i].0);
+                params.push(data[i].1);
+                params.push(&data[i].2);
+                params.push(data[i].3);
+                params.push(&data[i].4);
+            }
+
+            conn.execute(&sql, rusqlite::params_from_iter(params))
+                .expect("Batch insert failed");
         }
         conn.commit().expect("Failed to commit");
     }
@@ -498,14 +518,25 @@ fn insert_kanji_batched(
 ) -> Result<(), rusqlite::Error> {
     let conn_lock = db.conn.lock();
     let conn = conn_lock.unchecked_transaction()?;
-    {
-        let mut stmt = conn.prepare(
-            "INSERT OR REPLACE INTO kanji (character, dictionary, data) VALUES (?, ?, ?)",
-        )?;
-        for item in list {
-            let data_blob = encode(&item).unwrap();
-            stmt.execute(params![item.character, item.dictionary, data_blob])?;
+    for chunk in list.chunks(100) {
+        let mut sql =
+            String::from("INSERT OR REPLACE INTO kanji (character, dictionary, data) VALUES ");
+        let placeholders: Vec<String> = (0..chunk.len())
+            .map(|_| "(?, ?, ?)".to_string())
+            .collect();
+        sql.push_str(&placeholders.join(", "));
+
+        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+        let mut encoded_blobs = Vec::new();
+        for item in chunk {
+            encoded_blobs.push(encode(item).unwrap());
         }
+        for (i, item) in chunk.iter().enumerate() {
+            params.push(&item.character);
+            params.push(&item.dictionary);
+            params.push(&encoded_blobs[i]);
+        }
+        conn.execute(&sql, rusqlite::params_from_iter(params))?;
     }
     conn.commit()?;
     Ok(())
@@ -517,14 +548,26 @@ fn insert_tags_batched(
 ) -> Result<(), rusqlite::Error> {
     let conn_lock = db.conn.lock();
     let conn = conn_lock.unchecked_transaction()?;
-    {
-        let mut stmt = conn.prepare(
-            "INSERT OR REPLACE INTO tags (id, name, dictionary, data) VALUES (?, ?, ?, ?)",
-        )?;
-        for item in list {
-            let data_blob = encode(&item).unwrap();
-            stmt.execute(params![item.id, item.name, item.dictionary, data_blob])?;
+    for chunk in list.chunks(100) {
+        let mut sql =
+            String::from("INSERT OR REPLACE INTO tags (id, name, dictionary, data) VALUES ");
+        let placeholders: Vec<String> = (0..chunk.len())
+            .map(|_| "(?, ?, ?, ?)".to_string())
+            .collect();
+        sql.push_str(&placeholders.join(", "));
+
+        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+        let mut encoded_blobs = Vec::new();
+        for item in chunk {
+            encoded_blobs.push(encode(item).unwrap());
         }
+        for (i, item) in chunk.iter().enumerate() {
+            params.push(&item.id);
+            params.push(&item.name);
+            params.push(&item.dictionary);
+            params.push(&encoded_blobs[i]);
+        }
+        conn.execute(&sql, rusqlite::params_from_iter(params))?;
     }
     conn.commit()?;
     Ok(())
@@ -536,14 +579,25 @@ fn insert_kanji_meta_batched(
 ) -> Result<(), rusqlite::Error> {
     let conn_lock = db.conn.lock();
     let conn = conn_lock.unchecked_transaction()?;
-    {
-        let mut stmt = conn.prepare(
-            "INSERT OR REPLACE INTO kanji_meta (character, dictionary, data) VALUES (?, ?, ?)",
-        )?;
-        for item in list {
-            let data_blob = encode(&item).unwrap();
-            stmt.execute(params![item.freq_expression, item.dictionary, data_blob])?;
+    for chunk in list.chunks(100) {
+        let mut sql =
+            String::from("INSERT OR REPLACE INTO kanji_meta (character, dictionary, data) VALUES ");
+        let placeholders: Vec<String> = (0..chunk.len())
+            .map(|_| "(?, ?, ?)".to_string())
+            .collect();
+        sql.push_str(&placeholders.join(", "));
+
+        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+        let mut encoded_blobs = Vec::new();
+        for item in chunk {
+            encoded_blobs.push(encode(item).unwrap());
         }
+        for (i, item) in chunk.iter().enumerate() {
+            params.push(&item.freq_expression);
+            params.push(&item.dictionary);
+            params.push(&encoded_blobs[i]);
+        }
+        conn.execute(&sql, rusqlite::params_from_iter(params))?;
     }
     conn.commit()?;
     Ok(())
