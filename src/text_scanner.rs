@@ -1,22 +1,17 @@
 use std::{cmp, collections::HashSet, sync::Arc};
 
-use anki_direct::{
-    decks::DeckConfig,
-    error::AnkiResult,
-    model::FullModelDetails,
-    notes::{Note, NoteBuilder},
-    ReqwestClient,
-};
 use indexmap::IndexMap;
-use parking_lot::{ArcRwLockReadGuard, RawRwLock};
+
+use importer::dictionary_database::TermSourceMatchType;
 
 use crate::{
     backend::FindTermsDetails,
-    database::dictionary_database::DictionaryDatabase,
-    dictionary::{TermDictionaryEntry, TermSource, TermSourceMatchType},
-    settings::{AnkiOptions, DecksMap, ProfileOptions, YomichanProfile},
+    database::{dictionary_database::DictionaryDatabase, DictionaryService},
+    // these do not exist in importer
+    dictionary::{TermDictionaryEntry, TermSource},
+    settings::ProfileOptions,
     translator::{FindTermsMode, FindTermsResult, Translator},
-    Ptr, Yomichan,
+    Yomichan,
 };
 
 impl Yomichan<'_> {
@@ -67,7 +62,7 @@ impl Yomichan<'_> {
     ///     }
     /// }
     /// ```
-    pub fn search(&mut self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
+    pub fn search(&self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
         let profile = self.backend.get_current_profile().ok()?;
         let profile = profile.read();
         let opts = profile.options();
@@ -81,7 +76,7 @@ impl Yomichan<'_> {
 /// A `TermSearchResultsSegment` is a self-contained piece of the original input text.
 /// It holds the text for that segment and, if it was successfully matched to one or more
 /// dictionary entries, an `Option` containing the `TermSearchResults`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TermSearchResultsSegment {
     /// The text of this specific segment.
     pub text: String,
@@ -201,7 +196,7 @@ impl SentenceParser {
 ///
 /// * text the full unchanged string looked up
 /// * offset: The character offset of the original search text within the full sentence text.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Sentence {
     pub text: String,
     pub offset: usize,
@@ -216,7 +211,7 @@ pub struct Sentence {
 ///
 /// The `SentenceParser` consumes this struct to produce the final, segmented
 /// display output (`Vec<TermSearchResultsSegment>`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TermSearchResults {
     /// A flat list of all dictionary entries that matched the searched term.
     ///
@@ -260,9 +255,9 @@ pub struct TextScanner<'a> {
 
 impl<'a> TextScanner<'a> {
     /// Creates a new TextScanner with default or provided configuration.
-    pub fn new(db: &Arc<DictionaryDatabase<'a>>) -> Self {
+    pub fn new(db: Arc<dyn DictionaryService>) -> Self {
         TextScanner {
-            translator: Translator::new(db.clone()),
+            translator: Translator::new(db),
             scan_len: 20,
             sentence_scan_extent: 50,
             sentence_terminate_at_newlines: true,
@@ -285,14 +280,14 @@ impl<'a> TextScanner<'a> {
     /// The final, flat list of all found dictionary entries is then returned,
     /// ready to be consumed by the `SentenceParser`.
     pub fn search_sentence(
-        &mut self,
+        &self,
         sentence_text: &str,
         options: &ProfileOptions,
     ) -> Option<TermSearchResults> {
         let mut all_entries: Vec<TermDictionaryEntry> = Vec::new();
 
         // A helper closure to avoid duplicating the API call logic.
-        let mut find_and_extend = |text_slice: &str| {
+        let find_and_extend = |text_slice: &str, all_entries: &mut Vec<TermDictionaryEntry>| {
             if let Some(find_result) = self.find_term_dictionary_entries(text_slice, options) {
                 all_entries.extend(find_result.dictionary_entries);
             }
@@ -304,7 +299,7 @@ impl<'a> TextScanner<'a> {
             // For non-spaced languages, a search must be started from every position.
             "ja" | "zh" | "ko" => {
                 for (i, _) in sentence_text.char_indices() {
-                    find_and_extend(&sentence_text[i..]);
+                    find_and_extend(&sentence_text[i..], &mut all_entries);
                 }
             }
 
@@ -317,7 +312,7 @@ impl<'a> TextScanner<'a> {
                     if !is_whitespace && last_char_was_whitespace {
                         // This character is the start of a new word.
                         // We search the rest of the string from this point.
-                        find_and_extend(&sentence_text[i..]);
+                        find_and_extend(&sentence_text[i..], &mut all_entries);
                     }
                     last_char_was_whitespace = is_whitespace;
                 }
@@ -353,7 +348,7 @@ impl<'a> TextScanner<'a> {
     /// # Returns
     /// An option [TermSearchResults] containing the sorted dictionary entries and sentence context.
     pub fn _search_internal(
-        &mut self,
+        &self,
         full_text: &str,
         start_position: usize,
         options: &ProfileOptions,
@@ -420,7 +415,7 @@ impl<'a> TextScanner<'a> {
 
     /// Calls the core translator to find dictionary entries.
     fn find_term_dictionary_entries(
-        &mut self,
+        &self,
         search_text: &str,
         options: &ProfileOptions,
     ) -> Option<FindTermsResult> {
@@ -441,7 +436,7 @@ impl<'a> TextScanner<'a> {
 
         let find_terms_options =
             Translator::_get_translator_find_terms_options(MODE, &details, options);
-
+        
         let find_result = self
             .translator
             .find_terms(MODE, search_text, &find_terms_options);
@@ -564,22 +559,14 @@ impl<'a> TextScanner<'a> {
 
 #[cfg(test)]
 mod textscanner {
-    use crate::{
-        structured_content::TermGlossary,
-        test_utils::{self, YCD},
-        Yomichan,
-    };
-    use std::{
-        fs::OpenOptions,
-        io::Write,
-        sync::{LazyLock, RwLock},
-    };
+    use crate::test_utils::{self, YCD};
+    use std::{fs::OpenOptions, io::Write};
 
     #[test]
     fn search_dbg() {
-        let mut ycd = YCD.write();
-        ycd.set_language("es");
-        let sentence = "espanol es muy bueno";
+        let ycd = &YCD;
+        ycd.set_language("es").unwrap();
+        let sentence = "bueno";
         let res = ycd.search(sentence);
         if res.is_none() {
             panic!("{sentence} didnt match any terms from the database");
@@ -590,7 +577,7 @@ mod textscanner {
     #[ignore]
     #[test]
     fn search() {
-        let mut ycd = YCD.write();
+        let ycd = &YCD;
         ycd.set_language("ja");
         let res = ycd.search("晩餐");
         let Some(res) = res else {
@@ -630,18 +617,48 @@ mod dbtests {
     use tracing_test::traced_test;
 
     #[test]
-    #[traced_test]
     #[ignore]
     /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {
+        let _ = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::INFO)
+            .with_test_writer()
+            .try_init();
+
+        tracing::info!("🚀 Test init_db started");
+
+        // Start profiling
+        let guard = pprof::ProfilerGuard::new(100).unwrap();
+
         let td = &*test_utils::TEST_PATHS.tests_dir;
         let yomichan_rs_folder = td.join("yomichan_rs");
         if yomichan_rs_folder.exists() {
-            remove_dir_all(yomichan_rs_folder);
+            remove_dir_all(yomichan_rs_folder).unwrap();
         }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
-        let mut ycd = Yomichan::new(td).unwrap();
-        let paths = [tdcs.join("kotobankesjp")];
+        let ycd = Yomichan::new(td).unwrap();
+        let paths = [/* tdcs.join("kotobankesjp") */ tdcs.join("wty-es-en")];
+
+        // remove any non-existant paths
+        // use any dictionary you want without breaking upstream
+        let paths = paths
+            .into_iter()
+            .enumerate()
+            .filter_map(|(_i, path)| match path.exists() {
+                true => path.into(),
+                false => {
+                    println!(
+                        "[skipped] {:#?}",
+                        path.file_name().expect("path has no file name")
+                    );
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        if paths.is_empty() {
+            panic!("you don't have any dictionaries in tests/dictionaries");
+        }
+
         match ycd.import_dictionaries(&paths) {
             Ok(_) => {}
             Err(e) => {
@@ -656,5 +673,12 @@ mod dbtests {
                 panic!("failed init_db test: {e}");
             }
         }
+
+        // Finish profiling and generate flamegraph
+        if let Ok(report) = guard.report().build() {
+            let file = std::fs::File::create("flamegraph.svg").unwrap();
+            report.flamegraph(file).unwrap();
+            tracing::info!("🔥 Flamegraph generated: flamegraph.svg");
+        };
     }
 }

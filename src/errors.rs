@@ -1,8 +1,9 @@
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnkiError;
 use crate::{
-    database::dictionary_importer::DictionarySummaryError, settings::ProfileError, InitError,
+    settings::ProfileError, InitError,
 };
+use importer::dictionary_importer::DictionarySummaryError;
 use native_db::db_type;
 use std::{
     error::Error,
@@ -10,13 +11,6 @@ use std::{
 };
 use thiserror::Error;
 
-/// Abstraction over results for
-pub enum YomichanResult<T> {
-    Result(T),
-    Err(YomichanError),
-}
-
-/// All possible `yomichan_rs` [Error] paths
 #[derive(Error, Debug)]
 pub enum YomichanError {
     #[error("(-)[<yc_error::import>] -> \n{0}")]
@@ -101,6 +95,14 @@ pub enum ImportError {
     Summary(#[from] DictionarySummaryError),
     #[error("profile error: {0}")]
     Profile(#[from] ProfileError),
+    #[error("external importer error: {0}")]
+    ExternalImporter(String),
+}
+
+impl From<importer::errors::ImportError> for ImportError {
+    fn from(err: importer::errors::ImportError) -> Self {
+        ImportError::ExternalImporter(err.to_string())
+    }
 }
 
 impl From<native_db::db_type::Error> for ImportError {
@@ -109,42 +111,40 @@ impl From<native_db::db_type::Error> for ImportError {
     }
 }
 
+impl From<rusqlite::Error> for ImportError {
+    fn from(err: rusqlite::Error) -> Self {
+        ImportError::ExternalImporter(err.to_string())
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum DBError {
     #[error("db err: {0}")]
     Database(#[from] Box<db_type::Error>),
+    #[error("rusqlite err: {0}")]
+    Sqlite(#[from] rusqlite::Error),
     #[error("query err: {0}")]
     Query(String),
     #[error("none found err: {0}")]
     NoneFound(String),
     #[error("import err: {0}")]
     Import(#[from] ImportError),
-    #[error("(-)[yc_error::profile]")]
+    #[error("profile err: {0}")]
     Profile(#[from] ProfileError),
+    #[error("dictionary database err: {0}")]
+    DictionaryDatabase(Box<crate::database::dictionary_database::DictionaryDatabaseError>),
+}
+
+impl From<Box<crate::database::dictionary_database::DictionaryDatabaseError>> for DBError {
+    fn from(e: Box<crate::database::dictionary_database::DictionaryDatabaseError>) -> Self {
+        DBError::DictionaryDatabase(e)
+    }
 }
 
 impl From<native_db::db_type::Error> for DBError {
     fn from(err: native_db::db_type::Error) -> Self {
         DBError::Database(Box::new(err))
     }
-}
-
-#[macro_export]
-macro_rules! try_with_line {
-    () => {
-        macro_rules! line_number {
-            () => {
-                line!()
-            };
-        }
-
-        ($expr:expr) => {
-            match $expr {
-                Ok(val) => val,
-                Err(err) => return Err(errors::ImportError::from((line_number!(), err))),
-            }
-        };
-    };
 }
 
 impl From<(u32, std::io::Error)> for ImportError {
@@ -160,22 +160,14 @@ impl From<(u32, serde_json::error::Error)> for ImportError {
 }
 
 pub mod error_helpers {
-    /// # Example
-    ///
-    /// ```
-    /// #[error("[error::{}]", fmterr_module(vec!["main", "database"]))]
-    /// // [error::main::database]
-    /// ```
-    pub fn fmterr_module(mods: Vec<&str>) -> String {
-        mods.join("::")
+    pub fn fmterr_module(modules: Vec<&str>) -> String {
+        modules.join("::")
     }
-
-    /// A helper macro to create a standard module error message attribute.
-    #[macro_export]
-    macro_rules! fmt_mod_error {
-    ( $($path_part:literal),* ) => {
-        // This macro expands to the full #[error(...)] attribute
-        #[error("[{}]", error_helpers::fmterr_module(&[ $($path_part),* ]))]
-    };
 }
+
+#[macro_export]
+macro_rules! fmt_mod_error {
+    ($($mod:expr),*) => {
+        $crate::errors::error_helpers::fmterr_module(vec![$($mod),*])
+    };
 }

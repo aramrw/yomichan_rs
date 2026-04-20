@@ -2,6 +2,8 @@
 *.svg
 *.yc
 tests/yomichan_rs/*
+tests/test_dicts/wty*
 db.ycd
 GEMINI.md
 *.txt
+.worktrees/

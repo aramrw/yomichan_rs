@@ -13,33 +13,30 @@
 //!
 //! ```no_run
 //! use yomichan_rs::Yomichan;
-//! use std::sync::{LazyLock, RwLock};
+//! use std::sync::{LazyLock};
 //!
 //! // Best practice: Initialize Yomichan once as a static variable
 //! // to avoid repeatedly opening the database.
-//! static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
+//! static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
 //!     // Create a new Yomichan instance.
 //!     // This will create a `db.ycd` file in the specified directory.
 //!     let mut ycd = Yomichan::new("path/to/your/db_directory").unwrap();
 //!
 //!     // Import dictionaries (e.g., from a folder containing Yomitan-format dictionaries).
 //!     // This only needs to be done once.
-//!     if ycd.get_dictionaries().unwrap().is_empty() {
-//!         ycd.import_dictionaries(&["path/to/your/dictionaries"]).unwrap();
+//!     if ycd.dictionary_summaries().unwrap().is_empty() {
+//!         // ycd.import_dictionaries(&["path/to/your/dictionaries"]).unwrap();
 //!     }
 //!
 //!     // Set the language for text processing.
 //!     ycd.set_language("ja").unwrap();
 //!
-//!     RwLock::new(ycd)
+//!     ycd
 //! });
 //!
 //! fn main() {
-//!     // Lock the Yomichan instance for writing to perform a search.
-//!     let mut ycd = YCD.write().unwrap();
-//!
-//!     // Perform a search.
-//!     if let Some(results) = ycd.search("日本語を勉強している") {
+//!     // Perform a search using a shared reference (&Yomichan).
+//!     if let Some(results) = YCD.search("日本語を勉強している") {
 //!         for segment in results {
 //!             if let Some(search_results) = segment.results {
 //!                 println!("Found term: {}", segment.text);
@@ -53,22 +50,19 @@
 //! }
 //! ```
 
-#![allow(unused)]
 #[cfg(feature = "anki")]
 pub mod anki;
 mod audio;
 mod backend;
-mod database;
+pub mod database;
 mod dictionary;
-mod dictionary_data;
 mod environment;
 mod errors;
 mod freq;
 mod method_modules;
 mod regex_util;
 pub mod settings;
-mod structured_content;
-mod test_utils;
+pub mod test_utils;
 pub mod text_scanner;
 mod translation;
 mod translation_internal;
@@ -77,36 +71,26 @@ mod translator;
 pub use anki_direct;
 use backend::Backend;
 use database::dictionary_database::DictionaryDatabase;
-use database::dictionary_database::DB_MODELS;
 use derive_more::derive::DerefMut;
-use icu::time::scaffold::IntoOption;
 pub use indexmap;
-use indexmap::IndexMap;
 pub use parking_lot::{
     ArcRwLockReadGuard, ArcRwLockUpgradableReadGuard, ArcRwLockWriteGuard, RawRwLock, RwLock,
 };
 use serde::Deserialize;
 use serde::Serialize;
-use settings::{YomichanOptions, YomichanProfile};
+use settings::YomichanProfile;
 
 use native_db::*;
-use native_model::{native_model, Model};
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::hash::Hasher;
-use text_scanner::TextScanner;
-use transaction::RTransaction;
-use translation::FindTermsOptions;
-use translator::FindTermsMode;
-use translator::Translator;
 
-use std::collections::HashSet;
 use std::fs::DirEntry;
 use std::sync::Arc;
 use std::{
-    ffi::{OsStr, OsString},
+    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };
@@ -118,13 +102,39 @@ pub use crate::database::dictionary_importer;
 pub use crate::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
-#[cfg(not(feature = "anki"))]
-use crate::errors::DBError;
+pub use crate::errors::DBError;
 use crate::errors::YomichanError;
 pub use crate::text_scanner::{TermSearchResults, TermSearchResultsSegment};
+pub use crate::translator::Translator;
+pub use crate::database::DictionaryService;
+pub use crate::environment::EnvironmentInfo;
+pub use crate::text_scanner::TextScanner;
+
 // re-export parking lot cuz its too good
 use derive_more::Deref;
 pub use parking_lot;
+
+#[macro_export]
+macro_rules! iter_type_to_iter_variant {
+    ($v:expr, $variant:path) => {
+        $v.into_iter().map(|item| $variant(item))
+    };
+}
+
+#[macro_export]
+macro_rules! iter_variant_to_iter_type {
+    ($v:expr, $variant:path) => {
+        $v.into_iter()
+            .filter_map(|item| {
+                if let $variant(inner) = item {
+                    Some(inner)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+}
 
 /// type alias for a [ArcRwLockReadGuard];
 pub type PtrRGaurd<T> = ArcRwLockReadGuard<RawRwLock, T>;
@@ -308,11 +318,49 @@ where
 ///
 /// For more details on search results, see [`TermSearchResults`].
 pub struct Yomichan<'a> {
-    db: Arc<DictionaryDatabase<'a>>,
+    db: Arc<DictionaryDatabase>,
     backend: Backend<'a>,
 }
 
 impl<'a> Yomichan<'a> {
+    /// Deletes all database files and directories associated with Yomichan in the given path.
+    ///
+    /// This is a "nuke" option that will permanently delete all dictionary data and settings.
+    /// This should only be called when the Yomichan instance is NOT active.
+    pub fn nuke_database(path: impl AsRef<Path>) -> std::io::Result<()> {
+        let path = path.as_ref();
+        if !path.exists() {
+            return Ok(());
+        }
+
+        // 1. If it's a file, delete it if it ends in .ycd
+        if path.is_file() {
+            if path.extension() == Some(std::ffi::OsStr::new("ycd")) {
+                std::fs::remove_file(path)?;
+            }
+            return Ok(());
+        }
+
+        // 2. If it's a directory, look for *.ycd files and the yomichan_rs subdirectory
+        if path.is_dir() {
+            for entry in std::fs::read_dir(path)? {
+                let entry = entry?;
+                let entry_path = entry.path();
+                if entry_path.is_file() {
+                    if entry_path.extension() == Some(std::ffi::OsStr::new("ycd")) {
+                        std::fs::remove_file(entry_path)?;
+                    }
+                } else if entry_path.is_dir() {
+                    if entry_path.file_name() == Some(std::ffi::OsStr::new("yomichan_rs")) {
+                        std::fs::remove_dir_all(entry_path)?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Opens or creates a Yomichan database at the specified path.
     ///
     /// This function provides a flexible and robust way to initialize the database,
@@ -354,11 +402,51 @@ impl<'a> Yomichan<'a> {
         let db = Arc::new(DictionaryDatabase::new(db_path));
 
         #[cfg(not(feature = "anki"))]
-        let backend = Backend::new(db.clone()).map_err(|err| DBError::Database(err))?;
+        let backend = Backend::new(db.clone()).map_err(|err| DBError::Import(crate::errors::ImportError::ExternalImporter(err.to_string())))?;
         #[cfg(feature = "anki")]
         let backend = Backend::default_sync(db.clone())?;
 
         Ok(Self { db, backend })
+    }
+
+    /// Executes a closure with immutable access to the current profile.
+    pub fn with_profile<F, R>(&self, f: F) -> settings::ProfileResult<R>
+    where
+        F: FnOnce(&YomichanProfile) -> R,
+    {
+        let opts = self.backend.options.read();
+        let profile_ptr = opts.get_current_profile()?;
+        let profile = profile_ptr.read();
+        Ok(f(&profile))
+    }
+
+    /// Executes a closure with mutable access to the current profile.
+    pub fn with_profile_mut<F, R>(&self, f: F) -> settings::ProfileResult<R>
+    where
+        F: FnOnce(&mut YomichanProfile) -> R,
+    {
+        let opts = self.backend.options.read();
+        let profile_ptr = opts.get_current_profile()?;
+        let mut profile = profile_ptr.write();
+        Ok(f(&mut profile))
+    }
+
+    #[cfg(feature = "anki")]
+    /// Executes a closure with immutable access to the current profile's AnkiOptions.
+    pub fn with_anki_options<F, R>(&self, f: F) -> settings::ProfileResult<R>
+    where
+        F: FnOnce(&settings::AnkiOptions) -> R,
+    {
+        self.with_profile(|p| f(p.anki_options()))
+    }
+
+    #[cfg(feature = "anki")]
+    /// Executes a closure with mutable access to the current profile's AnkiOptions.
+    pub fn with_anki_options_mut<F, R>(&self, f: F) -> settings::ProfileResult<R>
+    where
+        F: FnOnce(&mut settings::AnkiOptions) -> R,
+    {
+        self.with_profile_mut(|p| f(p.anki_options_mut()))
     }
 }
 
@@ -495,5 +583,33 @@ mod init_err_impls {
         fn from(e: Box<native_db::db_type::Error>) -> Self {
             Box::new(InitError::DatabaseConnectionFailed(e))
         }
+    }
+}
+
+#[cfg(test)]
+mod yomichan_ergonomics_tests {
+    use super::*;
+    use crate::test_utils::TEST_PATHS;
+
+    #[test]
+    fn test_with_profile_mut_ergonomics() {
+        let ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
+
+        // Mutate and return a value
+        let lang = ycd
+            .with_profile_mut(|profile| {
+                profile.set_language("es");
+                profile.options().general.language.clone()
+            })
+            .expect("Should access profile");
+
+        assert_eq!(lang, "es");
+
+        // Verify via read accessor
+        let read_lang = ycd
+            .with_profile(|profile| profile.options().general.language.clone())
+            .expect("Should access profile");
+
+        assert_eq!(read_lang, "es");
     }
 }

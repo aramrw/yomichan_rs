@@ -6,12 +6,10 @@ pub struct AudioSourceShort {
     voice: String,
 }
 
-pub struct CacheItem {
-    
-}
+pub struct CacheItem {}
 
 // pub struct CachedInfoList {
-//     info_list: 
+//     info_list:
 // }
 
 struct AudioPlayer {}

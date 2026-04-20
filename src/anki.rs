@@ -1,29 +1,68 @@
-use anki_direct::{
-    cache::model::ModelCache, error::AnkiResult, model::FullModelDetails, notes::Note, AnkiClient,
-};
-use derive_more::derive::From;
-use getset::Getters;
-use indexmap::IndexMap;
-use parking_lot::{
-    ArcRwLockReadGuard, ArcRwLockWriteGuard, MappedRwLockReadGuard, RawRwLock, RwLock,
-    RwLockReadGuard, RwLockWriteGuard,
-};
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-use std::{ops::Deref, sync::Arc};
+//! # Anki Integration Module
+//!
+//! This module provides the `DisplayAnki` API to interact with AnkiConnect
+//!
+//! ## Example 1: Fully Automatic Configuration
+//!
+//! Picks the first available deck and model + automatically map dictionary fields to Anki fields.
+//!
+//! ```rust,no_run
+//! let mut ycd = Yomichan::new("path/to/db").unwrap();
+//! ycd.set_language("ja");
+//!
+//! let display_anki = ycd.display_anki().read_arc();
+//!
+//! // Auto-configure everything
+//! display_anki.configure_note_creation_auto().unwrap();
+//!
+//! // Search and add
+//! let res = ycd.search("日本語が好きです").unwrap();
+//! let first_entry = &res[0].results.as_ref().unwrap().dictionary_entries[0];
+//!
+//! let note_ids = display_anki.add_entry(first_entry, Some("日本語が好きです")).unwrap();
+//! println!("Added note ID: {}", note_ids[0]);
+//! ```
+//!
+//! ## Example 2: Streamlined Manual Setup
+//!
+//! Could populate a multi choice & let the user pick exactly which
+//! deck, model, and fields to map to:
+//!
+//! ```rust,no_run
+//! # use my_crate::{Yomichan, settings::FieldIndex};
+//! # let mut ycd = Yomichan::new("path/to/db").unwrap();
+//! // pulls anki maps from open anki connection
+//! ycd.anki().update_all_anki_maps().unwrap();
+//!
+//! // 2. store deck & [Note] model names
+//! let decks = ycd.anki().deck_names();
+//! let models = ycd.anki().model_names();
+//!
+//! // 3. Configure via indices
+//! ycd.anki().select_deck(0).unwrap();
+//! ycd.anki().select_model(0).unwrap();
+//!
+//! // Map fields by index
+//! ycd.anki().set_field_mappings(&[
+//!     FieldIndex::Term(0),
+//!     FieldIndex::Reading(2),
+//!     FieldIndex::Definition(3),
+//! ]).unwrap();
+//! ```
 
 #[cfg(feature = "anki")]
 use crate::database::dictionary_database::DictionaryDatabase;
 use crate::{
-    errors::{error_helpers, DBError},
+    errors::error_helpers,
     settings::{
-        AnkiDuplicateScope, AnkiFields, AnkiFieldsError, AnkiNoteOptions, AnkiOptions,
-        AnkiTermFieldType, DecksMap, FieldIndex, GlobalAnkiOptions, NoteModelsMap, ProfileError,
-        ProfileOptions, ProfileResult, YomichanOptions, YomichanProfile,
+        AnkiFields, AnkiFieldsError, AnkiOptions, AnkiTermFieldType, DecksMap, FieldIndex,
+        NoteModelsMap, ProfileError, ProfileResult, YomichanOptions, YomichanProfile,
     },
-    text_scanner::BuildNoteError,
     Ptr, TermDictionaryEntry, Yomichan,
 };
+use anki_direct::{error::AnkiResult, notes::Note, AnkiClient};
+use getset::Getters;
+use std::sync::Arc;
 
 #[derive(thiserror::Error, Debug)]
 pub enum DisplayAnkiError {
@@ -84,21 +123,26 @@ impl DisplayAnki {
 
 #[cfg(feature = "anki")]
 impl<'a> crate::Backend<'a> {
-    pub fn default_sync(db: Arc<DictionaryDatabase<'a>>) -> Result<Self, DisplayAnkiError> {
+    pub fn default_sync(db: Arc<DictionaryDatabase>) -> Result<Self, DisplayAnkiError> {
         use crate::{environment::EnvironmentInfo, text_scanner::TextScanner};
 
-        let rtx = db.r_transaction()?;
-        let opts: Option<YomichanOptions> = rtx.get().primary("global_user_options")?;
-        let options = match opts {
-            Some(opts) => opts,
+        // TODO: r_transaction was part of native_db.
+        // Need to implement settings retrieval via DictionaryService (sqlite).
+        let opts_blob = db.get_settings().map_err(|e| {
+            DisplayAnkiError::AnkiFields(AnkiFieldsError::ModelNotFound(e.to_string()))
+        })?;
+        let options: YomichanOptions = match opts_blob {
+            Some(blob) => native_model::decode::<YomichanOptions>(blob)
+                .map(|(t, _)| t)
+                .expect("Failed to decode options"),
             None => YomichanOptions::new(),
         };
         let options: Ptr<YomichanOptions> = options.into();
-        let profile: Ptr<YomichanProfile> = options.read_arc().get_current_profile()?;
+        let _profile: Ptr<YomichanProfile> = options.read_arc().get_current_profile()?;
         let anki = Ptr::new(DisplayAnki::default_latest(options.clone()));
         let backend = Self {
-            environment: EnvironmentInfo::default(),
-            text_scanner: TextScanner::new(&db),
+            _environment: EnvironmentInfo::default(),
+            text_scanner: TextScanner::new(db.clone()),
             anki,
             db: db.clone(),
             options: options.clone(),
@@ -137,7 +181,9 @@ impl DisplayAnki {
         Ok(result)
     }
 
-    /// Updates in memory [anki_direct::cache::Cache] & [YomichanOptions] to contain up to date note & deck models
+    /// Updates in memory [anki_direct::cache::Cache] & [YomichanOptions]
+    /// to contain up to date note & deck models. Does not persist to db.
+    ///
     /// To persist to the database, call [Yomichan::update_options]
     pub fn update_all_anki_maps(&self) -> AnkiResult<()> {
         // --- Phase 1: Fetch Data ---
@@ -161,6 +207,112 @@ impl DisplayAnki {
             *global_anki_opts.decks_map_mut() = latest_decks;
         });
         Ok(())
+    }
+
+    /// Returns a list of all discovered Anki deck names.
+    pub fn deck_names(&self) -> Vec<String> {
+        let opts = self.options.read();
+        let global_anki = opts.anki().read();
+        global_anki.decks_map().keys().cloned().collect()
+    }
+
+    /// Returns a list of all discovered Anki note model names.
+    pub fn model_names(&self) -> Vec<String> {
+        let opts = self.options.read();
+        let global_anki = opts.anki().read();
+        global_anki.note_models_map().keys().cloned().collect()
+    }
+
+    /// Returns a list of field names for a given model index.
+    pub fn field_names(&self, model_idx: usize) -> Vec<String> {
+        let opts = self.options.read();
+        let global_anki = opts.anki().read();
+        global_anki
+            .get_selected_model(model_idx)
+            .map(|(_, details)| details.fields.clone())
+            .unwrap_or_default()
+    }
+
+    /// Selects an Anki deck by its index for the current profile.
+    pub fn select_deck(&self, deck_idx: usize) -> Result<(), DisplayAnkiError> {
+        let profile_ptr = self.options.read().get_current_profile()?;
+        let mut profile_guard = profile_ptr.write();
+        let anki_fields = profile_guard.anki_options_mut().anki_fields_mut();
+
+        if let Some(fields) = anki_fields {
+            fields.set_selected_deck(deck_idx);
+        } else {
+            let mut new_fields = AnkiFields::default();
+            new_fields.set_selected_deck(deck_idx);
+            profile_guard
+                .anki_options_mut()
+                .set_anki_fields(Some(new_fields));
+        }
+        Ok(())
+    }
+
+    /// Selects an Anki note model by its index for the current profile.
+    pub fn select_model(&self, model_idx: usize) -> Result<(), DisplayAnkiError> {
+        let profile_ptr = self.options.read().get_current_profile()?;
+        let mut profile_guard = profile_ptr.write();
+        let anki_fields = profile_guard.anki_options_mut().anki_fields_mut();
+
+        if let Some(fields) = anki_fields {
+            fields.set_selected_model(model_idx);
+        } else {
+            let mut new_fields = AnkiFields::default();
+            new_fields.set_selected_model(model_idx);
+            profile_guard
+                .anki_options_mut()
+                .set_anki_fields(Some(new_fields));
+        }
+        Ok(())
+    }
+
+    /// Sets the field mappings for the current profile.
+    pub fn set_field_mappings(&self, mappings: &[FieldIndex]) -> Result<(), DisplayAnkiError> {
+        let profile_ptr = self.options.read().get_current_profile()?;
+        let mut profile_guard = profile_ptr.write();
+
+        // We need the model details to convert indices to names.
+        let model_details = {
+            let anki_opts = profile_guard.anki_options();
+            let selected_model_idx = anki_opts
+                .anki_fields()
+                .as_ref()
+                .map(|f| *f.selected_model())
+                .unwrap_or(0);
+
+            let global_opts = self.options.read();
+            let global_anki_opts = global_opts.anki().read();
+            let (_, details) = global_anki_opts.get_selected_model(selected_model_idx)?;
+            details.clone()
+        };
+
+        let persistent_fields = AnkiTermFieldType::from_field_indices(mappings, &model_details)?;
+        let anki_fields = profile_guard.anki_options_mut().anki_fields_mut();
+
+        if let Some(fields) = anki_fields {
+            fields.set_fields(persistent_fields);
+        } else {
+            let mut new_fields = AnkiFields::default();
+            new_fields.set_fields(persistent_fields);
+            profile_guard
+                .anki_options_mut()
+                .set_anki_fields(Some(new_fields));
+        }
+        Ok(())
+    }
+
+    /// Builds a note from a dictionary entry and adds it to Anki.
+    pub fn add_entry(
+        &self,
+        entry: &TermDictionaryEntry,
+        sentence: Option<&str>,
+    ) -> Result<Vec<usize>, DisplayAnkiError> {
+        let note = self.build_note_from_entry(entry, sentence)?;
+        let ids = self.client.read().notes().add_notes(&[note])?;
+        Ok(ids.into_iter().map(|id| id as usize).collect())
     }
 
     pub fn build_note_from_entry(
@@ -279,7 +431,7 @@ impl DisplayAnki {
         field_mappings: &[FieldIndex],
     ) -> Result<(), DisplayAnkiError> {
         // Step 1: Ensure all Anki data is up-to-date.
-        //self.update_all_anki_maps().await?;
+        self.update_all_anki_maps()?;
 
         // Step 2: Resolve names to indices and get model details.
         // This is done in a scoped block to release the read lock quickly.
@@ -506,10 +658,7 @@ mod displayanki {
         test_utils::{TEST_PATHS, YCD},
         Ptr, Yomichan,
     };
-    use anki_direct::model::{FullModelDetails, TemplateInfo};
-    use indexmap::IndexMap;
     use parking_lot::{Mutex, RwLock};
-    use pretty_assertions::assert_eq;
     use scopeguard;
     use std::sync::{Arc, LazyLock};
 
@@ -547,7 +696,7 @@ mod displayanki {
     #[ignore]
     #[test]
     fn update_all_anki_maps() {
-        let mut anki = DISPLAYANKI.lock();
+        let anki = DISPLAYANKI.lock();
         anki.update_all_anki_maps().unwrap();
         let opts = anki.options().read();
         let anki = opts.anki().read();
@@ -558,10 +707,10 @@ mod displayanki {
     #[ignore]
     #[test]
     fn build_note() {
-        let mut ycd = YCD.write();
-        ycd.set_language("ja");
+        let ycd = &YCD;
+        ycd.set_language("ja").unwrap();
         {
-            let mut anki = ycd.display_anki();
+            let anki = ycd.display_anki();
             anki.read().update_all_anki_maps().unwrap();
             let anki = anki.read_arc();
             let global_opts = anki.options().read_arc();
@@ -576,7 +725,7 @@ mod displayanki {
             let current_model = global_anki_opts.get_selected_model(0).unwrap();
             let current_profile = global_opts.get_current_profile().unwrap();
             let mut current_profile = current_profile.write();
-            let mut anki_opts: &mut AnkiOptions = current_profile.anki_options_mut();
+            let anki_opts: &mut AnkiOptions = current_profile.anki_options_mut();
             let fields = anki_opts.anki_fields();
             let fields: AnkiFields = match fields {
                 Some(f) => f.clone(),
@@ -632,8 +781,8 @@ mod displayanki {
     #[ignore]
     #[test]
     fn auto_note() {
-        let mut ycd = YCD.write();
-        ycd.set_language("ja");
+        let mut ycd = &YCD;
+        ycd.set_language("ja").unwrap();
 
         ycd.display_anki()
             .read_arc()
@@ -679,7 +828,7 @@ mod displayanki {
     #[ignore]
     #[test]
     fn build_note_auto_config() {
-        let mut ycd = YCD.write();
+        let mut ycd = &YCD;
         ycd.set_language("ja");
 
         let display_anki = ycd.display_anki().read_arc();
@@ -720,5 +869,59 @@ mod displayanki {
         scopeguard::defer! {
             client.read_arc().notes().delete_notes_by_ids(&id).unwrap();
         }
+    }
+
+    #[ignore]
+    #[test]
+    fn streamlined_anki_api_test() {
+        let mut ycd = &YCD;
+        ycd.set_language("es");
+
+        // 1. Sync Anki data (One-time hydration)
+        ycd.anki().update_all_anki_maps().unwrap();
+
+        // 2. Discover (Populate GUI dropdowns)
+        let decks = ycd.anki().deck_names();
+        let models = ycd.anki().model_names();
+
+        println!("Available Decks: {:?}", decks);
+        println!("Available Models: {:?}", models);
+
+        if models.is_empty() {
+            return; // Skip if no models available in local Anki
+        }
+
+        // 3. Configure (The "Hooking Up" part via indices)
+        // Let's assume the user selects index 0 for both
+        ycd.anki().select_deck(0).unwrap();
+        ycd.anki().select_model(0).unwrap();
+
+        // Map fields by index (GUI friendly)
+        ycd.anki()
+            .set_field_mappings(&[
+                FieldIndex::Term(0),
+                FieldIndex::Reading(2),
+                FieldIndex::Definition(3),
+            ])
+            .unwrap();
+
+        // 4. Action (The "Star" button)
+        let sentence = "espanol es muy bueno";
+        let res = ycd.search(sentence).unwrap();
+        let first_segment = res.into_iter().find(|s| s.results.is_some()).unwrap();
+        let results = first_segment.results.unwrap();
+        let first_entry = &results.dictionary_entries[0];
+
+        // This one call builds and adds the note
+        let note_ids = ycd.anki().add_entry(first_entry, Some(sentence)).unwrap();
+        println!("Added note IDs: {:?}", note_ids);
+
+        // 5. Cleanup
+        let client = ycd.anki().client().clone();
+        client
+            .read_arc()
+            .notes()
+            .delete_notes_by_ids(&note_ids)
+            .unwrap();
     }
 }

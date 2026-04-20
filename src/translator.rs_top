@@ -1,0 +1,105 @@
+use crate::{
+    backend::FindTermsDetails,
+    database::{
+        dictionary_database::DictionarySet, DatabaseTag, DatabaseTermMeta, DictionaryService,
+        GenericQueryRequest, QueryType, TermExactQueryRequest,
+    },
+    dictionary::{
+        TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
+        TermSource,
+    },
+    regex_util::apply_text_replacement,
+    settings::{
+        DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
+        TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
+    },
+    translation::{
+        FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
+        FindTermsOptions, FindTermsSortOrder,
+    },
+    translation_internal::{
+        DatabaseDeinflection, DictionaryEntryGroup, FindInternalTermsResult,
+        InternalTermDictionaryEntry, TextCache, TextProcessorRuleChainCandidate,
+        VariantAndTextProcessorRuleChainCandidatesMap,
+    },
+};
+
+macro_rules! iter_type_to_iter_variant {
+    ($v:expr, $variant:path) => {
+        $v.into_iter().map(|item| $variant(item))
+    };
+}
+
+macro_rules! iter_variant_to_iter_type {
+    ($v:expr, $variant:path) => {
+        $v.into_iter()
+            .filter_map(|item| {
+                if let $variant(inner) = item {
+                    Some(inner)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+}
+
+use deinflector::transformer::{
+    InflectionRuleChainCandidate, InflectionSource, InternalInflectionRuleChainCandidate,
+};
+use deinflector::{
+    descriptors::PreAndPostProcessorsWithId,
+    ja::japanese::is_code_point_japanese,
+    language_d::{
+        FindTermsTextReplacement, FindTermsTextReplacements, LanguageAndProcessors,
+        LanguageAndReadingNormalizer, ReadingNormalizer, TextProcessor, TextProcessorSetting,
+        TextProcessorWithId,
+    },
+    languages::{get_all_language_reading_normalizers, get_all_language_text_processors},
+    multi_language_transformer::MultiLanguageTransformer,
+    transformer::{LanguageTransformer, TransformedText},
+    zh::chinese::is_code_point_chinese,
+};
+use derive_more::From;
+use fancy_regex::Regex;
+use icu::{
+    collator::{options::CollatorOptions, Collator, CollatorBorrowed},
+    locale::locale,
+};
+use importer::{
+    dictionary_data::{
+        GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType,
+        VecNumOrNum,
+    },
+    dictionary_database::{
+        DictionaryTag, PhoneticTranscription, PitchAccent, Pronunciation, TermEntry,
+        TermPronunciationMatchType, TermSourceMatchSource, TermSourceMatchType,
+    },
+    structured_content::{
+        TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
+    },
+};
+use indexmap::{IndexMap, IndexSet};
+use serde::{Deserialize, Serialize};
+use std::{
+    cmp::Ordering,
+    collections::VecDeque,
+    hash::Hash,
+    iter,
+    sync::{Arc, LazyLock},
+};
+
+use parking_lot::RwLock;
+
+/// class which finds term and kanji dictionary entries for text.
+pub struct Translator<'a> {
+    pub db: Arc<dyn DictionaryService>,
+    pub mlt: MultiLanguageTransformer,
+    pub tag_cache: RwLock<IndexMap<String, TagCache>>,
+    /// Invariant Locale
+    /// Default: "en-US"
+    pub string_comparer: CollatorBorrowed<'a>,
+    pub number_regex: &'static Regex,
+    pub text_processors: TextProcessorMap,
+    pub reading_normalizers: ReadingNormalizerMap,
+}

@@ -1,35 +1,19 @@
 use crate::{
     backend::FindTermsDetails,
-    collect_variant_data_ref,
     database::{
-        self,
-        dictionary_database::{
-            DatabaseTag, DatabaseTermMeta, DictionaryDatabase, DictionarySet, GenericQueryRequest,
-            PhoneticTranscription, PitchAccent, Pronunciation, QueryRequestMatchType, QueryType,
-            TermEntry, TermExactQueryRequest, TermPronunciationMatchType,
-        },
+        dictionary_database::{DatabaseMetaMatchType, DictionarySet},
+        DatabaseTag, DatabaseTermMeta, DictionaryService, GenericQueryRequest, QueryType,
+        TermExactQueryRequest,
     },
     dictionary::{
-        self, DictionaryEntryType, DictionaryTag, EntryInflectionRuleChainCandidatesKey,
         TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
-        TermSource, TermSourceMatchSource, TermSourceMatchType, VecNumOrNum,
+        TermSource,
     },
-    dictionary_data::{
-        FrequencyInfo, GenericFreqData, MetaDataMatchType, Pitch, TermMetaFreqDataMatchType,
-        TermMetaModeType,
-    },
-    freq, iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
     settings::{
         DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
-        SortFrequencyDictionaryOrder, TranslationOptions, TranslationTextReplacementGroup,
-        TranslationTextReplacementOptions,
+        TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
     },
-    structured_content::{
-        TermGlossary, TermGlossaryContent, TermGlossaryContentGroup, TermGlossaryDeinflection,
-        TermGlossaryGroupType,
-    },
-    test_utils, to_variant,
     translation::{
         FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
         FindTermsOptions, FindTermsSortOrder,
@@ -40,52 +24,79 @@ use crate::{
         VariantAndTextProcessorRuleChainCandidatesMap,
     },
 };
+
+macro_rules! iter_type_to_iter_variant {
+    ($v:expr, $variant:path) => {
+        $v.into_iter().map(|item| $variant(item))
+    };
+}
+
+macro_rules! iter_variant_to_iter_type {
+    ($v:expr, $variant:path) => {
+        $v.into_iter()
+            .filter_map(|item| {
+                if let $variant(inner) = item {
+                    Some(inner)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+}
+
 use deinflector::transformer::{
     InflectionRuleChainCandidate, InflectionSource, InternalInflectionRuleChainCandidate,
 };
 use deinflector::{
-    descriptors::{PreAndPostProcessors, PreAndPostProcessorsWithId},
+    descriptors::PreAndPostProcessorsWithId,
     ja::japanese::is_code_point_japanese,
     language_d::{
-        AnyTextProcessor, FindTermsTextReplacement, FindTermsTextReplacements,
-        LanguageAndProcessors, LanguageAndReadingNormalizer, ReadingNormalizer, TextProcessor,
-        TextProcessorFn, TextProcessorSetting, TextProcessorWithId,
+        FindTermsTextReplacement, FindTermsTextReplacements, LanguageAndProcessors,
+        LanguageAndReadingNormalizer, ReadingNormalizer, TextProcessor, TextProcessorSetting,
+        TextProcessorWithId,
     },
     languages::{get_all_language_reading_normalizers, get_all_language_text_processors},
     multi_language_transformer::MultiLanguageTransformer,
-    transformer::{InflectionRule, LanguageTransformer, TransformedText},
+    transformer::{LanguageTransformer, TransformedText},
     zh::chinese::is_code_point_chinese,
 };
 use derive_more::From;
 use fancy_regex::Regex;
 use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
-    datetime::provider::neo::marker_attrs::PATTERN_MEDIUM,
     locale::locale,
 };
+use importer::{
+    dictionary_data::{
+        GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType,
+        VecNumOrNum,
+    },
+    dictionary_database::{
+        DictionaryTag, PhoneticTranscription, PitchAccent, Pronunciation, TermEntry,
+        TermPronunciationMatchType, TermSourceMatchSource, TermSourceMatchType,
+    },
+    structured_content::{
+        TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
+    },
+};
 use indexmap::{IndexMap, IndexSet};
-use native_db::*;
-use native_model::{native_model, Model};
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::RefCell,
     cmp::Ordering,
     collections::VecDeque,
-    fmt::Display,
     hash::Hash,
-    iter, mem,
-    ops::Index,
-    path::Path,
-    rc::Rc,
-    str::FromStr,
+    iter,
     sync::{Arc, LazyLock},
 };
 
+use parking_lot::RwLock;
+
 /// class which finds term and kanji dictionary entries for text.
 pub struct Translator<'a> {
-    pub db: Arc<DictionaryDatabase<'a>>,
+    pub db: Arc<dyn DictionaryService>,
     pub mlt: MultiLanguageTransformer,
-    pub tag_cache: IndexMap<String, TagCache>,
+    pub tag_cache: RwLock<IndexMap<String, TagCache>>,
     /// Invariant Locale
     /// Default: "en-US"
     pub string_comparer: CollatorBorrowed<'a>,
@@ -98,16 +109,16 @@ static TRANSLATOR_NUMBER_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?").unwrap());
 
 impl<'a> Translator<'a> {
-    pub fn new(db: Arc<DictionaryDatabase<'a>>) -> Self {
+    pub fn new(db: Arc<dyn DictionaryService>) -> Self {
         let mut translator = Self::init(db);
         translator.prepare();
         translator
     }
-    fn init(db: Arc<DictionaryDatabase<'a>>) -> Self {
+    fn init(db: Arc<dyn DictionaryService>) -> Self {
         Self {
             db,
             mlt: MultiLanguageTransformer::default(),
-            tag_cache: IndexMap::new(),
+            tag_cache: RwLock::new(IndexMap::new()),
             string_comparer: Collator::try_new(locale!("en-US").into(), CollatorOptions::default())
                 .unwrap(),
             number_regex: &*TRANSLATOR_NUMBER_REGEX,
@@ -137,8 +148,8 @@ impl<'a> Translator<'a> {
     }
     /// Clears the database tag cache.
     /// This should be called if the database is changed.
-    fn clear_dbtag_caches(&mut self) {
-        self.tag_cache.clear();
+    fn clear_dbtag_caches(&self) {
+        self.tag_cache.write().clear();
     }
     /// Finds term definitions for the given text.
     ///
@@ -164,11 +175,12 @@ impl<'a> Translator<'a> {
     ///
     /// Returns an error if the term lookup process fails for any reason.
     pub fn find_terms(
-        &mut self,
+        &self,
         mode: FindTermsMode,
         text: &str,
         opts: &FindTermsOptions,
     ) -> FindTermsResult {
+        dbg!(text, mode, opts);
         let mut text = text.to_string();
         let FindTermsOptions {
             enabled_dictionary_map,
@@ -185,6 +197,7 @@ impl<'a> Translator<'a> {
             mut dictionary_entries,
             original_text_length,
         } = self.find_terms_internal(&mut text, opts, &mut tag_aggregator, primary_reading);
+        dbg!(&dictionary_entries.len());
         match mode {
             FindTermsMode::Group => {
                 dictionary_entries = self._group_dictionary_entries_by_headword(
@@ -379,7 +392,7 @@ impl<'a> Translator<'a> {
 
     fn _get_translator_enabled_dictionary_map(opts: &ProfileOptions) -> TermEnabledDictionaryMap {
         let mut enabled_dictionary_map: TermEnabledDictionaryMap = IndexMap::new();
-        for (key, dictionary) in &opts.dictionaries {
+        for (_, dictionary) in &opts.dictionaries {
             if !dictionary.enabled {
                 continue;
             }
@@ -387,10 +400,8 @@ impl<'a> Translator<'a> {
                 name,
                 alias,
                 allow_secondary_searches,
-                definitions_collapsible,
                 parts_of_speech_filter,
                 use_deinflections,
-                styles,
                 ..
             } = dictionary;
             let new = FindTermDictionary {
@@ -808,82 +819,7 @@ impl<'a> Translator<'a> {
         }
     }
 
-    // fn _update_sort_frequencies(
-    //     dictionary_entries: &mut [InternalTermDictionaryEntry],
-    //     dictionary: &str,
-    //     ascending: bool,
-    // ) {
-    //     let mut frequency_map: IndexMap<usize, i128> = IndexMap::new();
-    //     for InternalTermDictionaryEntry {
-    //         definitions,
-    //         frequencies,
-    //         mut frequency_order,
-    //         ..
-    //     } in dictionary_entries.iter_mut()
-    //     {
-    //         let mut frequency_min = i128::MAX;
-    //         let mut frequency_max = i128::MIN;
-    //         for TermFrequency {
-    //             headword_index,
-    //             frequency,
-    //             dictionary: term_freq_dictionary,
-    //             ..
-    //         } in frequencies
-    //         {
-    //             if term_freq_dictionary != dictionary {
-    //                 continue;
-    //             }
-    //             // JS does this for some reason,
-    //             // checking type TermFrequency, it's garunteed to be a number..idk
-    //             // if (typeof frequency !== 'number') { continue; }
-    //
-    //             frequency_map.insert(*headword_index, *frequency);
-    //             frequency_min = frequency_min.min(*frequency);
-    //             frequency_max = frequency_max.max(*frequency);
-    //         }
-    //         frequency_order = match frequency_min <= frequency_max {
-    //             true => match ascending {
-    //                 true => frequency_min,
-    //                 false => -frequency_max,
-    //             },
-    //             false => match ascending {
-    //                 true => i128::MAX,
-    //                 false => 0,
-    //             },
-    //         };
-    //         for TermDefinition {
-    //             headword_indices,
-    //             mut frequency_order,
-    //             ..
-    //         } in definitions.iter_mut()
-    //         {
-    //             frequency_min = i128::MAX;
-    //             frequency_max = i128::MIN;
-    //             for headword_index in headword_indices {
-    //                 // in js the type for the map is literally <number, number>
-    //                 // idk what this is supposed to mean
-    //                 //if (typeof frequency !== 'number') { continue; }
-    //                 if let Some(frequency) = frequency_map.get(headword_index) {
-    //                     frequency_min = frequency_min.min(*frequency);
-    //                     frequency_max = frequency_max.max(*frequency);
-    //                 }
-    //             }
-    //             frequency_order = match frequency_min <= frequency_max {
-    //                 true => match ascending {
-    //                     true => frequency_min,
-    //                     false => -frequency_max,
-    //                 },
-    //                 false => match ascending {
-    //                     true => i128::MAX,
-    //                     false => 0,
-    //                 },
-    //             };
-    //         }
-    //         frequency_map.clear();
-    //     }
-    // }
-
-    fn _expand_tag_groups_and_group(&mut self, tag_expansion_targets: &mut [TagExpansionTarget]) {
+    fn _expand_tag_groups_and_group(&self, tag_expansion_targets: &mut [TagExpansionTarget]) {
         self._expand_tag_groups_mut(tag_expansion_targets);
         self._group_tags_mut(tag_expansion_targets);
     }
@@ -965,7 +901,7 @@ impl<'a> Translator<'a> {
         }
     }
 
-    fn _expand_tag_groups_mut(&mut self, tag_targets: &mut [TagExpansionTarget]) {
+    fn _expand_tag_groups_mut(&self, tag_targets: &mut [TagExpansionTarget]) {
         // `all_items` was an artifact of the initial incorrect cloning strategy.
         // Given our new approach where `target_map` is the source of truth
         // and we directly modify `tag_targets` in the final loop, `all_items` is
@@ -1052,10 +988,10 @@ impl<'a> Translator<'a> {
 
         // Second pass: Identify non-cached items and populate their database_tag
         let mut non_cached_items_refs: Vec<&mut TagTargetItem> = Vec::new();
-        let tag_cache_ref = &mut self.tag_cache;
+        let mut tag_cache_lock = self.tag_cache.write();
 
         for (dictionary_name, dictionary_items) in target_map.iter_mut() {
-            let cache_for_dict = tag_cache_ref.entry(dictionary_name.clone()).or_default();
+            let cache_for_dict = tag_cache_lock.entry(dictionary_name.clone()).or_default();
 
             for item in dictionary_items.values_mut() {
                 let database_tag_from_cache = cache_for_dict.get(item.query.as_str());
@@ -1097,7 +1033,7 @@ impl<'a> Translator<'a> {
                 // from `find_tag_meta_bulk`.
                 // Assign it directly.
                 item_ref.database_tag = database_tag_option.clone();
-                if let Some(cache) = tag_cache_ref.get_mut(&item_ref.dictionary) {
+                if let Some(cache) = tag_cache_lock.get_mut(&item_ref.dictionary) {
                     /// if the cache exists, you can directly use the Option<DatabaseTag>
                     /// as cache: &mut IndexMap<String, Option<DatabaseTag>> already.
                     cache.insert(item_ref.query.clone(), database_tag_option);
@@ -1250,7 +1186,6 @@ impl<'a> Translator<'a> {
                 &EnabledDictionaryMapType::Term(enabled_dictionary_map),
             );
 
-            /// --- OLD CODE ---
             // JS: const map2 = headwordReadingMaps[index];
             if index >= headword_reading_maps.len() {
                 eprintln!(
@@ -1262,16 +1197,15 @@ impl<'a> Translator<'a> {
             }
 
             let map2 = &headword_reading_maps[index];
-            /// --- END OLD CODE ---
             for (reading_key_str, targets_vec) in map2.iter() {
                 match &data {
-                    MetaDataMatchType::Frequency(ref freq_match_type) => {
+                    DatabaseMetaMatchType::Frequency(ref freq_match_type) => {
                         if mode != TermMetaModeType::Freq {
                             continue;
                         }
                         // JS: hasReading
                         let mut has_reading_filter = false;
-                        let frequency_data_value = match freq_match_type {
+                        let frequency_data_value = match &freq_match_type.data {
                             // JS: frequency
                             TermMetaFreqDataMatchType::WithReading(data_with_reading) => {
                                 if &data_with_reading.reading != reading_key_str {
@@ -1284,8 +1218,7 @@ impl<'a> Translator<'a> {
                                 generic_data.clone()
                             }
                         };
-                        let freq_info =
-                            Translator::_get_frequency_info(frequency_data_value.clone());
+                        let freq_info = GenericFreqData::get_frequency_info(&frequency_data_value);
                         let frequency_value_to_store = freq_info.frequency;
                         let display_value_str = freq_info.display_value;
                         let display_value_parsed_bool = freq_info.display_value_parsed;
@@ -1307,11 +1240,11 @@ impl<'a> Translator<'a> {
                             dict_entry_to_update.frequencies.push(new_term_freq);
                         }
                     }
-                    MetaDataMatchType::Pitch(ref pitch_meta_data) => {
+                    DatabaseMetaMatchType::Pitch(ref pitch_meta_data) => {
                         if mode != TermMetaModeType::Pitch {
                             continue;
                         }
-                        if &pitch_meta_data.reading != reading_key_str {
+                        if &pitch_meta_data.data.reading != reading_key_str {
                             continue;
                         }
                         // JS: pitches (array of PitchAccent)
@@ -1319,7 +1252,7 @@ impl<'a> Translator<'a> {
                         // js had multiple functions for this, so we combined it into one
                         let mut pitches_to_add: Vec<Pronunciation> = Vec::new();
                         // JS: data.pitches loop
-                        for pitch_item_data in &pitch_meta_data.pitches {
+                        for pitch_item_data in &pitch_meta_data.data.pitches {
                             // JS: tags2
                             let mut resolved_tags: Vec<DictionaryTag> = Vec::new();
                             if let Some(tags_from_data) = &pitch_item_data.tags {
@@ -1363,16 +1296,16 @@ impl<'a> Translator<'a> {
                             dict_entry_to_update.pronunciations.push(new_term_pron);
                         }
                     }
-                    MetaDataMatchType::Phonetic(ref phonetic_meta_data) => {
+                    DatabaseMetaMatchType::Phonetic(ref phonetic_meta_data) => {
                         if mode != TermMetaModeType::Ipa {
                             continue;
                         }
-                        if &phonetic_meta_data.reading != reading_key_str {
+                        if &phonetic_meta_data.data.reading != reading_key_str {
                             continue;
                         }
                         // JS: phoneticTranscriptions
                         let mut phonetic_transcriptions_to_add: Vec<Pronunciation> = Vec::new();
-                        for transcription_item in &phonetic_meta_data.transcriptions {
+                        for transcription_item in &phonetic_meta_data.data.transcriptions {
                             // JS: data.transcriptions loop
                             let mut resolved_ipa_tags: Vec<DictionaryTag> = Vec::new(); // JS: tags2
                             let tag_names_for_aggregator: Vec<String> = transcription_item
@@ -1474,31 +1407,6 @@ impl<'a> Translator<'a> {
             pronunciations,
         }
     }
-    fn _get_frequency_info(frequency_data: GenericFreqData) -> FrequencyInfo {
-        match frequency_data {
-            GenericFreqData::Object(obj) => FrequencyInfo {
-                frequency: obj.value,
-                display_value: obj.display_value,
-                display_value_parsed: false,
-            },
-            GenericFreqData::Integer(num) => FrequencyInfo {
-                frequency: num,
-                display_value: None,
-                display_value_parsed: false,
-            },
-            GenericFreqData::String(s_val) => {
-                let numeric_value = Translator::_convert_string_to_number(&s_val);
-                FrequencyInfo {
-                    frequency: numeric_value,
-                    display_value: Some(s_val),
-                    display_value_parsed: true,
-                }
-            }
-        }
-    }
-    fn _convert_string_to_number(s: &str) -> i128 {
-        s.parse::<i128>().unwrap_or(-1)
-    }
     fn find_terms_internal(
         &self,
         text: &mut String,
@@ -1573,79 +1481,6 @@ impl<'a> Translator<'a> {
         });
     }
 
-    // fn _remove_excluded_definitions(
-    //     dictionary_entries: &mut Vec<InternalTermDictionaryEntry>,
-    //     exclude_dictionary_definitions: &IndexSet<String>,
-    // ) {
-    //     dictionary_entries.retain_mut(|dictionary_entry| {
-    //         // ---- definitions ----
-    //         let definitions: Vec<TermType> = iter_type_to_iter_variant!(
-    //             dictionary_entry.definitions.clone(),
-    //             TermType::Definition
-    //         )
-    //         .collect();
-    //         let filtered_definitions = Translator::_remove_array_items_with_dictionary(
-    //             &definitions,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         let definitions_changed =
-    //             dictionary_entry.definitions.len() == filtered_definitions.len();
-    //         if (definitions_changed) {
-    //             dictionary_entry.definitions =
-    //                 iter_variant_to_iter_type!(filtered_definitions, TermType::Definition);
-    //         }
-    //         // ---- frequencies ----
-    //         let frequencies: Vec<TermType> = iter_type_to_iter_variant!(
-    //             dictionary_entry.frequencies.clone(),
-    //             TermType::Frequency
-    //         )
-    //         .collect();
-    //         let filtered_frequencies = Translator::_remove_array_items_with_dictionary(
-    //             &frequencies,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         dictionary_entry.frequencies =
-    //             iter_variant_to_iter_type!(filtered_definitions, TermType::Frequency);
-    //         // ---- pronunciation ----
-    //         let pronunciations: Vec<TermType> = iter_type_to_iter_variant!(
-    //             dictionary_entry.pronunciations.clone(),
-    //             TermType::Pronunciation
-    //         )
-    //         .collect();
-    //         let filtered_pronunciations = Translator::_remove_array_items_with_dictionary(
-    //             &pronunciations,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         dictionary_entry.pronunciations =
-    //             iter_variant_to_iter_type!(filtered_definitions, TermType::Pronunciation);
-    //         // ---- tags ----
-    //         Translator::_remove_tag_groups_with_dictionary_mut(
-    //             &mut dictionary_entry.definitions,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         Translator::_remove_tag_groups_with_dictionary_mut(
-    //             &mut dictionary_entry.headwords,
-    //             exclude_dictionary_definitions,
-    //         );
-    //         if !definitions_changed {
-    //             return true;
-    //         }
-    //         // definitions_changed is true
-    //         // check the current state of `dictionary_entry.definitions` (after all filtering).
-    //         if dictionary_entry.definitions.is_empty() {
-    //             // If all definitions were removed (by the first filter or tag filter),
-    //             // then remove this entire dictionary entry.
-    //             false // `retain_mut` will remove this item.
-    //         } else {
-    //             // Definitions were changed, but some remain.
-    //             // Call `_remove_unused_headwords` to clean up.
-    //             Translator::_remove_unused_headwords(dictionary_entry);
-    //             // keep
-    //             true
-    //         }
-    //     });
-    // }
-
     fn _remove_unused_headwords(dictionary_entry: &mut InternalTermDictionaryEntry) {
         let mut remove_headword_indices: IndexSet<usize> = IndexSet::new();
         // Initially, mark all headword indices for removal.
@@ -1699,10 +1534,10 @@ impl<'a> Translator<'a> {
         for mut update in &mut updates {
             Translator::_update_term_headword_indices_mut(update, &index_remap);
         }
-        dictionary_entry.definitions = iter_variant_to_iter_type!(updates[0], TermType::Definition);
-        dictionary_entry.frequencies = iter_variant_to_iter_type!(updates[1], TermType::Frequency);
+        dictionary_entry.definitions = iter_variant_to_iter_type!(updates[0].clone(), TermType::Definition);
+        dictionary_entry.frequencies = iter_variant_to_iter_type!(updates[1].clone(), TermType::Frequency);
         dictionary_entry.pronunciations =
-            iter_variant_to_iter_type!(updates[2], TermType::Pronunciation);
+            iter_variant_to_iter_type!(updates[2].clone(), TermType::Pronunciation);
     }
     /// Updates headword indices for a collection of
     /// `TermType` items based on an index remap.
@@ -1788,7 +1623,6 @@ impl<'a> Translator<'a> {
         terms: &[TermType],
         exclude_dictionary_definitions: &IndexSet<String>,
     ) -> Vec<TermType> {
-        let mut changed = false;
         terms
             .iter()
             .filter_map(|term| {
@@ -1934,108 +1768,11 @@ impl<'a> Translator<'a> {
         // from grouped_dictionary_entries that share the same term/reading.
         // Rust equivalent:
         // term_list will store TermExactQueryRequest structs.
-        // target_list_indices will store indices into `grouped_dictionary_entries`
-        // that correspond to the term/reading at the same index in `term_list`.
-        // target_map_for_grouping maps the string key (term + normalized_reading) to a list of indices
-        // of groups in `grouped_dictionary_entries` that share this term/reading.
+        // `term_list`: Stores unique TermExactQueryRequest.
         let mut term_list: Vec<TermExactQueryRequest> = Vec::new();
-        // In the JS, targetList stores references to the objects { groups: [] } which are also the values in targetMap.
-        // In Rust, we need a way to associate a term/reading (from term_list) back to the
-        // original groups in `grouped_dictionary_entries` that it came from,
-        // and also to any *new* groups that might be formed or related.
-        // The JS `target.groups.push(group)` effectively links a term/reading to one or more original groups.
-        //
-        // Let's rethink `target_list` and `target_map` for Rust.
-        // `target_map_for_original_groups`: Maps a key (term+normalized_reading) to a list of indices
-        // of groups in `grouped_dictionary_entries` that contain this term/reading.
-        // This helps identify which original groups are associated with a unique term/reading.
-        let mut target_map_for_original_groups: IndexMap<String, Vec<usize>> = IndexMap::new();
-        // `term_list_to_original_group_indices`: Parallel to `term_list`. For each term in `term_list`,
-        // this stores the list of indices from `grouped_dictionary_entries` that this term/reading corresponds to.
-        let mut term_list_to_original_group_indices: Vec<Vec<usize>> = Vec::new();
         let reading_normalizer = self.reading_normalizers.get(language);
-        // Iterate over the original grouped_dictionary_entries to populate
-        // term_list and target_map_for_original_groups.
-        for (group_idx, group) in grouped_dictionary_entries.iter().enumerate() {
-            for dictionary_entry in &group.dictionary_entries {
-                // Ensure headwords exist.
-                let headword = dictionary_entry.headwords.first().unwrap_or_else(|| {
-                    panic!(
-                        "DictionaryEntry is missing headwords in _add_secondary_related_dictionary_entries for group processing, group_idx: {group_idx}"
-                    )
-                });
-                let term = &headword.term;
-                let reading = &headword.reading;
-                let normalized_reading =
-                    Translator::_get_or_default_normalized_reading(reading_normalizer, reading);
-                let key =
-                    Translator::_create_map_key(&(term.as_str(), normalized_reading.as_str()));
-                // Update target_map_for_original_groups
-                let groups_for_this_key = target_map_for_original_groups
-                    .entry(key.clone())
-                    .or_default();
-                if !groups_for_this_key.contains(&group_idx) {
-                    groups_for_this_key.push(group_idx);
-                }
-                // If this key is new for term_list, add it.
-                // We need to ensure term_list only contains unique term/reading pairs.
-                // A simple way is to check if the key is already a key in a map that tracks term_list entries.
-                // Or, more directly, check if we've already added this term/reading to term_list.
-                // The JS logic uses `targetMap.get(key)` and if undefined, adds to termList.
-                // We can find the index of the key in `target_map_for_original_groups.keys()`
-                // or maintain a separate set for quick lookups for `term_list`.
-                if !term_list
-                    .iter()
-                    .any(|tr| tr.term == *term && tr.reading == *reading)
-                {
-                    term_list.push(TermExactQueryRequest {
-                        term: term.clone(),
-                        reading: reading.clone(),
-                    });
-                    // For the newly added term_list entry, associate it with the current group_idx.
-                    // Since term_list_to_original_group_indices is parallel to term_list,
-                    // we add a new vector for this term.
-                    // This assumes that if a term/reading appears in multiple original groups,
-                    // `target_map_for_original_groups` will correctly list all such group indices for that key.
-                    // And `term_list_to_original_group_indices` will store these lists of group indices,
-                    // corresponding to each unique term/reading in `term_list`.
-                    // When a new unique term/reading is added to term_list,
-                    // we fetch all group indices associated with its key from target_map_for_original_groups.
-                    // This seems slightly off from the direct JS logic where targetList.push(target) happens
-                    // when a new key is encountered. 'target' in JS is { groups: [] }, and this 'target'
-                    // is then populated with original groups.
-                    // Let's align more closely:
-                    // `term_list_associated_group_indices`: Parallel to `term_list`.
-                    // Each element is a Vec<usize> of indices from `grouped_dictionary_entries`.
-                    // When a new term/reading is added to `term_list`, we initialize its entry
-                    // in `term_list_associated_group_indices` with the current `group_idx`.
-                    // If the term/reading was already in `term_list`, we find its index
-                    // and add the current `group_idx` to the corresponding list in `term_list_associated_group_indices`.
-                    // Let's refine:
-                    // `term_list`: Stores unique TermExactQueryRequest.
-                    // `term_to_group_indices_map`: Maps a key (term+normalized_reading) to Vec<usize> (indices in `grouped_dictionary_entries`).
-                    // This map helps collect all original group associations for each unique term/reading.
-                    // Populate term_list and term_to_group_indices_map
-                    // The outer loop is already iterating `grouped_dictionary_entries`
-                }
-            }
-        }
-        // Rebuild term_list and a parallel list of associated original group indices
-        // from target_map_for_original_groups to ensure term_list is unique.
-        term_list.clear(); // Start fresh for unique entries
-        let mut term_list_associated_original_group_indices: Vec<Vec<usize>> = Vec::new();
-        for (key, original_group_indices) in target_map_for_original_groups.iter() {
-            // We need to parse the key back to term and reading to populate term_list.
-            // This is inefficient. It's better to populate term_list directly when a new key is first seen.
-            // Let's retry the logic for populating term_list and its associated group indices:
-            // `term_list`: Vec<TermExactQueryRequest> - unique term/reading pairs for DB query.
-            // `target_list_data`: Vec<Vec<usize>> - parallel to `term_list`. Each Vec<usize> stores
-            // indices of groups in `grouped_dictionary_entries` that correspond to the term/reading
-            // at the same index in `term_list`.
-            // `key_to_term_list_idx_map`: IndexMap<String, usize> - maps a term/reading key to its index in `term_list`.
-        }
+
         // Reset and rebuild term_list and its parallel association list
-        term_list.clear();
         let mut target_list_data: Vec<Vec<usize>> = Vec::new(); // Stores indices of groups from `grouped_dictionary_entries`
         let mut key_to_term_list_idx_map: IndexMap<String, usize> = IndexMap::new();
         for (group_idx, group) in grouped_dictionary_entries.iter().enumerate() {
@@ -2196,10 +1933,11 @@ impl<'a> Translator<'a> {
     ) {
         // should match result instead of empty vec but
         // this is how yomitan_js does
-        let mut database_entries = self
+        let database_entries: Vec<importer::dictionary_database::TermEntry> = self
             .db
             .find_terms_by_sequence_bulk(sequence_list)
             .unwrap_or_default();
+
         for db_entry in database_entries {
             let TermEntry {
                 id, term, index, ..
@@ -2619,7 +2357,7 @@ impl<'a> Translator<'a> {
                     && src.match_type == *match_type
                     && src.match_source == *match_source
                 {
-                    if (*is_primary) {
+                    if *is_primary {
                         src.is_primary = true;
                     }
                     return true;
@@ -2830,7 +2568,7 @@ impl<'a> Translator<'a> {
     }
     /// [TermGlossary]
     fn _create_internal_term_dictionary_entry_from_database_entry(
-        database_entry: TermEntry,
+        database_entry: importer::dictionary_database::TermEntry,
         original_text: &str,
         transformed_text: &str,
         deinflected_text: &str,
@@ -3097,16 +2835,6 @@ impl<'a> Translator<'a> {
         deinflections.extend(dictionary_deinflections);
         for deinflection in &mut deinflections {
             for mut entry in deinflection.database_entries.iter_mut() {
-                for def in &entry.definitions {
-                    // if matches!(def, TermGlossaryGroupType::Deinflection(_)) {
-                    //     let incorrect_values_path = test_utils::TEST_PATHS
-                    //         .tests_dir
-                    //         .join("incorrect")
-                    //         .with_extension("json");
-                    //     let json = serde_json::to_string_pretty(&def).unwrap();
-                    //     std::fs::write(incorrect_values_path, json);
-                    // }
-                }
                 entry
                     .definitions
                     .retain(|def| !matches!(def, TermGlossaryGroupType::Deinflection(_)))
@@ -3115,7 +2843,6 @@ impl<'a> Translator<'a> {
                 .database_entries
                 .retain(|entry| !entry.definitions.is_empty());
         }
-        //eprintln!("_get_deinflections: final deinflections list (after all processing & filtering): count={}, content={:#?}", deinflections.len(), deinflections);
         deinflections.retain(|deinflection| !deinflection.database_entries.is_empty());
         deinflections
     }
@@ -3176,7 +2903,7 @@ impl<'a> Translator<'a> {
                                 let inflection_rule_chain_candidates: Vec<String> = alg_inflections
                                     .iter()
                                     .cloned()
-                                    .chain(inflection_rules.iter().cloned())
+                                    .chain(inflection_rules.iter().map(|rule| rule.to_string()))
                                     .collect();
                                 InternalInflectionRuleChainCandidate {
                                     source,
@@ -3285,6 +3012,7 @@ impl<'a> Translator<'a> {
             }
             raw_source = Translator::_get_next_substring(opts.search_resolution, &raw_source);
         }
+        // unused
         let has_bueno_candidate = db_deinflections
             .iter()
             .any(|d| d.deinflected_text == "bueno");
@@ -3429,62 +3157,6 @@ impl<'a> Translator<'a> {
         );
     }
 
-    // fn _add_entries_to_deinflections(
-    //     &self,
-    //     language: &str,
-    //     deinflections: &mut [DatabaseDeinflection],
-    //     enabled_dictionary_map: &FindTermDictionaryMap,
-    //     match_type: TermSourceMatchType,
-    // ) {
-    //     if deinflections.is_empty() {
-    //         return;
-    //     }
-    //
-    //     // 1. Group deinflections by term, storing mutable references to the originals.
-    //     // This is equivalent to `_groupDeinflectionsByTerm` in JS.
-    //     let mut unique_deinflections_map: IndexMap<String, Vec<&mut DatabaseDeinflection>> =
-    //         IndexMap::new();
-    //     for deinflection in deinflections.iter_mut() {
-    //         if deinflection.deinflected_text.is_empty() {
-    //             continue;
-    //         }
-    //         unique_deinflections_map
-    //             .entry(deinflection.deinflected_text.clone())
-    //             .or_default()
-    //             .push(deinflection);
-    //     }
-    //
-    //     // 2. Get the unique terms for the DB query and the arrays of mutable references.
-    //     let mut unique_deinflection_terms: Vec<String> =
-    //         unique_deinflections_map.keys().cloned().collect();
-    //     //unique_deinflection_terms.retain(|term| !term.is_empty());
-    //     let mut unique_deinflection_arrays: Vec<Vec<&mut DatabaseDeinflection>> =
-    //         unique_deinflections_map.into_values().collect();
-    //
-    //     // 3. Query the database with the unique terms.
-    //     dbg!(
-    //         "Calling findTermsBulk with the following terms:",
-    //         &unique_deinflection_terms
-    //     );
-    //     let database_entries = self
-    //         .db
-    //         .find_terms_bulk(
-    //             &unique_deinflection_terms,
-    //             &enabled_dictionary_map,
-    //             match_type,
-    //         )
-    //         .unwrap_or_default();
-    //     //dbg!("term entries len: {}", database_entries.len());
-    //
-    //     // 4. Match the results back to the original deinflections via the grouped mutable references.
-    //     self._match_entries_to_deinflections(
-    //         language,
-    //         &database_entries,
-    //         &mut unique_deinflection_arrays,
-    //         enabled_dictionary_map,
-    //     );
-    // }
-
     fn _match_entries_to_deinflections(
         &self,
         language: &str,
@@ -3494,6 +3166,7 @@ impl<'a> Translator<'a> {
         enabled_dictionary_map: &FindTermDictionaryMap,
     ) {
         for entry in database_entries {
+            dbg!(&entry);
             let entry_dictionary = enabled_dictionary_map
                 .get(&entry.dictionary)
                 .unwrap_or_else(|| {
@@ -3526,51 +3199,6 @@ impl<'a> Translator<'a> {
             }
         }
     }
-
-    // fn _match_entries_to_deinflections(
-    //     &self,
-    //     language: &str,
-    //     database_entries: &[TermEntry],
-    //     unique_deinflection_arrays: &mut Vec<&mut Vec<DatabaseDeinflection>>,
-    //     enabled_dictionary_map: &FindTermDictionaryMap,
-    // ) {
-    //     for entry in database_entries {
-    //         let entry_dictionary = enabled_dictionary_map
-    //             .get(&entry.dictionary)
-    //             .unwrap_or_else(|| {
-    //                 panic!(
-    //                     "{} was not found in enabled_dictionary_map",
-    //                     &entry.dictionary
-    //                 )
-    //             });
-    //         let parts_of_speech_filter = entry_dictionary.parts_of_speech_filter;
-    //         if parts_of_speech_filter {
-    //             eprintln!("parts_of_speech_filter for {entry_dictionary:?} is true, it will not push the entry to the deinflection.database_entries");
-    //             continue;
-    //         }
-    //         let definition_conditions = self
-    //             .mlt
-    //             .get_condition_flags_from_parts_of_speech(language, &entry.rules);
-    //         for deinflection in &mut **unique_deinflection_arrays
-    //             .get_mut(entry.index)
-    //             .unwrap_or_else(|| {
-    //                 panic!(
-    //                     "unique_deinflection_array.get({}) doesn't exist inside the array",
-    //                     entry.index
-    //                 )
-    //             })
-    //         {
-    //             if LanguageTransformer::conditions_match(
-    //                 deinflection.conditions,
-    //                 definition_conditions,
-    //             ) {
-    //                 deinflection.database_entries.push(entry.clone());
-    //             } else {
-    //                 eprintln!("conditons_match returned false for deinflection conditions: {deinflection:#?}");
-    //             }
-    //         }
-    //     }
-    // }
 
     /// this might be incorrect based on the javascript function
     fn _group_deinflections_by_term(
@@ -4036,13 +3664,3 @@ struct TermMetaHeadword {
     frequencies: Vec<TermFrequency>,
 }
 type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadword>>>;
-
-#[cfg(test)]
-mod translator_tests {
-    use super::{FindTermsMode, Translator};
-    use crate::{test_utils::TEST_PATHS, translation::FindTermsOptions};
-
-    // #[test]
-    // fn find_terms() {
-    // }
-}
