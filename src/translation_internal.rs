@@ -7,7 +7,7 @@ use importer::dictionary_database::{TermEntry, TermSourceMatchSource};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
-use crate::dictionary::{TermDefinition, TermFrequency, TermHeadword, TermPronunciation};
+use crate::models::dictionary::{TermDefinition, TermFrequency, TermHeadword, TermPronunciation};
 
 pub type TextProcessorRuleChainCandidate = Vec<String>;
 

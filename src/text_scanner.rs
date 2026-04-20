@@ -8,7 +8,7 @@ use crate::{
     backend::FindTermsDetails,
     database::{dictionary_database::DictionaryDatabase, DictionaryService},
     // these do not exist in importer
-    dictionary::{TermDictionaryEntry, TermSource},
+    models::dictionary::{TermDictionaryEntry, TermSource},
     settings::ProfileOptions,
     translator::{FindTermsMode, FindTermsResult, Translator},
     Yomichan,

@@ -55,10 +55,9 @@ pub mod anki;
 mod audio;
 mod backend;
 pub mod database;
-mod dictionary;
+pub mod models;
 mod environment;
 mod errors;
-mod freq;
 mod method_modules;
 mod regex_util;
 pub mod settings;
@@ -99,7 +98,7 @@ use std::{
 use crate::anki::DisplayAnkiError;
 // public exports:
 pub use crate::database::dictionary_importer;
-pub use crate::dictionary::{
+pub use crate::models::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
 pub use crate::errors::DBError;

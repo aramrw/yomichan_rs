@@ -5,7 +5,7 @@ use crate::{
         DatabaseTag, DatabaseTermMeta, DictionaryService, GenericQueryRequest, QueryType,
         TermExactQueryRequest,
     },
-    dictionary::{
+    models::dictionary::{
         TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
         TermSource,
     },
