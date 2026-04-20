@@ -339,6 +339,8 @@ pub fn import_dictionary<P: AsRef<Path>>(
                 dictionary: t.12.clone(),
                 file_path: t.13.clone(),
             };
+            // DO NOT UNCOMMENT. ITS MASSIVE
+            //eprintln!("DEBUG: Serializing entry: {:?}", entry);
             let data_blob = encode(&entry).expect("Failed to encode");
             SerializedTerm {
                 id: entry.id,

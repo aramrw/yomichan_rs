@@ -436,7 +436,7 @@ impl<'a> TextScanner<'a> {
 
         let find_terms_options =
             Translator::_get_translator_find_terms_options(MODE, &details, options);
-
+        
         let find_result = self
             .translator
             .find_terms(MODE, search_text, &find_terms_options);
@@ -566,7 +566,7 @@ mod textscanner {
     fn search_dbg() {
         let ycd = &YCD;
         ycd.set_language("es").unwrap();
-        let sentence = "espanol es muy bueno";
+        let sentence = "bueno";
         let res = ycd.search(sentence);
         if res.is_none() {
             panic!("{sentence} didnt match any terms from the database");

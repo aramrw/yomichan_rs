@@ -62,7 +62,7 @@ mod freq;
 mod method_modules;
 mod regex_util;
 pub mod settings;
-mod test_utils;
+pub mod test_utils;
 pub mod text_scanner;
 mod translation;
 mod translation_internal;

@@ -6,7 +6,6 @@ use importer::dictionary_data::{TermMetaFreqDataMatchType, TermMetaModeType, Ter
 use importer::dictionary_database::{DictionaryTag, TermEntry, TermMetaPhoneticData};
 use importer::dictionary_database::{TermSourceMatchSource, TermSourceMatchType};
 use importer::structured_content::TermGlossaryGroupType;
-use serde_with::skip_serializing_none;
 use serde_with::{serde_as, NoneAsEmptyString};
 
 use indexmap::{IndexMap, IndexSet};
@@ -93,7 +92,9 @@ impl From<DatabaseTermEntryTuple> for DatabaseTermEntry {
     }
 }
 
-#[skip_serializing_none]
+// WARNING: Never use `#[skip_serializing_none]` or similar serde macros that omit fields from serialization on this struct.
+// `postcard` is a strict, positional binary format. Omitting a field (like `None`) from the byte stream breaks positional
+// deserialization and causes issues like "Found an Option discriminant that wasn't 0 or 1" or "Hit the end of buffer".
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 #[native_model(id = 2, version = 1, with = native_model::postcard_1_0::PostCard)]
 pub struct DatabaseTermEntry {
@@ -571,6 +572,7 @@ impl DictionaryDatabase {
                 "SELECT data, expression, reading FROM terms WHERE ({} IN ({}) OR {} IN ({}))",
                 actual_column, placeholders, actual_reading_column, placeholders
             );
+            dbg!(&query, &chunk);
             let mut stmt = conn.prepare(&query)?;
             let mut params_vec: Vec<&dyn rusqlite::ToSql> = Vec::new();
             for term in chunk {
@@ -583,17 +585,23 @@ impl DictionaryDatabase {
                 let data: Vec<u8> = row.get(0)?;
                 let expression: String = row.get(1)?;
                 let reading: String = row.get(2)?;
-                let (db_model, _) = decode::<DatabaseTermEntry>(data).map_err(|e| {
-                    rusqlite::Error::FromSqlConversionFailure(
-                        0,
-                        rusqlite::types::Type::Blob,
-                        Box::new(e),
-                    )
-                })?;
+                
+                let (db_model, _) = match decode::<DatabaseTermEntry>(data.clone()) {
+                    Ok(val) => val,
+                    Err(e) => {
+                        println!("DEBUG: Failed to decode expression: {}, reading: {}, data len: {}, data prefix: {:?}", expression, reading, data.len(), &data.get(0..16));
+                        return Err(rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Blob,
+                            Box::new(e),
+                        ));
+                    }
+                };
                 Ok((db_model, expression, reading))
             })?;
             for row_result in rows {
                 let (db_model, expression, reading) = row_result?;
+                dbg!(&db_model.dictionary);
                 if !dictionaries.has(&db_model.dictionary) {
                     continue;
                 }

@@ -180,6 +180,7 @@ impl<'a> Translator<'a> {
         text: &str,
         opts: &FindTermsOptions,
     ) -> FindTermsResult {
+        dbg!(text, mode, opts);
         let mut text = text.to_string();
         let FindTermsOptions {
             enabled_dictionary_map,
@@ -196,6 +197,7 @@ impl<'a> Translator<'a> {
             mut dictionary_entries,
             original_text_length,
         } = self.find_terms_internal(&mut text, opts, &mut tag_aggregator, primary_reading);
+        dbg!(&dictionary_entries.len());
         match mode {
             FindTermsMode::Group => {
                 dictionary_entries = self._group_dictionary_entries_by_headword(
@@ -3164,6 +3166,7 @@ impl<'a> Translator<'a> {
         enabled_dictionary_map: &FindTermDictionaryMap,
     ) {
         for entry in database_entries {
+            dbg!(&entry);
             let entry_dictionary = enabled_dictionary_map
                 .get(&entry.dictionary)
                 .unwrap_or_else(|| {

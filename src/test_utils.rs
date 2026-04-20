@@ -7,13 +7,13 @@ use tempfile::{tempdir_in, TempDir};
 use crate::{database::dictionary_database::DictionaryDatabase, Yomichan};
 use parking_lot::RwLock;
 
-pub(crate) struct TestPaths {
+pub struct TestPaths {
     pub tests_dir: PathBuf,
     pub tests_yomichan_db_path: PathBuf,
     pub test_dicts_dir: PathBuf,
 }
 
-pub(crate) static TEST_PATHS: LazyLock<TestPaths> = LazyLock::new(|| TestPaths {
+pub static TEST_PATHS: LazyLock<TestPaths> = LazyLock::new(|| TestPaths {
     tests_dir: PathBuf::from("./tests"),
     tests_yomichan_db_path: PathBuf::from("./tests").join("yomichan_rs").join("db.ycd"),
     test_dicts_dir: PathBuf::from("tests").join("test_dicts"),
@@ -21,11 +21,11 @@ pub(crate) static TEST_PATHS: LazyLock<TestPaths> = LazyLock::new(|| TestPaths {
 
 pub static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
     let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
-    ycd.set_language("es");
+    ycd.set_language("en");
     ycd
 });
 
-pub(crate) static SHARED_DB_INSTANCE: LazyLock<DictionaryDatabase> = LazyLock::new(|| {
+pub static SHARED_DB_INSTANCE: LazyLock<DictionaryDatabase> = LazyLock::new(|| {
     let db_path = &*TEST_PATHS.tests_yomichan_db_path;
 
     if !db_path.exists() {
