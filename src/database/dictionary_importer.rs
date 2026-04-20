@@ -109,6 +109,17 @@ pub struct DictionarySummary {
     pub styles: String,
 }
 
+struct SerializedTerm {
+    id: String,
+    expression: String,
+    reading: String,
+    expression_reverse: String,
+    reading_reverse: String,
+    sequence: Option<i64>,
+    dictionary: String,
+    data: Vec<u8>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SummaryCounts {
     pub terms: SummaryItemCount,
@@ -288,85 +299,66 @@ pub fn import_dictionary<P: AsRef<Path>>(
         }),
     }).collect();
 
-    tracing::info!(
-        "Mapping and inserting {} terms in batches of {BATCH_SIZE}",
-        external_data.term_list.len()
-    );
-    const BATCH_SIZE: usize = 10_000_000;
-    let total_terms = external_data.term_list.len();
-    let mut processed_terms = 0;
-    let mut term_iter = external_data.term_list.into_iter();
-    loop {
-        let mut batch_count = 0;
-        let mut conn_lock = db.conn.lock();
+    tracing::info!("Inserting {} terms...", external_data.term_list.len());
+    let serialized_terms: Vec<SerializedTerm> = external_data.term_list.into_par_iter().map(|t| {
+        let entry = DatabaseTermEntry {
+            id: t.0.clone(),
+            expression: t.1.clone(),
+            reading: t.2.clone(),
+            expression_reverse: t.3.clone(),
+            reading_reverse: t.4.clone(),
+            definition_tags: t.5.map(|s| s.to_string()),
+            tags: t.6.map(|s| s.to_string()),
+            rules: t.7.to_string(),
+            score: t.8,
+            glossary: t.9.into_iter().map(|g| match g {
+                importer::structured_content::TermGlossaryGroupType::Content(c) => {
+                    TermGlossaryGroupType::Content(TermGlossaryContentGroup { plain_text: c.plain_text, html: c.html })
+                }
+                importer::structured_content::TermGlossaryGroupType::Deinflection(d) => {
+                    TermGlossaryGroupType::Deinflection(TermGlossaryDeinflection { form_of: d.form_of, rules: d.rules.iter().map(|s| s.to_owned()).collect() })
+                }
+            }).collect(),
+            sequence: t.10,
+            term_tags: t.11.as_ref().map(|s| s.to_string()),
+            dictionary: t.12.clone(),
+            file_path: t.13.clone(),
+        };
+        let data_blob = encode(&entry).expect("Failed to encode");
+        SerializedTerm {
+            id: entry.id,
+            expression: entry.expression,
+            reading: entry.reading,
+            expression_reverse: entry.expression_reverse,
+            reading_reverse: entry.reading_reverse,
+            sequence: entry.sequence.map(|s| s as i64),
+            dictionary: entry.dictionary,
+            data: data_blob,
+        }
+    }).collect();
+
+    {
+        let conn_lock = db.conn.lock();
         let conn = conn_lock
             .unchecked_transaction()
             .expect("Failed to start transaction");
         {
             let mut stmt = conn.prepare("INSERT OR REPLACE INTO terms (id, expression, reading, expression_reverse, reading_reverse, sequence, dictionary, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").expect("Failed to prepare stmt");
-            for t in term_iter.by_ref().take(BATCH_SIZE) {
-                let entry = DatabaseTermEntry {
-                    id: t.0.clone(),
-                    expression: t.1.clone(),
-                    reading: t.2.clone(),
-                    expression_reverse: t.3.clone(),
-                    reading_reverse: t.4.clone(),
-                    definition_tags: t.5.map(|s| s.to_string()),
-                    tags: t.6.map(|s| s.to_string()),
-                    rules: t.7.to_string(),
-                    score: t.8,
-                    glossary: t
-                        .9
-                        .into_iter()
-                        .map(|g| match g {
-                            importer::structured_content::TermGlossaryGroupType::Content(c) => {
-                                TermGlossaryGroupType::Content(TermGlossaryContentGroup {
-                                    plain_text: c.plain_text,
-                                    html: c.html,
-                                })
-                            }
-                            importer::structured_content::TermGlossaryGroupType::Deinflection(
-                                d,
-                            ) => TermGlossaryGroupType::Deinflection(TermGlossaryDeinflection {
-                                form_of: d.form_of,
-                                rules: d.rules.iter().map(|s| s.to_owned()).collect(),
-                            }),
-                        })
-                        .collect(),
-                    sequence: t.10,
-                    term_tags: t.11.as_ref().map(|s| s.to_string()),
-                    dictionary: t.12.clone(),
-                    file_path: t.13.clone(),
-                };
-                let data_blob = encode(&entry).expect("Failed to encode");
+            for term in serialized_terms {
                 stmt.execute(params![
-                    entry.id,
-                    entry.expression,
-                    entry.reading,
-                    entry.expression_reverse,
-                    entry.reading_reverse,
-                    entry.sequence.map(|s| s as i64),
-                    entry.dictionary,
-                    data_blob
+                    term.id,
+                    term.expression,
+                    term.reading,
+                    term.expression_reverse,
+                    term.reading_reverse,
+                    term.sequence,
+                    term.dictionary,
+                    term.data
                 ])
                 .expect("Failed to execute");
-                batch_count += 1;
             }
         }
-        if batch_count == 0 {
-            break;
-        }
         conn.commit().expect("Failed to commit");
-        processed_terms += batch_count;
-        tracing::info!(
-            "  - Progress: {}/{} terms ({:.1}%)",
-            processed_terms,
-            total_terms,
-            (processed_terms as f64 / total_terms as f64) * 100.0
-        );
-        if batch_count < BATCH_SIZE {
-            break;
-        }
     }
 
     let summary = DictionarySummary {
@@ -432,23 +424,20 @@ pub fn import_dictionary<P: AsRef<Path>>(
             .expect("Failed to insert summary");
     }
 
-    tracing::info!("Inserting kanji, tags, and metas in batches...");
-    insert_kanji_batched(db.clone(), kanji_list, BATCH_SIZE)?;
-    insert_tags_batched(db.clone(), tag_list, BATCH_SIZE)?;
-    insert_kanji_meta_batched(db.clone(), kanji_meta_list, BATCH_SIZE)?;
+    tracing::info!("Inserting kanji, tags, and metas...");
+    insert_kanji_batched(db.clone(), kanji_list)?;
+    insert_tags_batched(db.clone(), tag_list)?;
+    insert_kanji_meta_batched(db.clone(), kanji_meta_list)?;
 
-    let total_term_metas = term_meta_list.len();
-    let mut processed_term_metas = 0;
-    let mut term_meta_iter = term_meta_list.into_iter();
-    loop {
-        let mut batch_count = 0;
-        let mut conn_lock = db.conn.lock();
+    tracing::info!("Inserting term metas...");
+    {
+        let conn_lock = db.conn.lock();
         let conn = conn_lock
             .unchecked_transaction()
             .expect("Failed to start transaction");
         {
             let mut stmt = conn.prepare("INSERT OR REPLACE INTO term_meta (id, term, mode, dictionary, data) VALUES (?, ?, ?, ?, ?)").expect("Failed to prepare stmt");
-            for item in term_meta_iter.by_ref().take(BATCH_SIZE) {
+            for item in term_meta_list {
                 let (id, term, mode, dictionary, data_blob) = match item {
                     DatabaseMetaMatchType::Frequency(freq) => {
                         let data_blob = encode(&freq).unwrap();
@@ -483,23 +472,9 @@ pub fn import_dictionary<P: AsRef<Path>>(
                 };
                 stmt.execute(params![id, term, mode, dictionary, data_blob])
                     .expect("Failed to execute stmt");
-                batch_count += 1;
             }
         }
-        if batch_count == 0 {
-            break;
-        }
         conn.commit().expect("Failed to commit");
-        processed_term_metas += batch_count;
-        tracing::info!(
-            "  - Progress: {}/{} term metas ({:.1}%)",
-            processed_term_metas,
-            total_term_metas,
-            (processed_term_metas as f64 / total_term_metas as f64) * 100.0
-        );
-        if batch_count < BATCH_SIZE {
-            break;
-        }
     }
 
     tracing::info!(
@@ -512,93 +487,57 @@ pub fn import_dictionary<P: AsRef<Path>>(
 fn insert_kanji_batched(
     db: Arc<DictionaryDatabase>,
     list: Vec<DatabaseKanjiEntry>,
-    batch_size: usize,
 ) -> Result<(), rusqlite::Error> {
-    let mut iter = list.into_iter();
-    loop {
-        let mut batch_count = 0;
-        let mut conn_lock = db.conn.lock();
-        let conn = conn_lock.unchecked_transaction()?;
-        {
-            let mut stmt = conn.prepare(
-                "INSERT OR REPLACE INTO kanji (character, dictionary, data) VALUES (?, ?, ?)",
-            )?;
-            for item in iter.by_ref().take(batch_size) {
-                let data_blob = encode(&item).unwrap();
-                stmt.execute(params![item.character, item.dictionary, data_blob])?;
-                batch_count += 1;
-            }
-        }
-        if batch_count == 0 {
-            break;
-        }
-        conn.commit()?;
-        if batch_count < batch_size {
-            break;
+    let conn_lock = db.conn.lock();
+    let conn = conn_lock.unchecked_transaction()?;
+    {
+        let mut stmt = conn.prepare(
+            "INSERT OR REPLACE INTO kanji (character, dictionary, data) VALUES (?, ?, ?)",
+        )?;
+        for item in list {
+            let data_blob = encode(&item).unwrap();
+            stmt.execute(params![item.character, item.dictionary, data_blob])?;
         }
     }
+    conn.commit()?;
     Ok(())
 }
 
 fn insert_tags_batched(
     db: Arc<DictionaryDatabase>,
     list: Vec<DatabaseTag>,
-    batch_size: usize,
 ) -> Result<(), rusqlite::Error> {
-    let mut iter = list.into_iter();
-    loop {
-        let mut batch_count = 0;
-        let mut conn_lock = db.conn.lock();
-        let conn = conn_lock.unchecked_transaction()?;
-        {
-            let mut stmt = conn.prepare(
-                "INSERT OR REPLACE INTO tags (id, name, dictionary, data) VALUES (?, ?, ?, ?)",
-            )?;
-            for item in iter.by_ref().take(batch_size) {
-                let data_blob = encode(&item).unwrap();
-                stmt.execute(params![item.id, item.name, item.dictionary, data_blob])?;
-                batch_count += 1;
-            }
-        }
-        if batch_count == 0 {
-            break;
-        }
-        conn.commit()?;
-        if batch_count < batch_size {
-            break;
+    let conn_lock = db.conn.lock();
+    let conn = conn_lock.unchecked_transaction()?;
+    {
+        let mut stmt = conn.prepare(
+            "INSERT OR REPLACE INTO tags (id, name, dictionary, data) VALUES (?, ?, ?, ?)",
+        )?;
+        for item in list {
+            let data_blob = encode(&item).unwrap();
+            stmt.execute(params![item.id, item.name, item.dictionary, data_blob])?;
         }
     }
+    conn.commit()?;
     Ok(())
 }
 
 fn insert_kanji_meta_batched(
     db: Arc<DictionaryDatabase>,
     list: Vec<DatabaseMetaFrequency>,
-    batch_size: usize,
 ) -> Result<(), rusqlite::Error> {
-    let mut iter = list.into_iter();
-    loop {
-        let mut batch_count = 0;
-        let mut conn_lock = db.conn.lock();
-        let conn = conn_lock.unchecked_transaction()?;
-        {
-            let mut stmt = conn.prepare(
-                "INSERT OR REPLACE INTO kanji_meta (character, dictionary, data) VALUES (?, ?, ?)",
-            )?;
-            for item in iter.by_ref().take(batch_size) {
-                let data_blob = encode(&item).unwrap();
-                stmt.execute(params![item.freq_expression, item.dictionary, data_blob])?;
-                batch_count += 1;
-            }
-        }
-        if batch_count == 0 {
-            break;
-        }
-        conn.commit()?;
-        if batch_count < batch_size {
-            break;
+    let conn_lock = db.conn.lock();
+    let conn = conn_lock.unchecked_transaction()?;
+    {
+        let mut stmt = conn.prepare(
+            "INSERT OR REPLACE INTO kanji_meta (character, dictionary, data) VALUES (?, ?, ?)",
+        )?;
+        for item in list {
+            let data_blob = encode(&item).unwrap();
+            stmt.execute(params![item.freq_expression, item.dictionary, data_blob])?;
         }
     }
+    conn.commit()?;
     Ok(())
 }
 
