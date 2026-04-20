@@ -6,7 +6,7 @@ use importer::dictionary_database::TermSourceMatchType;
 
 use crate::{
     backend::FindTermsDetails,
-    database::dictionary_database::DictionaryDatabase,
+    database::{dictionary_database::DictionaryDatabase, DictionaryService},
     // these do not exist in importer
     dictionary::{TermDictionaryEntry, TermSource},
     settings::ProfileOptions,
@@ -255,9 +255,9 @@ pub struct TextScanner<'a> {
 
 impl<'a> TextScanner<'a> {
     /// Creates a new TextScanner with default or provided configuration.
-    pub fn new(db: &Arc<DictionaryDatabase<'a>>) -> Self {
+    pub fn new(db: Arc<dyn DictionaryService>) -> Self {
         TextScanner {
-            translator: Translator::new(db.clone()),
+            translator: Translator::new(db),
             scan_len: 20,
             sentence_scan_extent: 50,
             sentence_terminate_at_newlines: true,

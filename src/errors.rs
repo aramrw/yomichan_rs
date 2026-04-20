@@ -1,8 +1,9 @@
 #[cfg(feature = "anki")]
 use crate::anki::DisplayAnkiError;
 use crate::{
-    database::dictionary_importer::DictionarySummaryError, settings::ProfileError, InitError,
+    settings::ProfileError, InitError,
 };
+use importer::dictionary_importer::DictionarySummaryError;
 use native_db::db_type;
 use std::{
     error::Error,
@@ -110,10 +111,18 @@ impl From<native_db::db_type::Error> for ImportError {
     }
 }
 
+impl From<rusqlite::Error> for ImportError {
+    fn from(err: rusqlite::Error) -> Self {
+        ImportError::ExternalImporter(err.to_string())
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum DBError {
     #[error("db err: {0}")]
     Database(#[from] Box<db_type::Error>),
+    #[error("rusqlite err: {0}")]
+    Sqlite(#[from] rusqlite::Error),
     #[error("query err: {0}")]
     Query(String),
     #[error("none found err: {0}")]

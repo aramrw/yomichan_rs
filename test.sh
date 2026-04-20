@@ -4,7 +4,7 @@
 
 export RUSTFLAGS="-Awarnings"
 CARGO_ARGS="--release --features tracing -- --nocapture"
-CARGO_ARGS_IGNORED="--release --features tracing -- --nocapture --ignored --test-threads=1"
+CARGO_ARGS_IGNORED="--release -- --nocapture --ignored --test-threads=1"
 
 # PS3 is the prompt message for the 'select' command
 PS3="Please select a test to run: "

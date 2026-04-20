@@ -1,10 +1,9 @@
 use crate::{
-    database::dictionary_database::Pronunciation,
     translation_internal::TextProcessorRuleChainCandidate,
 };
 use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
 use importer::{
-    dictionary_database::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType},
+    dictionary_database::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType, Pronunciation},
     structured_content::TermGlossaryContentGroup,
 };
 use indexmap::IndexMap;

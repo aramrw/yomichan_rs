@@ -54,7 +54,7 @@
 pub mod anki;
 mod audio;
 mod backend;
-mod database;
+pub mod database;
 mod dictionary;
 mod environment;
 mod errors;
@@ -102,13 +102,39 @@ pub use crate::database::dictionary_importer;
 pub use crate::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
-#[cfg(not(feature = "anki"))]
-use crate::errors::DBError;
+pub use crate::errors::DBError;
 use crate::errors::YomichanError;
 pub use crate::text_scanner::{TermSearchResults, TermSearchResultsSegment};
+pub use crate::translator::Translator;
+pub use crate::database::DictionaryService;
+pub use crate::environment::EnvironmentInfo;
+pub use crate::text_scanner::TextScanner;
+
 // re-export parking lot cuz its too good
 use derive_more::Deref;
 pub use parking_lot;
+
+#[macro_export]
+macro_rules! iter_type_to_iter_variant {
+    ($v:expr, $variant:path) => {
+        $v.into_iter().map(|item| $variant(item))
+    };
+}
+
+#[macro_export]
+macro_rules! iter_variant_to_iter_type {
+    ($v:expr, $variant:path) => {
+        $v.into_iter()
+            .filter_map(|item| {
+                if let $variant(inner) = item {
+                    Some(inner)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+}
 
 /// type alias for a [ArcRwLockReadGuard];
 pub type PtrRGaurd<T> = ArcRwLockReadGuard<RawRwLock, T>;
@@ -292,7 +318,7 @@ where
 ///
 /// For more details on search results, see [`TermSearchResults`].
 pub struct Yomichan<'a> {
-    db: Arc<DictionaryDatabase<'a>>,
+    db: Arc<DictionaryDatabase>,
     backend: Backend<'a>,
 }
 
@@ -376,7 +402,7 @@ impl<'a> Yomichan<'a> {
         let db = Arc::new(DictionaryDatabase::new(db_path));
 
         #[cfg(not(feature = "anki"))]
-        let backend = Backend::new(db.clone()).map_err(|err| DBError::Database(err))?;
+        let backend = Backend::new(db.clone()).map_err(|err| DBError::Import(crate::errors::ImportError::ExternalImporter(err.to_string())))?;
         #[cfg(feature = "anki")]
         let backend = Backend::default_sync(db.clone())?;
 

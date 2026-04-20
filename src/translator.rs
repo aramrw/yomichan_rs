@@ -1,15 +1,14 @@
 use crate::{
     backend::FindTermsDetails,
-    database::dictionary_database::{
-        DatabaseTag, DatabaseTermMeta, DictionaryDatabase, DictionarySet, GenericQueryRequest,
-        PhoneticTranscription, PitchAccent, Pronunciation, QueryType, TermExactQueryRequest,
-        TermPronunciationMatchType,
+    database::{
+        dictionary_database::{DatabaseMetaMatchType, DictionarySet},
+        DatabaseTag, DatabaseTermMeta, DictionaryService, GenericQueryRequest, QueryType,
+        TermExactQueryRequest,
     },
     dictionary::{
         TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
         TermSource,
     },
-    iter_type_to_iter_variant, iter_variant_to_iter_type,
     regex_util::apply_text_replacement,
     settings::{
         DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
@@ -25,6 +24,27 @@ use crate::{
         VariantAndTextProcessorRuleChainCandidatesMap,
     },
 };
+
+macro_rules! iter_type_to_iter_variant {
+    ($v:expr, $variant:path) => {
+        $v.into_iter().map(|item| $variant(item))
+    };
+}
+
+macro_rules! iter_variant_to_iter_type {
+    ($v:expr, $variant:path) => {
+        $v.into_iter()
+            .filter_map(|item| {
+                if let $variant(inner) = item {
+                    Some(inner)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+}
+
 use deinflector::transformer::{
     InflectionRuleChainCandidate, InflectionSource, InternalInflectionRuleChainCandidate,
 };
@@ -52,7 +72,10 @@ use importer::{
         GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType,
         VecNumOrNum,
     },
-    dictionary_database::{DictionaryTag, TermEntry, TermSourceMatchSource, TermSourceMatchType},
+    dictionary_database::{
+        DictionaryTag, PhoneticTranscription, PitchAccent, Pronunciation, TermEntry,
+        TermPronunciationMatchType, TermSourceMatchSource, TermSourceMatchType,
+    },
     structured_content::{
         TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
     },
@@ -71,7 +94,7 @@ use parking_lot::RwLock;
 
 /// class which finds term and kanji dictionary entries for text.
 pub struct Translator<'a> {
-    pub db: Arc<DictionaryDatabase<'a>>,
+    pub db: Arc<dyn DictionaryService>,
     pub mlt: MultiLanguageTransformer,
     pub tag_cache: RwLock<IndexMap<String, TagCache>>,
     /// Invariant Locale
@@ -86,12 +109,12 @@ static TRANSLATOR_NUMBER_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?").unwrap());
 
 impl<'a> Translator<'a> {
-    pub fn new(db: Arc<DictionaryDatabase<'a>>) -> Self {
+    pub fn new(db: Arc<dyn DictionaryService>) -> Self {
         let mut translator = Self::init(db);
         translator.prepare();
         translator
     }
-    fn init(db: Arc<DictionaryDatabase<'a>>) -> Self {
+    fn init(db: Arc<dyn DictionaryService>) -> Self {
         Self {
             db,
             mlt: MultiLanguageTransformer::default(),
@@ -1174,13 +1197,13 @@ impl<'a> Translator<'a> {
             let map2 = &headword_reading_maps[index];
             for (reading_key_str, targets_vec) in map2.iter() {
                 match &data {
-                    MetaDataMatchType::Frequency(ref freq_match_type) => {
+                    DatabaseMetaMatchType::Frequency(ref freq_match_type) => {
                         if mode != TermMetaModeType::Freq {
                             continue;
                         }
                         // JS: hasReading
                         let mut has_reading_filter = false;
-                        let frequency_data_value = match freq_match_type {
+                        let frequency_data_value = match &freq_match_type.data {
                             // JS: frequency
                             TermMetaFreqDataMatchType::WithReading(data_with_reading) => {
                                 if &data_with_reading.reading != reading_key_str {
@@ -1215,11 +1238,11 @@ impl<'a> Translator<'a> {
                             dict_entry_to_update.frequencies.push(new_term_freq);
                         }
                     }
-                    MetaDataMatchType::Pitch(ref pitch_meta_data) => {
+                    DatabaseMetaMatchType::Pitch(ref pitch_meta_data) => {
                         if mode != TermMetaModeType::Pitch {
                             continue;
                         }
-                        if &pitch_meta_data.reading != reading_key_str {
+                        if &pitch_meta_data.data.reading != reading_key_str {
                             continue;
                         }
                         // JS: pitches (array of PitchAccent)
@@ -1227,7 +1250,7 @@ impl<'a> Translator<'a> {
                         // js had multiple functions for this, so we combined it into one
                         let mut pitches_to_add: Vec<Pronunciation> = Vec::new();
                         // JS: data.pitches loop
-                        for pitch_item_data in &pitch_meta_data.pitches {
+                        for pitch_item_data in &pitch_meta_data.data.pitches {
                             // JS: tags2
                             let mut resolved_tags: Vec<DictionaryTag> = Vec::new();
                             if let Some(tags_from_data) = &pitch_item_data.tags {
@@ -1271,16 +1294,16 @@ impl<'a> Translator<'a> {
                             dict_entry_to_update.pronunciations.push(new_term_pron);
                         }
                     }
-                    MetaDataMatchType::Phonetic(ref phonetic_meta_data) => {
+                    DatabaseMetaMatchType::Phonetic(ref phonetic_meta_data) => {
                         if mode != TermMetaModeType::Ipa {
                             continue;
                         }
-                        if &phonetic_meta_data.reading != reading_key_str {
+                        if &phonetic_meta_data.data.reading != reading_key_str {
                             continue;
                         }
                         // JS: phoneticTranscriptions
                         let mut phonetic_transcriptions_to_add: Vec<Pronunciation> = Vec::new();
-                        for transcription_item in &phonetic_meta_data.transcriptions {
+                        for transcription_item in &phonetic_meta_data.data.transcriptions {
                             // JS: data.transcriptions loop
                             let mut resolved_ipa_tags: Vec<DictionaryTag> = Vec::new(); // JS: tags2
                             let tag_names_for_aggregator: Vec<String> = transcription_item
@@ -1509,10 +1532,10 @@ impl<'a> Translator<'a> {
         for mut update in &mut updates {
             Translator::_update_term_headword_indices_mut(update, &index_remap);
         }
-        dictionary_entry.definitions = iter_variant_to_iter_type!(updates[0], TermType::Definition);
-        dictionary_entry.frequencies = iter_variant_to_iter_type!(updates[1], TermType::Frequency);
+        dictionary_entry.definitions = iter_variant_to_iter_type!(updates[0].clone(), TermType::Definition);
+        dictionary_entry.frequencies = iter_variant_to_iter_type!(updates[1].clone(), TermType::Frequency);
         dictionary_entry.pronunciations =
-            iter_variant_to_iter_type!(updates[2], TermType::Pronunciation);
+            iter_variant_to_iter_type!(updates[2].clone(), TermType::Pronunciation);
     }
     /// Updates headword indices for a collection of
     /// `TermType` items based on an index remap.
