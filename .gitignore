@@ -6,3 +6,4 @@ tests/test_dicts/wty*
 db.ycd
 GEMINI.md
 *.txt
+.worktrees/
