@@ -53,11 +53,11 @@
 #[cfg(feature = "anki")]
 use crate::database::dictionary_database::DictionaryDatabase;
 use crate::{
-    utils::errors::error_helpers,
     settings::core::{
         AnkiFields, AnkiFieldsError, AnkiOptions, AnkiTermFieldType, DecksMap, FieldIndex,
         NoteModelsMap, ProfileError, ProfileResult, YomichanOptions, YomichanProfile,
     },
+    utils::errors::error_helpers,
     Ptr, TermDictionaryEntry, Yomichan,
 };
 use anki_direct::{error::AnkiResult, notes::Note, AnkiClient};
@@ -90,6 +90,8 @@ pub enum DisplayAnkiError {
     NoDecksFound,
     #[error("[anki-fields]")]
     AnkiFields(#[from] AnkiFieldsError),
+    #[error("custom anki error: {0}")]
+    Custom(String),
 }
 
 #[derive(Clone, Getters, Debug)]
@@ -614,13 +616,11 @@ impl DisplayAnki {
 #[cfg(test)]
 #[cfg(feature = "anki")]
 mod displayanki {
-    use crate::{
-        anki::DisplayAnki,
-        settings::{AnkiFields, AnkiOptions, AnkiTermFieldType, FieldIndex, YomichanOptions},
-        test_utils::{TEST_PATHS, YCD},
-        Ptr, Yomichan,
-    };
-    use parking_lot::{Mutex, RwLock};
+    use crate::anki::core::DisplayAnki;
+    use crate::settings::core::{AnkiFields, AnkiOptions, AnkiTermFieldType, FieldIndex, YomichanOptions};
+    use crate::utils::test_utils::{TEST_PATHS, YCD};
+    use crate::{Ptr, Yomichan};
+    use parking_lot::{Mutex};
     use scopeguard;
     use std::sync::{Arc, LazyLock};
 

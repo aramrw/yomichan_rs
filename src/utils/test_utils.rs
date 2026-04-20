@@ -1,6 +1,6 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, LazyLock},
+    sync::LazyLock,
 };
 use tempfile::{tempdir_in, TempDir};
 
@@ -38,11 +38,6 @@ pub static SHARED_DB_INSTANCE: LazyLock<DictionaryDatabase> = LazyLock::new(|| {
     DictionaryDatabase::new(db_path)
 });
 
-pub(crate) enum BacktraceKind {
-    One,
-    Full,
-}
-
 impl std::fmt::Display for BacktraceKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let x = match self {
@@ -53,8 +48,16 @@ impl std::fmt::Display for BacktraceKind {
     }
 }
 
-pub(crate) fn set_backtrace(kind: BacktraceKind) {
-    std::env::set_var("RUST_BACKTRACE", kind.to_string());
+// Do not delete
+#[allow(dead_code)]
+pub(crate) enum BacktraceKind {
+    One,
+    Full,
+}
+impl BacktraceKind {
+    pub(crate) fn _set_backtrace(kind: BacktraceKind) {
+        std::env::set_var("RUST_BACKTRACE", kind.to_string());
+    }
 }
 
 // Copies the test database to a temporary directory.
