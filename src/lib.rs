@@ -57,12 +57,11 @@ mod backend;
 pub mod database;
 pub mod models;
 mod environment;
-mod errors;
 mod method_modules;
 mod regex_util;
 pub mod settings;
-pub mod test_utils;
 pub mod text_scanner;
+pub mod utils;
 mod translation;
 mod translation_internal;
 mod translator;
@@ -101,8 +100,8 @@ pub use crate::database::dictionary_importer;
 pub use crate::models::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
-pub use crate::errors::DBError;
-use crate::errors::YomichanError;
+pub use crate::utils::errors::DBError;
+use crate::utils::errors::YomichanError;
 pub use crate::text_scanner::{TermSearchResults, TermSearchResultsSegment};
 pub use crate::translator::Translator;
 pub use crate::database::DictionaryService;
@@ -401,7 +400,7 @@ impl<'a> Yomichan<'a> {
         let db = Arc::new(DictionaryDatabase::new(db_path));
 
         #[cfg(not(feature = "anki"))]
-        let backend = Backend::new(db.clone()).map_err(|err| DBError::Import(crate::errors::ImportError::ExternalImporter(err.to_string())))?;
+        let backend = Backend::new(db.clone()).map_err(|err| DBError::Import(crate::utils::errors::ImportError::ExternalImporter(err.to_string())))?;
         #[cfg(feature = "anki")]
         let backend = Backend::default_sync(db.clone())?;
 
@@ -588,7 +587,7 @@ mod init_err_impls {
 #[cfg(test)]
 mod yomichan_ergonomics_tests {
     use super::*;
-    use crate::test_utils::TEST_PATHS;
+    use crate::utils::test_utils::TEST_PATHS;
 
     #[test]
     fn test_with_profile_mut_ergonomics() {

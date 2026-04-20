@@ -3,7 +3,7 @@ use crate::database::dictionary_database::{
     DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType, DatabaseMetaPhonetic,
     DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry, DatabaseTermEntryTuple, DictionaryDatabase,
 };
-use crate::errors::{ImportError, ImportZipError};
+use crate::utils::errors::{ImportError, ImportZipError};
 use crate::settings::{DictionaryDefinitionsCollapsible, DictionaryOptions, YomichanProfile};
 use crate::Ptr;
 use crate::Yomichan;

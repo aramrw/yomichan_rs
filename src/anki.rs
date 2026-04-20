@@ -53,7 +53,7 @@
 #[cfg(feature = "anki")]
 use crate::database::dictionary_database::DictionaryDatabase;
 use crate::{
-    errors::error_helpers,
+    utils::errors::error_helpers,
     settings::{
         AnkiFields, AnkiFieldsError, AnkiOptions, AnkiTermFieldType, DecksMap, FieldIndex,
         NoteModelsMap, ProfileError, ProfileResult, YomichanOptions, YomichanProfile,

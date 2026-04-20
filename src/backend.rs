@@ -7,7 +7,7 @@ use crate::{
     environment::EnvironmentInfo,
     text_scanner::TextScanner,
     settings::{YomichanOptions, ProfileResult},
-    errors::DBError,
+    utils::errors::DBError,
     Ptr, Yomichan,
 };
 use crate::translation::FindTermsMatchType;
@@ -128,7 +128,7 @@ impl<'a> Yomichan<'a> {
                 dictionaries.swap_remove_index(*i);
             }
         });
-        self.update_options().map_err(|e| DBError::Import(crate::errors::ImportError::ExternalImporter(e.to_string())))?;
+        self.update_options().map_err(|e| DBError::Import(crate::utils::errors::ImportError::ExternalImporter(e.to_string())))?;
 
         Ok(())
     }
@@ -142,7 +142,7 @@ impl<'a> Yomichan<'a> {
     // 1. Remove from databasel + all profiles in memory
     // 2. Persist updated options to database via
     pub fn remove_dictionary(&self, name: &str) -> Result<(), DBError> {
-        self.db.get_dictionary_summaries().map_err(|e| DBError::Import(crate::errors::ImportError::ExternalImporter(e.to_string())))?;
+        self.db.get_dictionary_summaries().map_err(|e| DBError::Import(crate::utils::errors::ImportError::ExternalImporter(e.to_string())))?;
 
         {
             let opts_ptr = self.options();
@@ -154,7 +154,7 @@ impl<'a> Yomichan<'a> {
             }
         }
 
-        self.update_options().map_err(|e| DBError::Import(crate::errors::ImportError::ExternalImporter(e.to_string())))?;
+        self.update_options().map_err(|e| DBError::Import(crate::utils::errors::ImportError::ExternalImporter(e.to_string())))?;
 
         Ok(())
     }

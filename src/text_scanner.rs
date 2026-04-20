@@ -559,7 +559,7 @@ impl<'a> TextScanner<'a> {
 
 #[cfg(test)]
 mod textscanner {
-    use crate::test_utils::{self, YCD};
+    use crate::utils::test_utils::{self, YCD};
     use std::{fs::OpenOptions, io::Write};
 
     #[test]
@@ -612,7 +612,7 @@ mod textscanner {
 
 #[cfg(test)]
 mod dbtests {
-    use crate::{test_utils, Yomichan};
+    use crate::{utils::test_utils, Yomichan};
     use std::fs::remove_dir_all;
     use tracing_test::traced_test;
 

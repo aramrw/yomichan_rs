@@ -913,7 +913,7 @@ pub fn split_string_field(field: String) -> Vec<String> {
 #[cfg(test)]
 mod ycd {
     use super::*;
-    use crate::test_utils;
+    use crate::utils::test_utils;
     use pretty_assertions::assert_eq;
 
     #[test]

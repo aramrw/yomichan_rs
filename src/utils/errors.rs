@@ -168,6 +168,6 @@ pub mod error_helpers {
 #[macro_export]
 macro_rules! fmt_mod_error {
     ($($mod:expr),*) => {
-        $crate::errors::error_helpers::fmterr_module(vec![$($mod),*])
+        $crate::utils::errors::error_helpers::fmterr_module(vec![$($mod),*])
     };
 }
