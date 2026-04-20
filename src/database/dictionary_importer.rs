@@ -338,27 +338,35 @@ pub fn import_dictionary<P: AsRef<Path>>(
     }).collect();
 
     {
-        let conn_lock = db.conn.lock();
-        let conn = conn_lock
-            .unchecked_transaction()
-            .expect("Failed to start transaction");
-        {
-            let mut stmt = conn.prepare("INSERT OR REPLACE INTO terms (id, expression, reading, expression_reverse, reading_reverse, sequence, dictionary, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").expect("Failed to prepare stmt");
-            for term in serialized_terms {
-                stmt.execute(params![
-                    term.id,
-                    term.expression,
-                    term.reading,
-                    term.expression_reverse,
-                    term.reading_reverse,
-                    term.sequence,
-                    term.dictionary,
-                    term.data
-                ])
-                .expect("Failed to execute");
+        db.begin_import_session().expect("Failed to start import session");
+        let mut conn_lock = db.conn.lock();
+        let conn = conn_lock.unchecked_transaction().expect("Failed to start transaction");
+        
+        for chunk in serialized_terms.chunks(100) {
+            let mut sql = String::from("INSERT OR REPLACE INTO terms (id, expression, reading, expression_reverse, reading_reverse, sequence, dictionary, data) VALUES ");
+            let placeholders: Vec<String> = (0..chunk.len())
+                .map(|_| "(?, ?, ?, ?, ?, ?, ?, ?)".to_string())
+                .collect();
+            sql.push_str(&placeholders.join(", "));
+
+            let mut params: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(chunk.len() * 8);
+            for term in chunk {
+                params.push(&term.id);
+                params.push(&term.expression);
+                params.push(&term.reading);
+                params.push(&term.expression_reverse);
+                params.push(&term.reading_reverse);
+                params.push(&term.sequence);
+                params.push(&term.dictionary);
+                params.push(&term.data);
             }
+
+            conn.execute(&sql, rusqlite::params_from_iter(params)).expect("Batch insert failed");
         }
+        
         conn.commit().expect("Failed to commit");
+        drop(conn_lock);
+        db.end_import_session().expect("Failed to end import session");
     }
 
     let summary = DictionarySummary {
