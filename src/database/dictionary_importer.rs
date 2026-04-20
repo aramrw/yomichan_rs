@@ -342,6 +342,8 @@ pub fn import_dictionary<P: AsRef<Path>>(
         let conn_lock = db.conn.lock();
         let conn = conn_lock.unchecked_transaction().expect("Failed to start transaction");
         
+        let total_terms = serialized_terms.len();
+        let mut inserted_count = 0;
         for chunk in serialized_terms.chunks(100) {
             let mut sql = String::from("INSERT OR REPLACE INTO terms (id, expression, reading, expression_reverse, reading_reverse, sequence, dictionary, data) VALUES ");
             let placeholders: Vec<String> = (0..chunk.len())
@@ -362,6 +364,10 @@ pub fn import_dictionary<P: AsRef<Path>>(
             }
 
             conn.execute(&sql, rusqlite::params_from_iter(params)).expect("Batch insert failed");
+            inserted_count += chunk.len();
+            if inserted_count % 1000 == 0 || inserted_count == total_terms {
+                tracing::info!("Inserted {}/{} terms", inserted_count, total_terms);
+            }
         }
         
         conn.commit().expect("Failed to commit");

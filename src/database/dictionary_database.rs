@@ -377,7 +377,9 @@ impl DictionaryDatabase {
         let path = path.as_ref();
         if path.exists() {
             if let Ok(conn) = Connection::open(path) {
-                if conn.execute("PRAGMA user_version", []).is_err() {
+                let version_result: Result<i32, _> =
+                    conn.query_row("PRAGMA user_version", [], |row| row.get(0));
+                if version_result.is_err() {
                     let _ = std::fs::remove_file(path);
                 }
             } else {
@@ -924,5 +926,23 @@ mod ycd {
             }
             Err(e) => panic!("find_terms_sequence_bulk_failed: {e}"),
         };
+    }
+
+    #[test]
+    fn verify_data_integrity() {
+        let ycd = &test_utils::SHARED_DB_INSTANCE;
+        let conn = ycd.conn.lock();
+        let data: Vec<u8> = conn
+            .query_row("SELECT data FROM terms LIMIT 1", [], |row| row.get(0))
+            .expect("Failed to get data from terms");
+        let decoded = decode::<DatabaseTermEntry>(data);
+        match decoded {
+            Ok((entry, _)) => {
+                println!("Successfully decoded entry: {:?}", entry.id);
+            }
+            Err(e) => {
+                panic!("Failed to decode DatabaseTermEntry: {:?}", e);
+            }
+        }
     }
 }
