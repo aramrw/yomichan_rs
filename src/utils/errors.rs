@@ -1,5 +1,5 @@
 #[cfg(feature = "anki")]
-use crate::anki::DisplayAnkiError;
+use crate::anki::core::DisplayAnkiError;
 use crate::{
     settings::ProfileError, InitError,
 };

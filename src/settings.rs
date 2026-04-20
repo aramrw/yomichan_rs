@@ -3,7 +3,7 @@ use std::ops::DerefMut;
 use std::sync::Arc;
 
 #[cfg(feature = "anki")]
-use crate::anki::DisplayAnki;
+use crate::anki::core::DisplayAnki;
 use crate::backend::Backend;
 use crate::Ptr;
 use crate::Yomichan;

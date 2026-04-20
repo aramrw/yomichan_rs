@@ -52,7 +52,7 @@
 
 #[cfg(feature = "anki")]
 pub mod anki;
-mod audio;
+pub mod audio;
 mod backend;
 pub mod database;
 pub mod models;
@@ -94,7 +94,7 @@ use std::{
 };
 
 #[cfg(feature = "anki")]
-use crate::anki::DisplayAnkiError;
+use crate::anki::core::DisplayAnkiError;
 // public exports:
 pub use crate::database::dictionary_importer;
 pub use crate::models::dictionary::{
@@ -554,7 +554,7 @@ mod init_err_impls {
 
     #[cfg(feature = "anki")]
     mod anki {
-        use crate::{anki::DisplayAnkiError, InitError};
+        use crate::{anki::core::DisplayAnkiError, InitError};
 
         impl From<Box<DisplayAnkiError>> for InitError {
             fn from(e: Box<DisplayAnkiError>) -> Self {

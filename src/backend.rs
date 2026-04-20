@@ -14,7 +14,7 @@ use crate::translation::FindTermsMatchType;
 use native_model::decode;
 
 #[cfg(feature = "anki")]
-use crate::anki::DisplayAnki;
+use crate::anki::core::DisplayAnki;
 
 pub struct Backend<'a> {
     pub _environment: EnvironmentInfo,
