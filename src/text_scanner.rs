@@ -626,6 +626,10 @@ mod dbtests {
             .try_init();
 
         tracing::info!("🚀 Test init_db started");
+
+        // Start profiling
+        let guard = pprof::ProfilerGuard::new(100).unwrap();
+
         let td = &*test_utils::TEST_PATHS.tests_dir;
         let yomichan_rs_folder = td.join("yomichan_rs");
         if yomichan_rs_folder.exists() {
@@ -640,7 +644,7 @@ mod dbtests {
         let paths = paths
             .into_iter()
             .enumerate()
-            .filter_map(|(i, path)| match path.exists() {
+            .filter_map(|(_i, path)| match path.exists() {
                 true => path.into(),
                 false => {
                     println!(
@@ -669,5 +673,12 @@ mod dbtests {
                 panic!("failed init_db test: {e}");
             }
         }
+
+        // Finish profiling and generate flamegraph
+        if let Ok(report) = guard.report().build() {
+            let file = std::fs::File::create("flamegraph.svg").unwrap();
+            report.flamegraph(file).unwrap();
+            tracing::info!("🔥 Flamegraph generated: flamegraph.svg");
+        };
     }
 }

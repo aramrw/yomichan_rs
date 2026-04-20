@@ -603,21 +603,27 @@ pub fn import_dictionary<P: AsRef<Path>>(
         })
         .collect();
 
-    let term_list: Vec<DatabaseTermEntry> = external_data
-        .term_list
-        .into_par_iter()
-        .map(|t| {
-            DatabaseTermEntry::from(DatabaseTermEntryTuple(
-                t.0,
-                t.1,
-                t.2,
-                t.3,
-                t.4,
-                t.5.map(|s| s.to_string()),
-                t.6.map(|s| s.to_string()),
-                t.7.to_string(),
-                t.8,
-                t.9.into_iter()
+    tracing::info!("Mapping and inserting {} terms in batches of 100,000...", external_data.term_list.len());
+    const BATCH_SIZE: usize = 100_000;
+    let total_terms = external_data.term_list.len();
+    let mut processed_terms = 0;
+    
+    let mut term_iter = external_data.term_list.into_iter();
+    loop {
+        let mut batch_count = 0;
+        let rwtx = db.rw_transaction()?;
+        for t in term_iter.by_ref().take(BATCH_SIZE) {
+            let entry = DatabaseTermEntry {
+                id: t.0,
+                expression: t.1,
+                reading: t.2,
+                expression_reverse: t.3,
+                reading_reverse: t.4,
+                definition_tags: t.5.map(|s| s.to_string()),
+                tags: t.6.map(|s| s.to_string()),
+                rules: t.7.to_string(),
+                score: t.8,
+                glossary: t.9.into_iter()
                     .map(|g| match g {
                         importer::structured_content::TermGlossaryGroupType::Content(c) => {
                             TermGlossaryGroupType::Content(TermGlossaryContentGroup {
@@ -633,13 +639,24 @@ pub fn import_dictionary<P: AsRef<Path>>(
                         }
                     })
                     .collect(),
-                t.10,
-                t.11.as_ref().map(|s| s.to_string()),
-                t.12,
-                t.13,
-            ))
-        })
-        .collect();
+                sequence: t.10,
+                term_tags: t.11.as_ref().map(|s| s.to_string()),
+                dictionary: t.12,
+                file_path: t.13,
+            };
+            rwtx.insert(entry)?;
+            batch_count += 1;
+        }
+        if batch_count == 0 {
+            break;
+        }
+        rwtx.commit()?;
+        processed_terms += batch_count;
+        tracing::info!("  - Progress: {}/{} terms ({:.1}%)", processed_terms, total_terms, (processed_terms as f64 / total_terms as f64) * 100.0);
+        if batch_count < BATCH_SIZE {
+            break;
+        }
+    }
 
     let summary = DictionarySummary {
         title: external_data.summary.title,
@@ -693,19 +710,17 @@ pub fn import_dictionary<P: AsRef<Path>>(
         styles: None,
     };
 
-    tracing::info!("Finished mapping dictionary data. Starting batched inserts...");
-
-    // Batch size of 100,000 might be better for very large imports
-    const BATCH_SIZE: usize = 100_000;
-
-    tracing::info!("Inserting {} terms in batches of {}...", term_list.len(), BATCH_SIZE);
-    db_insert_batched(db.clone(), term_list, BATCH_SIZE)?;
+    let rwtx = db.rw_transaction()?;
+    rwtx.upsert(summary)?; // Keep upsert for summary just in case
+    rwtx.commit()?;
 
     tracing::info!("Inserting kanji, tags, and metas in batches...");
-    db_insert_batched(db.clone(), kanji_list, BATCH_SIZE)?;
-    db_insert_batched(db.clone(), tag_list, BATCH_SIZE)?;
-    db_insert_batched(db.clone(), kanji_meta_list, BATCH_SIZE)?;
+    db_insert_batched(db.clone(), kanji_list, BATCH_SIZE, None)?;
+    db_insert_batched(db.clone(), tag_list, BATCH_SIZE, None)?;
+    db_insert_batched(db.clone(), kanji_meta_list, BATCH_SIZE, None)?;
 
+    let total_term_metas = term_meta_list.len();
+    let mut processed_term_metas = 0;
     let mut term_meta_iter = term_meta_list.into_iter();
     loop {
         let mut batch_count = 0;
@@ -728,14 +743,12 @@ pub fn import_dictionary<P: AsRef<Path>>(
             break;
         }
         rwtx.commit()?;
+        processed_term_metas += batch_count;
+        tracing::info!("  - Progress: {}/{} term metas ({:.1}%)", processed_term_metas, total_term_metas, (processed_term_metas as f64 / total_term_metas as f64) * 100.0);
         if batch_count < BATCH_SIZE {
             break;
         }
     }
-
-    let rwtx = db.rw_transaction()?;
-    rwtx.upsert(summary)?; // Keep upsert for summary just in case
-    rwtx.commit()?;
 
     tracing::info!("Import finished for dictionary: {}", dictionary_options.name);
     Ok(dictionary_options)
@@ -745,7 +758,10 @@ fn db_insert_batched<L: ToInput + Send>(
     db: Arc<DictionaryDatabase>,
     list: Vec<L>,
     batch_size: usize,
+    label: Option<&str>,
 ) -> Result<(), Box<native_db::db_type::Error>> {
+    let total = list.len();
+    let mut processed = 0;
     let mut iter = list.into_iter();
     loop {
         let mut batch_count = 0;
@@ -758,6 +774,10 @@ fn db_insert_batched<L: ToInput + Send>(
             break;
         }
         rwtx.commit()?;
+        processed += batch_count;
+        if let Some(l) = label {
+            tracing::info!("  - Progress: {}/{} {} ({:.1}%)", processed, total, l, (processed as f64 / total as f64) * 100.0);
+        }
         if batch_count < batch_size {
             break;
         }

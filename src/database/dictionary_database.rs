@@ -168,7 +168,6 @@ impl From<DatabaseTermEntry> for DatabaseTermEntryTuple {
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-#[serde(from = "DatabaseTermEntryTuple", into = "DatabaseTermEntryTuple")]
 #[native_model(id = 2, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[native_db]
 pub struct DatabaseTermEntry {
