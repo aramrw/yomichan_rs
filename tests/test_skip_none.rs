@@ -1,5 +1,5 @@
-use yomichan_rs::database::dictionary_database::DatabaseTermEntry;
-use native_model::{decode, encode};
+//use yomichan_rs::database::dictionary_database::DatabaseTermEntry;
+//use native_model::{decode, encode};
 use serde_with::skip_serializing_none;
 use serde::{Serialize, Deserialize};
 

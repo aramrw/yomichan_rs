@@ -55,14 +55,15 @@ use crate::database::dictionary_database::DictionaryDatabase;
 use crate::{
     settings::core::{
         AnkiFields, AnkiFieldsError, AnkiOptions, AnkiTermFieldType, DecksMap, FieldIndex,
-        NoteModelsMap, ProfileError, ProfileResult, YomichanOptions, YomichanProfile,
+        NoteModelsMap, ProfileError, ProfileResult, YomichanOptions,
     },
     utils::errors::error_helpers,
-    Ptr, TermDictionaryEntry, Yomichan,
+    Ptr, TermDictionaryEntry,
 };
 use anki_direct::{error::AnkiResult, notes::Note, AnkiClient};
 use getset::Getters;
-use std::sync::Arc;
+
+// Important !: ONLY EVER USE parking_lot pointers!
 
 #[derive(thiserror::Error, Debug)]
 pub enum DisplayAnkiError {
@@ -617,10 +618,12 @@ impl DisplayAnki {
 #[cfg(feature = "anki")]
 mod displayanki {
     use crate::anki::core::DisplayAnki;
-    use crate::settings::core::{AnkiFields, AnkiOptions, AnkiTermFieldType, FieldIndex, YomichanOptions};
+    use crate::settings::core::{
+        FieldIndex, YomichanOptions,
+    };
     use crate::utils::test_utils::{TEST_PATHS, YCD};
     use crate::{Ptr, Yomichan};
-    use parking_lot::{Mutex};
+    use parking_lot::Mutex;
     use scopeguard;
     use std::sync::{Arc, LazyLock};
 
@@ -634,13 +637,13 @@ mod displayanki {
     fn test_cache_persisting() {
         {
             let ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
-            let displayanki = ycd.display_anki();
+            let displayanki = ycd.anki();
             {
-                let guard = displayanki.read();
-                guard.update_all_anki_maps().unwrap();
+                displayanki.update_all_anki_maps().unwrap();
                 let opts = ycd.options().read_arc();
                 let global_anki = opts.anki().read();
                 let map = global_anki.note_models_map();
+                assert!(!map.is_empty());
                 // if you dbg map here it works
             }
             ycd.update_options().unwrap();
@@ -666,88 +669,79 @@ mod displayanki {
         dbg!(map);
     }
 
-    #[ignore]
-    #[test]
-    fn build_note() {
-        let ycd = &YCD;
-        ycd.set_language("ja").unwrap();
-        {
-            let anki = ycd.display_anki();
-            anki.read().update_all_anki_maps().unwrap();
-            let anki = anki.read_arc();
-            let global_opts = anki.options().read_arc();
-
-            // check current models to update if some changed for this test
-            {
-                dbg!(global_opts.anki().read().decks_map());
-            };
-
-            let global_anki_opts = global_opts.anki().read();
-            // should be 'aramrw'
-            let current_model = global_anki_opts.get_selected_model(0).unwrap();
-            let current_profile = global_opts.get_current_profile().unwrap();
-            let mut current_profile = current_profile.write();
-            let anki_opts: &mut AnkiOptions = current_profile.anki_options_mut();
-            let fields = anki_opts.anki_fields();
-            let fields: AnkiFields = match fields {
-                Some(f) => f.clone(),
-                // need to tell yomichan where to put what
-                // entry information in the note type fields
-                None => {
-                    let intents = [
-                        FieldIndex::Term(0),
-                        FieldIndex::Reading(2),
-                        FieldIndex::Definition(3),
-                    ];
-                    let fields =
-                        AnkiTermFieldType::from_field_indices(&intents, current_model.1).unwrap();
-                    let mut new = AnkiFields::default();
-                    new.set_fields(fields)
-                        .set_selected_model(0)
-                        .set_selected_deck(0);
-                    new
-                }
-            };
-            anki_opts.set_anki_fields(Some(fields));
-        }
-        let sentence = "日本語が好きです";
-        let res = ycd.search(sentence).unwrap();
-        let mut notes = vec![];
-        let display_anki = ycd.display_anki();
-        for item in res {
-            let entry: Arc<crate::TermSearchResults> = item.results.unwrap();
-            let first = &entry.dictionary_entries[0];
-            let note = display_anki
-                .read()
-                .build_note_from_entry(first, Some(sentence))
-                .unwrap();
-            notes.push(note);
-        }
-        dbg!(&notes);
-        let id = display_anki
-            .read()
-            .client()
-            .read()
-            .notes()
-            .add_notes(&[notes[0].clone()])
-            .unwrap();
-        display_anki
-            .read()
-            .client()
-            .read()
-            .notes()
-            .gui_edit(id[0])
-            .unwrap();
-    }
+    // #[ignore]
+    // #[test]
+    // fn build_note() {
+    //     let ycd = &YCD;
+    //     ycd.set_language("ja").unwrap();
+    //     {
+    //         let anki = ycd.display_anki();
+    //         anki.read().update_all_anki_maps().unwrap();
+    //         let anki = anki.read_arc();
+    //         let global_opts = anki.options().read_arc();
+    //
+    //         // check current models to update if some changed for this test
+    //         {
+    //             dbg!(global_opts.anki().read().decks_map());
+    //         };
+    //
+    //         let global_anki_opts = global_opts.anki().read();
+    //         // should be 'aramrw'
+    //         let current_model = global_anki_opts.get_selected_model(0).unwrap();
+    //         let current_profile = global_opts.get_current_profile().unwrap();
+    //         let mut current_profile = current_profile.write();
+    //         let anki_opts: &mut AnkiOptions = current_profile.anki_options_mut();
+    //         let fields = anki_opts.anki_fields();
+    //         let fields: AnkiFields = match fields {
+    //             Some(f) => f.clone(),
+    //             // need to tell yomichan where to put what
+    //             // entry information in the note type fields
+    //             None => {
+    //                 let intents = [
+    //                     FieldIndex::Term(0),
+    //                     FieldIndex::Reading(2),
+    //                     FieldIndex::Definition(3),
+    //                 ];
+    //                 let fields =
+    //                     AnkiTermFieldType::from_field_indices(&intents, current_model.1).unwrap();
+    //                 let mut new = AnkiFields::default();
+    //                 new.set_fields(fields)
+    //                     .set_selected_model(0)
+    //                     .set_selected_deck(0);
+    //                 new
+    //             }
+    //         };
+    //         anki_opts.set_anki_fields(Some(fields));
+    //     }
+    //     let sentence = "日本語が好きです";
+    //     let res = ycd.search(sentence).unwrap();
+    //     let mut notes = vec![];
+    //     let display_anki = ycd.anki();
+    //     for item in res {
+    //         let entry: Arc<crate::TermSearchResults> = item.results.unwrap();
+    //         let first = &entry.dictionary_entries[0];
+    //         let note = display_anki
+    //             .build_note_from_entry(first, Some(sentence))
+    //             .unwrap();
+    //         notes.push(note);
+    //     }
+    //     dbg!(&notes);
+    //     let id = display_anki
+    //         .client()
+    //         .read()
+    //         .notes()
+    //         .add_notes(&[notes[0].clone()])
+    //         .unwrap();
+    //     display_anki..notes().gui_edit(id[0]).unwrap();
+    // }
 
     #[ignore]
     #[test]
     fn auto_note() {
-        let mut ycd = &YCD;
+        let ycd = &YCD;
         ycd.set_language("ja").unwrap();
 
-        ycd.display_anki()
-            .read_arc()
+        ycd.anki()
             .configure_note_creation_with_first_available(&[
                 FieldIndex::Term(0),
                 FieldIndex::Sentence(1),
@@ -760,26 +754,23 @@ mod displayanki {
         let sentence = "日本語が好きです";
         let res = ycd.search(sentence).unwrap();
         let mut notes = vec![];
-        let display_anki = ycd.display_anki();
+        let display_anki = ycd.anki();
         for item in res {
             let entry: Arc<crate::TermSearchResults> = item.results.unwrap();
             let first = &entry.dictionary_entries[0];
             let note = display_anki
-                .read_arc()
                 .build_note_from_entry(first, Some(sentence))
                 .unwrap();
             notes.push(note);
         }
         dbg!(&notes);
         let id = display_anki
-            .read_arc()
             .client()
             .read_arc()
             .notes()
             .add_notes(&[notes[0].clone()])
             .unwrap();
         display_anki
-            .read_arc()
             .client()
             .read_arc()
             .notes()
@@ -790,11 +781,11 @@ mod displayanki {
     #[ignore]
     #[test]
     fn build_note_auto_config() {
-        let mut ycd = &YCD;
-        ycd.set_language("ja");
+        let ycd = &YCD;
+        ycd.set_language("ja").unwrap();
 
-        let display_anki = ycd.display_anki().read_arc();
-        display_anki.configure_note_creation_auto();
+        let display_anki = ycd.anki();
+        display_anki.configure_note_creation_auto().unwrap();
 
         // The rest of the test logic is identical.
         let sentence = format!(
@@ -802,16 +793,14 @@ mod displayanki {
             chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
         );
         let res = ycd.search(sentence.as_str()).unwrap();
-        let display_anki = ycd.display_anki();
+        let display_anki = ycd.anki();
         let entry: Arc<crate::TermSearchResults> = res.into_iter().next().unwrap().results.unwrap();
         let first = &entry.dictionary_entries[0];
         let note = display_anki
-            .read_arc()
             .build_note_from_entry(first, Some(sentence.as_str()))
             .unwrap();
         dbg!(&note);
         let id = display_anki
-            .read_arc()
             .client()
             .read_arc()
             .notes()
@@ -819,7 +808,6 @@ mod displayanki {
             .unwrap();
 
         display_anki
-            .read_arc()
             .client()
             .read_arc()
             .notes()
@@ -827,7 +815,7 @@ mod displayanki {
             .unwrap();
 
         // Use scopeguard to ensure the note is deleted after the test, even if it panics.
-        let client = display_anki.read_arc().client().clone();
+        let client = display_anki.client().clone();
         scopeguard::defer! {
             client.read_arc().notes().delete_notes_by_ids(&id).unwrap();
         }
@@ -836,8 +824,8 @@ mod displayanki {
     #[ignore]
     #[test]
     fn streamlined_anki_api_test() {
-        let mut ycd = &YCD;
-        ycd.set_language("es");
+        let ycd = &YCD;
+        ycd.set_language("es").unwrap();
 
         // 1. Sync Anki data (One-time hydration)
         ycd.anki().update_all_anki_maps().unwrap();

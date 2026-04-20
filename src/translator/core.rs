@@ -1,4 +1,15 @@
 use crate::translator::regex_util::apply_text_replacement;
+use crate::translator::{
+    internal_types::{
+        DatabaseDeinflection, DictionaryEntryGroup, FindInternalTermsResult,
+        InternalTermDictionaryEntry, TextCache, TextProcessorRuleChainCandidate,
+        VariantAndTextProcessorRuleChainCandidatesMap,
+    },
+    types::{
+        FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
+        FindTermsOptions, FindTermsSortOrder,
+    },
+};
 use crate::{
     backend::FindTermsDetails,
     database::{
@@ -13,17 +24,6 @@ use crate::{
     settings::core::{
         DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
         TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
-    },
-};
-use crate::translator::{
-    types::{
-        FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
-        FindTermsOptions, FindTermsSortOrder,
-    },
-    internal_types::{
-        DatabaseDeinflection, DictionaryEntryGroup, FindInternalTermsResult,
-        InternalTermDictionaryEntry, TextCache, TextProcessorRuleChainCandidate,
-        VariantAndTextProcessorRuleChainCandidatesMap,
     },
 };
 
@@ -70,10 +70,7 @@ use icu::{
     locale::locale,
 };
 use importer::{
-    dictionary_data::{
-        GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType,
-        VecNumOrNum,
-    },
+    dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum},
     dictionary_database::{
         DictionaryTag, PhoneticTranscription, PitchAccent, Pronunciation, TermEntry,
         TermPronunciationMatchType, TermSourceMatchSource, TermSourceMatchType,
@@ -150,6 +147,8 @@ impl<'a> Translator<'a> {
     }
     /// Clears the database tag cache.
     /// This should be called if the database is changed.
+    ///
+    /// Why is this not used?!
     fn clear_dbtag_caches(&self) {
         self.tag_cache.write().clear();
     }
@@ -270,7 +269,7 @@ impl<'a> Translator<'a> {
             self._sort_term_dictionary_entries(&mut dictionary_entries);
         }
 
-        dictionary_entries.iter_mut().for_each(|mut entry| {
+        dictionary_entries.iter_mut().for_each(|entry| {
             let definitions = &mut entry.definitions;
             Translator::_flag_redundant_definition_tags(definitions);
             if definitions.len() > 1 {
@@ -485,7 +484,7 @@ impl<'a> Translator<'a> {
                 entry_type,
                 is_primary,
                 text_processor_rule_chain_candidates,
-                inflection_rule_chain_candidates,
+                inflection_rule_chain_candidates: _,
                 score,
                 frequency_order,
                 dictionary_alias,
@@ -501,7 +500,7 @@ impl<'a> Translator<'a> {
 
             // Make the InternalTermDictionaryEntry into a TermDictionaryEntry
             // only replacing its inflectionRuleChainCandidates.
-            let mut new_entry = TermDictionaryEntry {
+            let new_entry = TermDictionaryEntry {
                 entry_type,
                 is_primary,
                 text_processor_rule_chain_candidates,
@@ -1036,8 +1035,8 @@ impl<'a> Translator<'a> {
                 // Assign it directly.
                 item_ref.database_tag = database_tag_option.clone();
                 if let Some(cache) = tag_cache_lock.get_mut(&item_ref.dictionary) {
-                    /// if the cache exists, you can directly use the Option<DatabaseTag>
-                    /// as cache: &mut IndexMap<String, Option<DatabaseTag>> already.
+                    // if the cache exists, you can directly use the Option<DatabaseTag>
+                    // as cache: &mut IndexMap<String, Option<DatabaseTag>> already.
                     cache.insert(item_ref.query.clone(), database_tag_option);
                 }
             }
@@ -1256,7 +1255,7 @@ impl<'a> Translator<'a> {
                         // JS: data.pitches loop
                         for pitch_item_data in &pitch_meta_data.data.pitches {
                             // JS: tags2
-                            let mut resolved_tags: Vec<DictionaryTag> = Vec::new();
+                            let resolved_tags: Vec<DictionaryTag> = Vec::new();
                             if let Some(tags_from_data) = &pitch_item_data.tags {
                                 // JS: if (Array.isArray(tags))
                                 tag_aggregator.add_tags(
@@ -1309,7 +1308,7 @@ impl<'a> Translator<'a> {
                         let mut phonetic_transcriptions_to_add: Vec<Pronunciation> = Vec::new();
                         for transcription_item in &phonetic_meta_data.data.transcriptions {
                             // JS: data.transcriptions loop
-                            let mut resolved_ipa_tags: Vec<DictionaryTag> = Vec::new(); // JS: tags2
+                            let resolved_ipa_tags: Vec<DictionaryTag> = Vec::new(); // JS: tags2
                             let tag_names_for_aggregator: Vec<String> = transcription_item
                                 .tags
                                 .iter()
@@ -1521,23 +1520,25 @@ impl<'a> Translator<'a> {
         }
         // Replace the old headwords Vec with the new one.
         dictionary_entry.headwords = new_headwords;
-        let mut definitions: Vec<TermType> =
+        let definitions: Vec<TermType> =
             iter_type_to_iter_variant!(dictionary_entry.definitions.clone(), TermType::Definition)
                 .collect();
-        let mut frequencies: Vec<TermType> =
+        let frequencies: Vec<TermType> =
             iter_type_to_iter_variant!(dictionary_entry.frequencies.clone(), TermType::Frequency)
                 .collect();
-        let mut pronunciations: Vec<TermType> = iter_type_to_iter_variant!(
+        let pronunciations: Vec<TermType> = iter_type_to_iter_variant!(
             dictionary_entry.pronunciations.clone(),
             TermType::Pronunciation
         )
         .collect();
         let mut updates = [definitions, frequencies, pronunciations];
-        for mut update in &mut updates {
+        for update in &mut updates {
             Translator::_update_term_headword_indices_mut(update, &index_remap);
         }
-        dictionary_entry.definitions = iter_variant_to_iter_type!(updates[0].clone(), TermType::Definition);
-        dictionary_entry.frequencies = iter_variant_to_iter_type!(updates[1].clone(), TermType::Frequency);
+        dictionary_entry.definitions =
+            iter_variant_to_iter_type!(updates[0].clone(), TermType::Definition);
+        dictionary_entry.frequencies =
+            iter_variant_to_iter_type!(updates[1].clone(), TermType::Frequency);
         dictionary_entry.pronunciations =
             iter_variant_to_iter_type!(updates[2].clone(), TermType::Pronunciation);
     }
@@ -1648,8 +1649,8 @@ impl<'a> Translator<'a> {
             primary_reading,
             ..
         } = options;
-        /// in js this is `type SequenceQuery` but I simplified this to use enums
-        /// instead of objects, to be generic.
+        // in js this is `type SequenceQuery` but I simplified this to use enums
+        // instead of objects, to be generic.
         let mut sequence_list: Vec<GenericQueryRequest> = Vec::new();
         let mut grouped_dictionary_entries: Vec<DictionaryEntryGroup> = Vec::new();
         // Maps sequence (i128) to the index in `grouped_dictionary_entries` vector
@@ -2207,18 +2208,18 @@ impl<'a> Translator<'a> {
     ) {
         new_definitions.iter().for_each(|new_definition| {
             let TermDefinition {
-                index,
+                index: _,
                 headword_indices,
                 dictionary,
-                dictionary_index,
-                dictionary_alias,
+                dictionary_index: _,
+                dictionary_alias: _,
                 sequences,
-                id,
-                score,
+                id: _,
+                score: _,
                 is_primary,
                 tags,
                 entries,
-                frequency_order,
+                frequency_order: _,
             } = new_definition;
             let key = Translator::_create_map_key(&(dictionary, entries));
             let mut definition = definitions_map.get(&key).cloned();
@@ -2230,16 +2231,16 @@ impl<'a> Translator<'a> {
             } else {
                 let TermDefinition {
                     id,
-                    index,
-                    headword_indices,
+                    index: _,
+                    headword_indices: _,
                     dictionary,
                     dictionary_index,
                     dictionary_alias,
                     score,
-                    frequency_order,
+                    frequency_order: _,
                     sequences,
                     is_primary,
-                    tags,
+                    tags: _,
                     entries,
                 } = new_definition.clone();
                 let new_def = Translator::_create_term_definition(
@@ -2259,8 +2260,8 @@ impl<'a> Translator<'a> {
                 definitions_map.insert(key, new_def.clone());
                 definition = Some(new_def);
             }
-            /// definition is Some after this point, so unwrap() is safe
-            /// merge tags doesn't mutate the passed in values so we can save it here cloned
+            // definition is Some after this point, so unwrap() is safe
+            // merge tags doesn't mutate the passed in values so we can save it here cloned
             let definition_ref = definition.as_mut().unwrap();
             let definition_headword_indices: &mut Vec<usize> = &mut definition_ref.headword_indices;
             for headword_index in headword_indices {
@@ -2609,7 +2610,7 @@ impl<'a> Translator<'a> {
             false => raw_reading,
         };
         let match_primary_reading = !primary_reading.is_empty() && reading == primary_reading;
-        let dictionary_order = Translator::_get_dictionary_order(
+        let _dictionary_order = Translator::_get_dictionary_order(
             &dictionary,
             &EnabledDictionaryMapType::Term(enabled_dictionary_map),
         );
@@ -2836,7 +2837,7 @@ impl<'a> Translator<'a> {
         );
         deinflections.extend(dictionary_deinflections);
         for deinflection in &mut deinflections {
-            for mut entry in deinflection.database_entries.iter_mut() {
+            for entry in deinflection.database_entries.iter_mut() {
                 entry
                     .definitions
                     .retain(|def| !matches!(def, TermGlossaryGroupType::Deinflection(_)))
@@ -3015,7 +3016,7 @@ impl<'a> Translator<'a> {
             raw_source = Translator::_get_next_substring(opts.search_resolution, &raw_source);
         }
         // unused
-        let has_bueno_candidate = db_deinflections
+        let _has_bueno_candidate = db_deinflections
             .iter()
             .any(|d| d.deinflected_text == "bueno");
         Ok(db_deinflections)
@@ -3354,9 +3355,6 @@ struct TranslatorTagAggregator {
     tag_expansion_target_map: IndexMap<Vec<DictionaryTag>, Vec<TagGroup>>,
 }
 impl TranslatorTagAggregator {
-    pub fn new() -> Self {
-        Self::default()
-    }
     /// Adds tags to a specific dictionary group associated with a primary list of tags.
     ///
     /// # Arguments
@@ -3480,11 +3478,13 @@ impl TranslatorTagAggregator {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct SequenceQuery {
-    query: i128,
-    dictionary: String,
-}
+// never used
+// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+// struct SequenceQuery {
+//     query: i128,
+//     dictionary: String,
+// }
+//
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Default)]
 pub enum FindTermsMode {
     #[default]
@@ -3639,12 +3639,14 @@ pub struct InternalTermDictionaryEntryWithIndexes {
     pub dictionary_entry: InternalTermDictionaryEntry,
     pub headword_indexes: Vec<usize>,
 }
-#[derive(Clone, Debug)]
-struct TermReadingItem {
-    pub term: String,
-    pub reading: Option<String>,
-}
 
+// never used
+// #[derive(Clone, Debug)]
+// struct TermReadingItem {
+//     pub term: String,
+//     pub reading: Option<String>,
+// }
+//
 #[derive(Clone, Debug)]
 pub struct FindTermsResult {
     pub dictionary_entries: Vec<TermDictionaryEntry>,
@@ -3665,4 +3667,6 @@ struct TermMetaHeadword {
     pronunciations: Vec<TermPronunciation>,
     frequencies: Vec<TermFrequency>,
 }
-type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadword>>>;
+
+// never used
+//type TermMetaHeadwordMap = IndexMap<String, IndexMap<String, Vec<TermMetaHeadword>>>;

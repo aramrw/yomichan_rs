@@ -29,6 +29,8 @@ pub use crate::models::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
 pub use crate::scanner::core::{TermSearchResults, TermSearchResultsSegment, TextScanner};
+#[cfg(feature = "anki")]
+use crate::settings::core::AnkiOptions;
 pub use crate::translator::Translator;
 pub use crate::utils::{Ptr, PtrRGaurd, PtrWGaurd};
 pub use crate::utils::errors::{DBError, InitError, YomichanError};
@@ -77,7 +79,7 @@ impl<'a> Yomichan<'a> {
     }
 }
 
-use crate::settings::core::{AnkiOptions, ProfileResult, YomichanProfile};
+use crate::settings::core::{ProfileResult, YomichanProfile};
 
 impl<'a> Yomichan<'a> {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, YomichanError> {

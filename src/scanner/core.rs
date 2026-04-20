@@ -6,7 +6,7 @@ use importer::dictionary_database::TermSourceMatchType;
 
 use crate::{
     backend::FindTermsDetails,
-    database::{dictionary_database::DictionaryDatabase, DictionaryService},
+    database::DictionaryService,
     // these do not exist in importer
     models::dictionary::{TermDictionaryEntry, TermSource},
     settings::core::ProfileOptions,
@@ -578,7 +578,7 @@ mod textscanner {
     #[test]
     fn search() {
         let ycd = &YCD;
-        ycd.set_language("ja");
+        ycd.set_language("ja").unwrap();
         let res = ycd.search("晩餐");
         let Some(res) = res else {
             panic!("search test failed");
@@ -614,7 +614,7 @@ mod textscanner {
 mod dbtests {
     use crate::{utils::test_utils, Yomichan};
     use std::fs::remove_dir_all;
-    use tracing_test::traced_test;
+    //use tracing_test::traced_test;
 
     #[test]
     #[ignore]

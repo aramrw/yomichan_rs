@@ -1,7 +1,7 @@
 use crate::backend::Backend;
 use crate::database::dictionary_database::{
     DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType, DatabaseMetaPhonetic,
-    DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry, DatabaseTermEntryTuple, DictionaryDatabase,
+    DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry, DictionaryDatabase,
 };
 use crate::utils::errors::{ImportError, ImportZipError};
 use crate::settings::core::{DictionaryDefinitionsCollapsible, DictionaryOptions, YomichanProfile};
@@ -9,18 +9,17 @@ use crate::Ptr;
 use crate::Yomichan;
 
 use importer::dictionary_data::{
-    dictionary_data_util, FreqObjectData, GenericFreqData, Pitch as DictionaryPitch,
-    TermGlossaryImage, TermMeta, TermMetaFreqDataMatchType, TermMetaFreqDataWithReading,
-    TermMetaModeType, TermMetaPitchData, VecNumOrNum, YomichanIndexFile,
+    FreqObjectData, GenericFreqData, Pitch as DictionaryPitch, TermMetaFreqDataMatchType, TermMetaFreqDataWithReading,
+    TermMetaModeType, TermMetaPitchData, VecNumOrNum,
 };
 use importer::dictionary_database::{
     DictionaryTag, PhoneticTranscription, TermMetaPhoneticData, TermPronunciationMatchType,
 };
 use importer::structured_content::{
-    TermEntryItem, TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
+    TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
 };
 use indexmap::IndexMap;
-use native_model::{encode, native_model, Model};
+use native_model::{encode, native_model};
 use rusqlite::params;
 use tracing;
 
@@ -30,10 +29,8 @@ use serde::{Deserialize, Serialize};
 
 use rayon::prelude::*;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
-
-use std::{fs, io};
 
 pub const CHUNKS: usize = 90;
 
@@ -628,44 +625,45 @@ fn insert_kanji_meta_batched(
     Ok(())
 }
 
-fn read_dir_helper<P: AsRef<Path>>(
-    path: P,
-    index: &mut PathBuf,
-    tag_banks: &mut Vec<PathBuf>,
-    kanji_meta_banks: &mut Vec<PathBuf>,
-    kanji_banks: &mut Vec<PathBuf>,
-    term_meta_banks: &mut Vec<PathBuf>,
-    term_banks: &mut Vec<PathBuf>,
-) -> Result<(), io::Error> {
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            read_dir_helper(
-                &path,
-                index,
-                tag_banks,
-                kanji_meta_banks,
-                kanji_banks,
-                term_meta_banks,
-                term_banks,
-            )?;
-        } else {
-            let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if file_name.contains("term_bank") {
-                term_banks.push(path);
-            } else if file_name.contains("index.json") {
-                *index = path;
-            } else if file_name.contains("term_meta_bank") {
-                term_meta_banks.push(path);
-            } else if file_name.contains("kanji_meta_bank") {
-                kanji_meta_banks.push(path);
-            } else if file_name.contains("kanji_bank") {
-                kanji_banks.push(path);
-            } else if file_name.contains("tag_bank") {
-                tag_banks.push(path);
-            }
-        }
-    }
-    Ok(())
-}
+// never used
+// fn read_dir_helper<P: AsRef<Path>>(
+//     path: P,
+//     index: &mut PathBuf,
+//     tag_banks: &mut Vec<PathBuf>,
+//     kanji_meta_banks: &mut Vec<PathBuf>,
+//     kanji_banks: &mut Vec<PathBuf>,
+//     term_meta_banks: &mut Vec<PathBuf>,
+//     term_banks: &mut Vec<PathBuf>,
+// ) -> Result<(), io::Error> {
+//     for entry in fs::read_dir(path)? {
+//         let entry = entry?;
+//         let path = entry.path();
+//         if path.is_dir() {
+//             read_dir_helper(
+//                 &path,
+//                 index,
+//                 tag_banks,
+//                 kanji_meta_banks,
+//                 kanji_banks,
+//                 term_meta_banks,
+//                 term_banks,
+//             )?;
+//         } else {
+//             let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+//             if file_name.contains("term_bank") {
+//                 term_banks.push(path);
+//             } else if file_name.contains("index.json") {
+//                 *index = path;
+//             } else if file_name.contains("term_meta_bank") {
+//                 term_meta_banks.push(path);
+//             } else if file_name.contains("kanji_meta_bank") {
+//                 kanji_meta_banks.push(path);
+//             } else if file_name.contains("kanji_bank") {
+//                 kanji_banks.push(path);
+//             } else if file_name.contains("tag_bank") {
+//                 tag_banks.push(path);
+//             }
+//         }
+//     }
+//     Ok(())
+// }

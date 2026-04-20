@@ -11,7 +11,7 @@ use crate::{
     Ptr, Yomichan,
 };
 use crate::translator::types::FindTermsMatchType;
-use native_model::decode;
+//use native_model::decode;
 
 #[cfg(feature = "anki")]
 use crate::anki::core::{DisplayAnki, DisplayAnkiError};

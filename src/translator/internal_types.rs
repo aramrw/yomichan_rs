@@ -1,6 +1,3 @@
-// Import necessary collections
-use std::any::Any;
-
 use deinflector::language_d::TextProcessorSetting;
 use deinflector::transformer::InternalInflectionRuleChainCandidate;
 use importer::dictionary_database::{TermEntry, TermSourceMatchSource};

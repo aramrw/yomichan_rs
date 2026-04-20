@@ -3,10 +3,7 @@ use crate::anki::core::DisplayAnkiError;
 use crate::settings::core::ProfileError;
 use importer::dictionary_importer::DictionarySummaryError;
 use native_db::db_type;
-use std::{
-    error::Error,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 #[derive(Error, Debug)]

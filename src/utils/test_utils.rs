@@ -2,10 +2,8 @@ use std::{
     path::PathBuf,
     sync::LazyLock,
 };
-use tempfile::{tempdir_in, TempDir};
 
 use crate::{database::dictionary_database::DictionaryDatabase, Yomichan};
-use parking_lot::RwLock;
 
 pub struct TestPaths {
     pub tests_dir: PathBuf,
@@ -20,8 +18,8 @@ pub static TEST_PATHS: LazyLock<TestPaths> = LazyLock::new(|| TestPaths {
 });
 
 pub static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
-    let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
-    ycd.set_language("en");
+    let ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
+    ycd.set_language("es").unwrap();
     ycd
 });
 

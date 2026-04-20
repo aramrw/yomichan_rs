@@ -1,15 +1,14 @@
 use crate::database::dictionary_importer::DictionarySummary;
 use crate::dictionary_importer::CHUNKS;
-use crate::settings::core::{DictionaryOptions, YomichanOptions};
 use crate::translator::core::TagTargetItem;
 use importer::dictionary_data::{TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
-use importer::dictionary_database::{DictionaryTag, TermEntry, TermMetaPhoneticData};
+use importer::dictionary_database::{TermEntry, TermMetaPhoneticData};
 use importer::dictionary_database::{TermSourceMatchSource, TermSourceMatchType};
 use importer::structured_content::TermGlossaryGroupType;
 use serde_with::{serde_as, NoneAsEmptyString};
 
 use indexmap::{IndexMap, IndexSet};
-use native_model::{decode, encode, native_model, Model as NativeModelTrait};
+use native_model::{decode, native_model};
 use parking_lot::Mutex;
 use rusqlite::{params, Connection};
 use std::sync::Arc;
@@ -914,7 +913,6 @@ pub fn split_string_field(field: String) -> Vec<String> {
 mod ycd {
     use super::*;
     use crate::utils::test_utils;
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn find_terms_sequence_bulk() {

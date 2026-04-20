@@ -1,96 +1,31 @@
 use crate::translator::{TagCache, TextProcessorMap, ReadingNormalizerMap};
-use crate::translator::regex_util::apply_text_replacement;
-use crate::{
-    backend::FindTermsDetails,
-    database::{
-        dictionary_database::DictionarySet, DatabaseTag, DatabaseTermMeta, DictionaryService,
-        GenericQueryRequest, QueryType, TermExactQueryRequest,
-    },
-    models::dictionary::{
-        TermDefinition, TermDictionaryEntry, TermFrequency, TermHeadword, TermPronunciation,
-        TermSource,
-    },
-    settings::core::{
-        DictionaryOptions, GeneralOptions, ProfileOptions, ScanningOptions, SearchResolution,
-        TranslationOptions, TranslationTextReplacementGroup, TranslationTextReplacementOptions,
-    },
-};
-use crate::translator::{
-    types::{
-        FindKanjiDictionary, FindTermDictionary, FindTermDictionaryMap, FindTermsMatchType,
-        FindTermsOptions, FindTermsSortOrder,
-    },
-    internal_types::{
-        DatabaseDeinflection, DictionaryEntryGroup, FindInternalTermsResult,
-        InternalTermDictionaryEntry, TextCache, TextProcessorRuleChainCandidate,
-        VariantAndTextProcessorRuleChainCandidatesMap,
-    },
-};
+use crate::database::DictionaryService;
 
-macro_rules! iter_type_to_iter_variant {
-    ($v:expr, $variant:path) => {
-        $v.into_iter().map(|item| $variant(item))
-    };
-}
+// macro_rules! iter_type_to_iter_variant {
+//     ($v:expr, $variant:path) => {
+//         $v.into_iter().map(|item| $variant(item))
+//     };
+// }
 
-macro_rules! iter_variant_to_iter_type {
-    ($v:expr, $variant:path) => {
-        $v.into_iter()
-            .filter_map(|item| {
-                if let $variant(inner) = item {
-                    Some(inner)
-                } else {
-                    None
-                }
-            })
-            .collect()
-    };
-}
+// macro_rules! iter_variant_to_iter_type {
+//     ($v:expr, $variant:path) => {
+//         $v.into_iter()
+//             .filter_map(|item| {
+//                 if let $variant(inner) = item {
+//                     Some(inner)
+//                 } else {
+//                     None
+//                 }
+//             })
+//             .collect()
+//     };
+// }
 
-use deinflector::transformer::{
-    InflectionRuleChainCandidate, InflectionSource, InternalInflectionRuleChainCandidate,
-};
-use deinflector::{
-    descriptors::PreAndPostProcessorsWithId,
-    ja::japanese::is_code_point_japanese,
-    language_d::{
-        FindTermsTextReplacement, FindTermsTextReplacements, LanguageAndProcessors,
-        LanguageAndReadingNormalizer, ReadingNormalizer, TextProcessor, TextProcessorSetting,
-        TextProcessorWithId,
-    },
-    languages::{get_all_language_reading_normalizers, get_all_language_text_processors},
-    multi_language_transformer::MultiLanguageTransformer,
-    transformer::{LanguageTransformer, TransformedText},
-    zh::chinese::is_code_point_chinese,
-};
-use derive_more::From;
+use deinflector::multi_language_transformer::MultiLanguageTransformer;
 use fancy_regex::Regex;
-use icu::{
-    collator::{options::CollatorOptions, Collator, CollatorBorrowed},
-    locale::locale,
-};
-use importer::{
-    dictionary_data::{
-        GenericFreqData, MetaDataMatchType, TermMetaFreqDataMatchType, TermMetaModeType,
-        VecNumOrNum,
-    },
-    dictionary_database::{
-        DictionaryTag, PhoneticTranscription, PitchAccent, Pronunciation, TermEntry,
-        TermPronunciationMatchType, TermSourceMatchSource, TermSourceMatchType,
-    },
-    structured_content::{
-        TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
-    },
-};
-use indexmap::{IndexMap, IndexSet};
-use serde::{Deserialize, Serialize};
-use std::{
-    cmp::Ordering,
-    collections::VecDeque,
-    hash::Hash,
-    iter,
-    sync::{Arc, LazyLock},
-};
+use icu::collator::CollatorBorrowed;
+use indexmap::IndexMap;
+use std::sync::Arc;
 
 use parking_lot::RwLock;
 
