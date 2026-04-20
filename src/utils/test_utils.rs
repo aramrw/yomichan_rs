@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    sync::LazyLock,
-};
+use std::{path::PathBuf, sync::LazyLock};
 
 use crate::{database::dictionary_database::DictionaryDatabase, Yomichan};
 

@@ -3,14 +3,14 @@ use crate::database::dictionary_database::{
     DatabaseKanjiEntry, DatabaseMetaFrequency, DatabaseMetaMatchType, DatabaseMetaPhonetic,
     DatabaseMetaPitch, DatabaseTag, DatabaseTermEntry, DictionaryDatabase,
 };
-use crate::utils::errors::{ImportError, ImportZipError};
 use crate::settings::core::{DictionaryDefinitionsCollapsible, DictionaryOptions, YomichanProfile};
+use crate::utils::errors::{ImportError, ImportZipError};
 use crate::Ptr;
 use crate::Yomichan;
 
 use importer::dictionary_data::{
-    FreqObjectData, GenericFreqData, Pitch as DictionaryPitch, TermMetaFreqDataMatchType, TermMetaFreqDataWithReading,
-    TermMetaModeType, TermMetaPitchData, VecNumOrNum,
+    FreqObjectData, GenericFreqData, Pitch as DictionaryPitch, TermMetaFreqDataMatchType,
+    TermMetaFreqDataWithReading, TermMetaModeType, TermMetaPitchData, VecNumOrNum,
 };
 use importer::dictionary_database::{
     DictionaryTag, PhoneticTranscription, TermMetaPhoneticData, TermPronunciationMatchType,

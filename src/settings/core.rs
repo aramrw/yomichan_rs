@@ -24,7 +24,7 @@ use native_model::Model;
 use serde::{Deserialize, Serialize};
 use url::form_urlencoded::Target;
 
-use crate::translator::{types::FindTermsSortOrder, core::FindTermsMode};
+use crate::translator::{core::FindTermsMode, types::FindTermsSortOrder};
 
 /// Global application-level options.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]

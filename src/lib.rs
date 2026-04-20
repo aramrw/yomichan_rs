@@ -32,8 +32,8 @@ pub use crate::scanner::core::{TermSearchResults, TermSearchResultsSegment, Text
 #[cfg(feature = "anki")]
 use crate::settings::core::AnkiOptions;
 pub use crate::translator::Translator;
-pub use crate::utils::{Ptr, PtrRGaurd, PtrWGaurd};
 pub use crate::utils::errors::{DBError, InitError, YomichanError};
+pub use crate::utils::{Ptr, PtrRGaurd, PtrWGaurd};
 
 // External re-exports
 pub use anki_direct;
@@ -87,7 +87,11 @@ impl<'a> Yomichan<'a> {
         let db_path = resolve_db_path(path)?;
         let db = Arc::new(DictionaryDatabase::new(db_path));
         #[cfg(not(feature = "anki"))]
-        let backend = Backend::new(db.clone()).map_err(|err| DBError::Import(crate::utils::errors::ImportError::ExternalImporter(err.to_string())))?;
+        let backend = Backend::new(db.clone()).map_err(|err| {
+            DBError::Import(crate::utils::errors::ImportError::ExternalImporter(
+                err.to_string(),
+            ))
+        })?;
         #[cfg(feature = "anki")]
         let backend = Backend::default_sync(db.clone())?;
         Ok(Self { db, backend })
@@ -150,10 +154,9 @@ fn resolve_db_path(p: PathBuf) -> Result<PathBuf, Box<InitError>> {
             .map_err(|e| Box::new(InitError::Io(e)))?
             .filter_map(Result::ok)
             .collect();
-        if let Some(entry) = entries
-            .iter()
-            .find(|e| e.path().is_file() && e.path().extension() == Some(std::ffi::OsStr::new("ycd")))
-        {
+        if let Some(entry) = entries.iter().find(|e| {
+            e.path().is_file() && e.path().extension() == Some(std::ffi::OsStr::new("ycd"))
+        }) {
             return Ok(entry.path());
         }
         let subdir_path = p.join(DB_SUBDIR);

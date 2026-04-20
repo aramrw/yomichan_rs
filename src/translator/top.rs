@@ -1,5 +1,5 @@
-use crate::translator::{TagCache, TextProcessorMap, ReadingNormalizerMap};
 use crate::database::DictionaryService;
+use crate::translator::{ReadingNormalizerMap, TagCache, TextProcessorMap};
 
 // macro_rules! iter_type_to_iter_variant {
 //     ($v:expr, $variant:path) => {

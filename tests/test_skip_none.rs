@@ -1,7 +1,7 @@
 //use yomichan_rs::database::dictionary_database::DatabaseTermEntry;
 //use native_model::{decode, encode};
+use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use serde::{Serialize, Deserialize};
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]

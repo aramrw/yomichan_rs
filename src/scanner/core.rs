@@ -10,7 +10,7 @@ use crate::{
     // these do not exist in importer
     models::dictionary::{TermDictionaryEntry, TermSource},
     settings::core::ProfileOptions,
-    translator::{core::{FindTermsMode, FindTermsResult, Translator}},
+    translator::core::{FindTermsMode, FindTermsResult, Translator},
     Yomichan,
 };
 
@@ -436,7 +436,7 @@ impl<'a> TextScanner<'a> {
 
         let find_terms_options =
             Translator::_get_translator_find_terms_options(MODE, &details, options);
-        
+
         let find_result = self
             .translator
             .find_terms(MODE, search_text, &find_terms_options);

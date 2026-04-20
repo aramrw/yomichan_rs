@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod db_tests {
     use indexmap::IndexSet;
-    use yomichan_rs::database::dictionary_database::{TermExactQueryRequest};
+    use yomichan_rs::database::dictionary_database::TermExactQueryRequest;
     use yomichan_rs::utils::test_utils;
     use yomichan_rs::Yomichan;
 

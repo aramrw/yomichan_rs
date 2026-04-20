@@ -584,7 +584,6 @@ impl DictionaryDatabase {
                 let data: Vec<u8> = row.get(0)?;
                 let expression: String = row.get(1)?;
                 let reading: String = row.get(2)?;
-                
                 let (db_model, _) = match decode::<DatabaseTermEntry>(data.clone()) {
                     Ok(val) => val,
                     Err(e) => {

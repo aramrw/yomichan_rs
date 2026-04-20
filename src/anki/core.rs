@@ -618,9 +618,7 @@ impl DisplayAnki {
 #[cfg(feature = "anki")]
 mod displayanki {
     use crate::anki::core::DisplayAnki;
-    use crate::settings::core::{
-        FieldIndex, YomichanOptions,
-    };
+    use crate::settings::core::{FieldIndex, YomichanOptions};
     use crate::utils::test_utils::{TEST_PATHS, YCD};
     use crate::{Ptr, Yomichan};
     use parking_lot::Mutex;
