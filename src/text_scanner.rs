@@ -614,13 +614,18 @@ mod textscanner {
 mod dbtests {
     use crate::{test_utils, Yomichan};
     use std::fs::remove_dir_all;
-    //use tracing_test::traced_test;
+    use tracing_test::traced_test;
 
     #[test]
-    //#[traced_test]
     #[ignore]
     /// Initializes the repo's yomichan database with specified dicts.
     fn init_db() {
+        let _ = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::INFO)
+            .with_test_writer()
+            .try_init();
+
+        tracing::info!("🚀 Test init_db started");
         let td = &*test_utils::TEST_PATHS.tests_dir;
         let yomichan_rs_folder = td.join("yomichan_rs");
         if yomichan_rs_folder.exists() {

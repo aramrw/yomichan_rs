@@ -47,7 +47,7 @@ pub struct GlobalDatabaseOptions {
 ///
 /// This struct holds all global configuration options for the Yomichan application,
 /// including user profiles, current profile selection, and global Anki settings.
-#[native_model(id = 20, version = 1, with = native_model::rmp_serde_1_3::RmpSerdeNamed)]
+#[native_model(id = 20, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[native_db]
 #[derive(
     Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters, Setters,

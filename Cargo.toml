@@ -60,13 +60,14 @@ log = "0.4"
 pretty_assertions = "1.4.1"
 scopeguard = "1.2.0"
 tracing-test = "0.2.5"
+tracing-subscriber = "0.3.19"
 
 # https://www.reddit.com/r/rust/comments/gaeiwm/how_to_optionally_run_certain_tests/
 [features]
 default = []
 rayon = []
 anki = []
-tracing = ["dep:tracing"]
+tracing = ["dep:tracing", "importer/trace"]
 
 # pprof is linux/macos only
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]

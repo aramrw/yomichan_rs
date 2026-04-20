@@ -169,7 +169,7 @@ impl From<DatabaseTermEntry> for DatabaseTermEntryTuple {
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 #[serde(from = "DatabaseTermEntryTuple", into = "DatabaseTermEntryTuple")]
-#[native_model(id = 2, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
+#[native_model(id = 2, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[native_db]
 pub struct DatabaseTermEntry {
     #[primary_key]
@@ -294,7 +294,7 @@ impl DatabaseTermEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[native_model(id = 9, version = 1)]
+#[native_model(id = 9, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[native_db]
 pub struct DatabaseTag {
     /// id field doesn't exist in JS
@@ -335,7 +335,7 @@ pub enum DatabaseMetaMatchType {
 
 /// Used to store the frequency metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 3, version = 1, with = native_model::rmp_serde_1_3::RmpSerde)]
+#[native_model(id = 3, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[native_db]
 pub struct DatabaseMetaFrequency {
     #[primary_key]
@@ -358,7 +358,7 @@ impl DBMetaType for DatabaseMetaFrequency {
 
 /// Used to store the pitch metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 4, version = 1)]
+#[native_model(id = 4, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[native_db]
 pub struct DatabaseMetaPitch {
     #[primary_key]
@@ -396,7 +396,7 @@ impl DBMetaType for DatabaseMetaPitch {
 
 /// Used to store the phonetic metadata of a term in the db.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[native_model(id = 5, version = 1)]
+#[native_model(id = 5, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[native_db]
 pub struct DatabaseMetaPhonetic {
     #[primary_key]
@@ -449,7 +449,7 @@ impl DBMetaType for DatabaseMetaPhonetic {
 
 /// Kanji Meta's only have frequency data
 #[native_db]
-#[native_model(id = 8, version = 1)]
+#[native_model(id = 8, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseKanjiMeta {
     #[primary_key]
@@ -462,7 +462,7 @@ pub struct DatabaseKanjiMeta {
 }
 
 #[native_db]
-#[native_model(id = 7, version = 1)]
+#[native_model(id = 7, version = 1, with = native_model::postcard_1_0::PostCard)]
 #[serde_as]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseKanjiEntry {
