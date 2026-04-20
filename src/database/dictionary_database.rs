@@ -460,6 +460,26 @@ impl DictionaryDatabase {
         )
     }
 
+    pub fn begin_import_session(&self) -> Result<(), rusqlite::Error> {
+        let conn = self.conn.lock();
+        conn.execute_batch(
+            "
+            PRAGMA temp_store = MEMORY;
+            PRAGMA cache_size = -200000;
+        ",
+        )
+    }
+
+    pub fn end_import_session(&self) -> Result<(), rusqlite::Error> {
+        let conn = self.conn.lock();
+        conn.execute_batch(
+            "
+            PRAGMA temp_store = DEFAULT;
+            PRAGMA cache_size = -2000;
+        ",
+        )
+    }
+
     pub fn get_dictionary_summaries(
         &self,
     ) -> Result<Vec<DictionarySummary>, Box<DictionaryDatabaseError>> {
