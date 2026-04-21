@@ -62,18 +62,26 @@ mod init_err_impls {
 }
 
 #[derive(Error, Debug)]
+pub enum SearchError {
+    #[error("failed to search")]
+    Failed,
+}
+
+#[derive(Error, Debug)]
 pub enum YomichanError {
-    #[error("(-)[<yc_error::import>] -> \n{0}")]
+    #[error("[<yc_error::import>]:\n  {0}")]
     Import(#[from] ImportError),
-    #[error("(-)[<yc_error::db>]")]
+    #[error("[<yc_error::db>]:\n  {0}")]
     Database(#[from] DBError),
-    #[error("(-)[yc_error::<profile>]")]
+    #[error("(-)[yc_error::<profile>]:\n  {0}")]
     Profile(#[from] ProfileError),
     #[cfg(feature = "anki")]
-    #[error("(-)[yc_error::<anki>]")]
+    #[error("[yc_error::<anki>]:\n  {0}")]
     Anki(#[from] DisplayAnkiError),
-    #[error("(-)[yc_error::<anki>]")]
+    #[error("[yc_error::<init>]:\n  {0}")]
     Init(#[from] InitError),
+    #[error("[yc_error::<search>]:\n  {0}")]
+    Search(#[from] SearchError),
 }
 impl From<Box<InitError>> for YomichanError {
     fn from(value: Box<InitError>) -> Self {

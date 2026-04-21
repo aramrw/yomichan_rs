@@ -5,71 +5,22 @@ use indexmap::IndexMap;
 use yomichan_importer::dictionary_database::TermSourceMatchType;
 
 use crate::{
-    backend::FindTermsDetails,
-    database::DictionaryService,
-    // these do not exist in importer
-    models::dictionary::{TermDictionaryEntry, TermSource},
-    settings::core::ProfileOptions,
-    translator::core::{FindTermsMode, FindTermsResult, Translator},
-    Yomichan,
+    Yomichan, YomichanError, backend::FindTermsDetails, database::DictionaryService, models::dictionary::{TermDictionaryEntry, TermSource}, settings::core::ProfileOptions, translator::core::{FindTermsMode, FindTermsResult, Translator}, utils::errors::SearchError
 };
 
-impl Yomichan {
-    /// Searches for dictionary terms within a given text and returns a structured, display-ready result.
-    ///
-    /// This is the primary method for performing a "frontend" search. It takes a string of text,
-    /// processes it based on the currently configured language and settings, and returns a `Vec`
-    /// of `TermSearchResultsSegment`. Each segment represents a piece of the original text,
-    /// either as a recognized term with its associated dictionary entries or as unrecognized text.
-    ///
-    /// The method uses a "longest match" algorithm to ensure that longer terms are prioritized
-    /// (e.g., "日本語" is matched over "日本").
-    ///
-    /// # Arguments
-    ///
-    /// * `text` - The text to search (e.g., a sentence or a single word).
-    ///
-    /// # Returns
-    ///
-    /// An `Option<Vec<TermSearchResultsSegment>>`.
-    /// - `Some(Vec<TermSearchResultsSegment>)` if the search was successful. The vector represents
-    ///   the segmented input text.
-    /// - `None` if the current user profile cannot be accessed.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use yomichan_rs::Yomichan;
-    /// # use std::sync::{LazyLock, RwLock};
-    /// #
-    /// # static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
-    /// #     let mut ycd = Yomichan::new("path/to/db").unwrap();
-    /// #     ycd.set_language("ja").unwrap();
-    /// #     RwLock::new(ycd)
-    /// # });
-    ///
-    /// let mut ycd = &YCD;
-    /// let text = "美味しいビールを飲む";
-    ///
-    /// if let Some(segments) = ycd.search(text) {
-    ///     for segment in segments {
-    ///         if let Some(results) = segment.results {
-    ///             println!("Found term: '{}'", segment.text);
-    ///             // Further process `results.dictionary_entries`
-    ///         } else {
-    ///             println!("Unrecognized: '{}'", segment.text);
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    pub fn search(&self, text: &str) -> Option<Vec<TermSearchResultsSegment>> {
-        let profile = self.backend.get_current_profile().ok()?;
-        let profile = profile.read();
-        let opts = profile.options();
-        let res = self.backend.scanner.search_sentence(text, opts)?;
-        Some(SentenceParser::parse(res))
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SearchSegment {
+    pub text: String,
+    pub entries: Vec<TermDictionaryEntry>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SearchResult {
+    pub segments: Vec<SearchSegment>,
+    pub original_text: String,
+}
+
+// (Implementation moved to lib.rs)
 
 /// Represents one chunk of a parsed sentence, ready for display.
 ///
@@ -86,7 +37,7 @@ pub struct TermSearchResultsSegment {
     pub results: Option<Arc<TermSearchResults>>,
 }
 
-struct SentenceParser {}
+pub struct SentenceParser {}
 impl SentenceParser {
     /// Parses the flat list of dictionary entries from `TermSearchResults`
     /// into a structured `Vec<TermSearchResultsSegment>` using a "longest match" algorithm.
@@ -98,15 +49,14 @@ impl SentenceParser {
     ///
     /// # Returns
     /// A vector of `TermSearchResultsSegment`s that represent the sentence, broken down
-    pub fn parse(results: TermSearchResults) -> Vec<TermSearchResultsSegment> {
+    pub fn parse_to_structured(results: TermSearchResults) -> Vec<SearchSegment> {
         if results.dictionary_entries.is_empty() {
-            return vec![TermSearchResultsSegment {
+            return vec![SearchSegment {
                 text: results.sentence.text,
-                results: None,
+                entries: vec![],
             }];
         }
 
-        // --- Step 1: Group dictionary entries by their original source text ---
         let mut grouped_by_source = IndexMap::<String, Vec<TermDictionaryEntry>>::new();
         for entry in results.dictionary_entries {
             if let Some(source) = Self::find_primary_source(&entry) {
@@ -117,9 +67,8 @@ impl SentenceParser {
             }
         }
 
-        // --- Step 2: Segment the sentence using the "longest match" algorithm ---
         let sentence_text = &results.sentence.text;
-        let mut parsed_sentence: Vec<TermSearchResultsSegment> = Vec::new();
+        let mut parsed_sentence: Vec<SearchSegment> = Vec::new();
         let mut current_pos = 0;
 
         let mut match_keys: Vec<_> = grouped_by_source.keys().cloned().collect();
@@ -135,8 +84,6 @@ impl SentenceParser {
             if let Some(found_key) = best_match {
                 let entries_for_key = grouped_by_source.get(found_key).unwrap();
 
-                // --- CORRECT FIX LOCATION ---
-                // Deduplicate the entries for this specific segment.
                 let mut seen_entries = HashSet::new();
                 let unique_entries: Vec<TermDictionaryEntry> = entries_for_key
                     .iter()
@@ -145,34 +92,25 @@ impl SentenceParser {
                             (entry.headwords.first(), entry.definitions.first())
                         {
                             let key = (headword.term.clone(), definition.id.clone());
-                            // `insert` returns true if the key was new. We keep the entry only if it's new.
                             seen_entries.insert(key)
                         } else {
-                            // Don't keep malformed entries
                             false
                         }
                     })
                     .cloned()
                     .collect();
-                // --- END FIX ---
 
-                let segment_results = TermSearchResults {
-                    // Use the clean, unique list of entries
-                    dictionary_entries: unique_entries,
-                    sentence: results.sentence.clone(),
-                };
-
-                parsed_sentence.push(TermSearchResultsSegment {
+                parsed_sentence.push(SearchSegment {
                     text: found_key.clone(),
-                    results: Some(Arc::new(segment_results)),
+                    entries: unique_entries,
                 });
 
                 current_pos += found_key.len();
             } else {
                 let char_str = remaining_text.chars().next().unwrap().to_string();
-                parsed_sentence.push(TermSearchResultsSegment {
+                parsed_sentence.push(SearchSegment {
                     text: char_str.clone(),
-                    results: None,
+                    entries: vec![],
                 });
                 current_pos += char_str.len();
             }
@@ -568,7 +506,7 @@ mod textscanner {
         ycd.set_language("es").unwrap();
         let sentence = "bueno";
         let res = ycd.search(sentence);
-        if res.is_none() {
+        if res.is_err() {
             panic!("{sentence} didnt match any terms from the database");
         }
         dbg!(res);
@@ -580,33 +518,33 @@ mod textscanner {
         let ycd = &YCD;
         ycd.set_language("ja").unwrap();
         let res = ycd.search("晩餐");
-        let Some(res) = res else {
+        let Ok(res) = res else {
             panic!("search test failed");
         };
-        for segment in &res {
-            let Some(results) = &segment.results else {
-                continue;
-            };
-            let entries = &results.dictionary_entries;
-            for entry in entries {
-                let defs = &entry.definitions;
-                for def in defs {
-                    let gloss = def.entries.clone();
-                    for content in gloss.iter() {
-                        let path = test_utils::TEST_PATHS
-                            .tests_dir
-                            .join("search")
-                            .with_extension("json");
-                        let mut file = OpenOptions::new()
-                            .append(true)
-                            .create(true)
-                            .open(path)
-                            .unwrap();
-                        file.write_all(content.plain_text.as_bytes()).unwrap();
-                    }
-                }
-            }
-        }
+        // for segment in &res {
+        //     let Some(results) = &segment.results else {
+        //         continue;
+        //     };
+        //     let entries = &results.dictionary_entries;
+        //     for entry in entries {
+        //         let defs = &entry.definitions;
+        //         for def in defs {
+        //             let gloss = def.entries.clone();
+        //             for content in gloss.iter() {
+        //                 let path = test_utils::TEST_PATHS
+        //                     .tests_dir
+        //                     .join("search")
+        //                     .with_extension("json");
+        //                 let mut file = OpenOptions::new()
+        //                     .append(true)
+        //                     .create(true)
+        //                     .open(path)
+        //                     .unwrap();
+        //                 file.write_all(content.plain_text.as_bytes()).unwrap();
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
 
@@ -638,7 +576,10 @@ mod dbtests {
         }
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let ycd = Yomichan::new(td).unwrap();
-        let paths = [/* tdcs.join("kotobankesjp") */ tdcs.join("wty-es-en")];
+        let paths = [
+            /* tdcs.join("kotobankesjp") */ tdcs.join("wty-es-en"),
+            tdcs.join("daijirin_dyb.zip"),
+        ];
 
         // remove any non-existant paths
         // use any dictionary you want without breaking upstream

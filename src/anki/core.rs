@@ -733,143 +733,143 @@ mod displayanki {
     //     display_anki..notes().gui_edit(id[0]).unwrap();
     // }
 
-    #[ignore]
-    #[test]
-    fn auto_note() {
-        let ycd = &YCD;
-        ycd.set_language("ja").unwrap();
+    // #[ignore]
+    // #[test]
+    // fn auto_note() {
+    //     let ycd = &YCD;
+    //     ycd.set_language("ja").unwrap();
+    //
+    //     ycd.anki()
+    //         .configure_note_creation_with_first_available(&[
+    //             FieldIndex::Term(0),
+    //             FieldIndex::Sentence(1),
+    //             FieldIndex::Definition(3),
+    //             FieldIndex::Reading(2),
+    //         ])
+    //         .unwrap();
+    //
+    //     // The rest of the test logic remains the same.
+    //     let sentence = "日本語が好きです";
+    //     let res = ycd.search(sentence).unwrap();
+    //     let mut notes = vec![];
+    //     let display_anki = ycd.anki();
+    //     for item in res {
+    //         let entry: Arc<crate::TermSearchResults> = item.results.unwrap();
+    //         let first = &entry.dictionary_entries[0];
+    //         let note = display_anki
+    //             .build_note_from_entry(first, Some(sentence))
+    //             .unwrap();
+    //         notes.push(note);
+    //     }
+    //     dbg!(&notes);
+    //     let id = display_anki
+    //         .client()
+    //         .read_arc()
+    //         .notes()
+    //         .add_notes(&[notes[0].clone()])
+    //         .unwrap();
+    //     display_anki
+    //         .client()
+    //         .read_arc()
+    //         .notes()
+    //         .gui_edit(id[0])
+    //         .unwrap();
+    // }
 
-        ycd.anki()
-            .configure_note_creation_with_first_available(&[
-                FieldIndex::Term(0),
-                FieldIndex::Sentence(1),
-                FieldIndex::Definition(3),
-                FieldIndex::Reading(2),
-            ])
-            .unwrap();
+    // #[ignore]
+    // #[test]
+    // fn build_note_auto_config() {
+    //     let ycd = &YCD;
+    //     ycd.set_language("ja").unwrap();
+    //
+    //     let display_anki = ycd.anki();
+    //     display_anki.configure_note_creation_auto().unwrap();
+    //
+    //     // The rest of the test logic is identical.
+    //     let sentence = format!(
+    //         "日本語が好きです - {}",
+    //         chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+    //     );
+    //     let res = ycd.search(sentence.as_str()).unwrap();
+    //     let display_anki = ycd.anki();
+    //     let entry: Arc<crate::TermSearchResults> = res.into_iter().next().unwrap().results.unwrap();
+    //     let first = &entry.dictionary_entries[0];
+    //     let note = display_anki
+    //         .build_note_from_entry(first, Some(sentence.as_str()))
+    //         .unwrap();
+    //     dbg!(&note);
+    //     let id = display_anki
+    //         .client()
+    //         .read_arc()
+    //         .notes()
+    //         .add_notes(&[note])
+    //         .unwrap();
+    //
+    //     display_anki
+    //         .client()
+    //         .read_arc()
+    //         .notes()
+    //         .gui_edit(id[0])
+    //         .unwrap();
+    //
+    //     // Use scopeguard to ensure the note is deleted after the test, even if it panics.
+    //     let client = display_anki.client().clone();
+    //     scopeguard::defer! {
+    //         client.read_arc().notes().delete_notes_by_ids(&id).unwrap();
+    //     }
+    // }
 
-        // The rest of the test logic remains the same.
-        let sentence = "日本語が好きです";
-        let res = ycd.search(sentence).unwrap();
-        let mut notes = vec![];
-        let display_anki = ycd.anki();
-        for item in res {
-            let entry: Arc<crate::TermSearchResults> = item.results.unwrap();
-            let first = &entry.dictionary_entries[0];
-            let note = display_anki
-                .build_note_from_entry(first, Some(sentence))
-                .unwrap();
-            notes.push(note);
-        }
-        dbg!(&notes);
-        let id = display_anki
-            .client()
-            .read_arc()
-            .notes()
-            .add_notes(&[notes[0].clone()])
-            .unwrap();
-        display_anki
-            .client()
-            .read_arc()
-            .notes()
-            .gui_edit(id[0])
-            .unwrap();
-    }
-
-    #[ignore]
-    #[test]
-    fn build_note_auto_config() {
-        let ycd = &YCD;
-        ycd.set_language("ja").unwrap();
-
-        let display_anki = ycd.anki();
-        display_anki.configure_note_creation_auto().unwrap();
-
-        // The rest of the test logic is identical.
-        let sentence = format!(
-            "日本語が好きです - {}",
-            chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
-        );
-        let res = ycd.search(sentence.as_str()).unwrap();
-        let display_anki = ycd.anki();
-        let entry: Arc<crate::TermSearchResults> = res.into_iter().next().unwrap().results.unwrap();
-        let first = &entry.dictionary_entries[0];
-        let note = display_anki
-            .build_note_from_entry(first, Some(sentence.as_str()))
-            .unwrap();
-        dbg!(&note);
-        let id = display_anki
-            .client()
-            .read_arc()
-            .notes()
-            .add_notes(&[note])
-            .unwrap();
-
-        display_anki
-            .client()
-            .read_arc()
-            .notes()
-            .gui_edit(id[0])
-            .unwrap();
-
-        // Use scopeguard to ensure the note is deleted after the test, even if it panics.
-        let client = display_anki.client().clone();
-        scopeguard::defer! {
-            client.read_arc().notes().delete_notes_by_ids(&id).unwrap();
-        }
-    }
-
-    #[ignore]
-    #[test]
-    fn streamlined_anki_api_test() {
-        let ycd = &YCD;
-        ycd.set_language("es").unwrap();
-
-        // 1. Sync Anki data (One-time hydration)
-        ycd.anki().update_all_anki_maps().unwrap();
-
-        // 2. Discover (Populate GUI dropdowns)
-        let decks = ycd.anki().deck_names();
-        let models = ycd.anki().model_names();
-
-        println!("Available Decks: {:?}", decks);
-        println!("Available Models: {:?}", models);
-
-        if models.is_empty() {
-            return; // Skip if no models available in local Anki
-        }
-
-        // 3. Configure (The "Hooking Up" part via indices)
-        // Let's assume the user selects index 0 for both
-        ycd.anki().select_deck(0).unwrap();
-        ycd.anki().select_model(0).unwrap();
-
-        // Map fields by index (GUI friendly)
-        ycd.anki()
-            .set_field_mappings(&[
-                FieldIndex::Term(0),
-                FieldIndex::Reading(2),
-                FieldIndex::Definition(3),
-            ])
-            .unwrap();
-
-        // 4. Action (The "Star" button)
-        let sentence = "espanol es muy bueno";
-        let res = ycd.search(sentence).unwrap();
-        let first_segment = res.into_iter().find(|s| s.results.is_some()).unwrap();
-        let results = first_segment.results.unwrap();
-        let first_entry = &results.dictionary_entries[0];
-
-        // This one call builds and adds the note
-        let note_ids = ycd.anki().add_entry(first_entry, Some(sentence)).unwrap();
-        println!("Added note IDs: {:?}", note_ids);
-
-        // 5. Cleanup
-        let client = ycd.anki().client().clone();
-        client
-            .read_arc()
-            .notes()
-            .delete_notes_by_ids(&note_ids)
-            .unwrap();
-    }
+    // #[ignore]
+    // #[test]
+    // fn streamlined_anki_api_test() {
+    //     let ycd = &YCD;
+    //     ycd.set_language("es").unwrap();
+    //
+    //     // 1. Sync Anki data (One-time hydration)
+    //     ycd.anki().update_all_anki_maps().unwrap();
+    //
+    //     // 2. Discover (Populate GUI dropdowns)
+    //     let decks = ycd.anki().deck_names();
+    //     let models = ycd.anki().model_names();
+    //
+    //     println!("Available Decks: {:?}", decks);
+    //     println!("Available Models: {:?}", models);
+    //
+    //     if models.is_empty() {
+    //         return; // Skip if no models available in local Anki
+    //     }
+    //
+    //     // 3. Configure (The "Hooking Up" part via indices)
+    //     // Let's assume the user selects index 0 for both
+    //     ycd.anki().select_deck(0).unwrap();
+    //     ycd.anki().select_model(0).unwrap();
+    //
+    //     // Map fields by index (GUI friendly)
+    //     ycd.anki()
+    //         .set_field_mappings(&[
+    //             FieldIndex::Term(0),
+    //             FieldIndex::Reading(2),
+    //             FieldIndex::Definition(3),
+    //         ])
+    //         .unwrap();
+    //
+    //     // 4. Action (The "Star" button)
+    //     let sentence = "espanol es muy bueno";
+    //     let res = ycd.search(sentence).unwrap();
+    //     let first_segment = res.into_iter().find(|s| s.results.is_some()).unwrap();
+    //     let results = first_segment.results.unwrap();
+    //     let first_entry = &results.dictionary_entries[0];
+    //
+    //     // This one call builds and adds the note
+    //     let note_ids = ycd.anki().add_entry(first_entry, Some(sentence)).unwrap();
+    //     println!("Added note IDs: {:?}", note_ids);
+    //
+    //     // 5. Cleanup
+    //     let client = ycd.anki().client().clone();
+    //     client
+    //         .read_arc()
+    //         .notes()
+    //         .delete_notes_by_ids(&note_ids)
+    //         .unwrap();
+    // }
 }

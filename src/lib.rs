@@ -28,7 +28,9 @@ pub use crate::database::DictionaryService;
 pub use crate::models::dictionary::{
     TermDefinition, TermDictionaryEntry, TermFrequency, TermPronunciation,
 };
-pub use crate::scanner::core::{TermSearchResults, TermSearchResultsSegment, TextScanner};
+pub use crate::scanner::core::{
+    SearchResult, SearchSegment, TermSearchResults, TermSearchResultsSegment, TextScanner,
+};
 #[cfg(feature = "anki")]
 use crate::settings::core::AnkiOptions;
 pub use crate::translator::Translator;
@@ -48,6 +50,37 @@ pub struct Yomichan {
 }
 
 impl Yomichan {
+    pub fn search(&self, text: &str) -> Result<SearchResult, YomichanError> {
+        self.search_structured(text)
+    }
+
+    pub fn search_structured(&self, text: &str) -> Result<SearchResult, YomichanError> {
+        tracing::info!("Structured search requested for text: '{}'", text);
+        let profile = self.backend.get_current_profile().map_err(|e| {
+            tracing::error!("Failed to get current profile: {:?}", e);
+            e
+        })?;
+        let profile = profile.read();
+        let opts = profile.options();
+        let res = self
+            .backend
+            .scanner
+            .search_sentence(text, opts)
+            .ok_or_else(|| {
+                tracing::warn!("search_sentence returned None for text: '{}'", text);
+                YomichanError::Search(crate::utils::errors::SearchError::Failed)
+            })?;
+
+        tracing::info!("Search found {} total dictionary entries", res.dictionary_entries.len());
+        let segments = crate::scanner::core::SentenceParser::parse_to_structured(res);
+        tracing::info!("Parsed into {} segments", segments.len());
+        
+        Ok(SearchResult {
+            segments,
+            original_text: text.to_string(),
+        })
+    }
+
     /// Deletes all database files and directories associated with Yomichan in the given path.
     pub fn nuke_database(path: impl AsRef<Path>) -> std::io::Result<()> {
         let path = path.as_ref();

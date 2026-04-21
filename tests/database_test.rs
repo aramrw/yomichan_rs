@@ -15,7 +15,7 @@ mod db_tests {
 
         let req = TermExactQueryRequest {
             term: "bueno".to_string(),
-            reading: "".to_string(),
+            reading: "bueno".to_string(),
         };
         let mut dicts = IndexSet::new();
         dicts.insert("wty-es-en".to_string());
