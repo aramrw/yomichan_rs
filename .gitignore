@@ -7,3 +7,4 @@ db.ycd
 GEMINI.md
 *.txt
 .worktrees/
+*DS_STORE
