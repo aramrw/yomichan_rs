@@ -1,26 +1,24 @@
 use std::sync::Arc;
 
+use crate::translator::types::FindTermsMatchType;
 use crate::{
-    database::{
-        DictionaryService, DictionaryDatabaseError, DictionarySummary,
-    },
-    environment::EnvironmentInfo,
-    text_scanner::TextScanner,
-    settings::{YomichanOptions, ProfileResult},
-    errors::DBError,
+    database::{DictionaryDatabaseError, DictionaryService, DictionarySummary},
+    scanner::core::TextScanner,
+    settings::core::{ProfileResult, YomichanOptions},
+    settings::environment::EnvironmentInfo,
+    utils::errors::DBError,
     Ptr, Yomichan,
 };
-use crate::translation::FindTermsMatchType;
-use native_model::decode;
+//use native_model::decode;
 
 #[cfg(feature = "anki")]
-use crate::anki::DisplayAnki;
+use crate::anki::core::{DisplayAnki, DisplayAnkiError};
 
 pub struct Backend<'a> {
     pub _environment: EnvironmentInfo,
     #[cfg(feature = "anki")]
     pub anki: Ptr<DisplayAnki>,
-    pub text_scanner: TextScanner<'a>,
+    pub scanner: TextScanner<'a>,
     pub db: Arc<dyn DictionaryService>,
     pub options: Ptr<YomichanOptions>,
 }
@@ -30,14 +28,41 @@ impl<'a> Backend<'a> {
     pub fn new(db: Arc<dyn DictionaryService>) -> Result<Self, Box<DictionaryDatabaseError>> {
         let opts_blob = db.get_settings()?;
         let options = match opts_blob {
-            Some(blob) => decode::<YomichanOptions>(blob).map(|(t, _)| t).expect("Failed to decode options"),
+            Some(blob) => native_model::decode::<YomichanOptions>(blob)
+                .map(|(t, _)| t)
+                .expect("Failed to decode options"),
             None => YomichanOptions::new(),
         };
         let backend = Self {
             _environment: EnvironmentInfo::default(),
-            text_scanner: TextScanner::new(db.clone()),
+            scanner: TextScanner::new(db.clone()),
             db: db.clone(),
             options: Ptr::new(options),
+        };
+        Ok(backend)
+    }
+
+    #[cfg(feature = "anki")]
+    pub fn default_sync(db: Arc<dyn DictionaryService>) -> Result<Self, DisplayAnkiError> {
+        // TODO: r_transaction was part of native_db.
+        // Need to implement settings retrieval via DictionaryService (sqlite).
+        let opts_blob = db
+            .get_settings()
+            .map_err(|e| DisplayAnkiError::Custom(e.to_string()))?;
+        let options: YomichanOptions = match opts_blob {
+            Some(blob) => native_model::decode::<YomichanOptions>(blob)
+                .map(|(t, _)| t)
+                .expect("Failed to decode options"),
+            None => YomichanOptions::new(),
+        };
+        let options: Ptr<YomichanOptions> = options.into();
+        let anki = Ptr::new(DisplayAnki::default_latest(options.clone()));
+        let backend = Self {
+            _environment: EnvironmentInfo::default(),
+            scanner: TextScanner::new(db.clone()),
+            anki,
+            db: db.clone(),
+            options: options.clone(),
         };
         Ok(backend)
     }
@@ -49,9 +74,7 @@ impl<'a> Backend<'a> {
     ///
     /// * Option<YomichanOptions>: The previous [YomichanOptions] found in the db.
     ///   [None] should only ever happen after [Yomichan] creates a brand new `ycd.db`.
-    fn _update_options_internal(
-        &self,
-    ) -> Result<(), Box<DictionaryDatabaseError>> {
+    fn _update_options_internal(&self) -> Result<(), Box<DictionaryDatabaseError>> {
         // Options update in SQLite is handled in import_dictionaries or via manual SQL if needed.
         // For now, since native_db is gone, we don't have RwTransaction here.
         // This should probably be moved to use rusqlite or the DictionaryService.
@@ -75,7 +98,7 @@ impl<'a> Yomichan<'a> {
 
     #[cfg(feature = "anki")]
     /// Returns a direct handle to the Anki integration for the current profile.
-    pub fn anki(&self) -> crate::PtrRGaurd<DisplayAnki> {
+    pub fn anki(&self) -> crate::utils::PtrRGaurd<DisplayAnki> {
         self.backend.anki.read_arc()
     }
 
@@ -106,8 +129,10 @@ impl<'a> Yomichan<'a> {
         names: &[impl AsRef<str>],
     ) -> Result<(), DBError> {
         let opts = self.options();
-        let mut opts_guard = opts.write();
-        let current_profile_ptr = opts_guard.get_current_profile().map_err(|e| DBError::from(e))?;
+        let opts_guard = opts.read();
+        let current_profile_ptr = opts_guard
+            .get_current_profile()
+            .map_err(|e| DBError::from(e))?;
         current_profile_ptr.with_ptr_mut(|prof| {
             let dictionaries = prof.dictionaries_mut();
             for name in names {
@@ -120,15 +145,21 @@ impl<'a> Yomichan<'a> {
 
     pub fn delete_dictionaries_by_indexes(&self, indexes: &[usize]) -> Result<(), DBError> {
         let opts = self.options();
-        let mut opts_guard = opts.write();
-        let current_profile_ptr = opts_guard.get_current_profile().map_err(|e| DBError::from(e))?;
+        let opts_guard = opts.read();
+        let current_profile_ptr = opts_guard
+            .get_current_profile()
+            .map_err(|e| DBError::from(e))?;
         current_profile_ptr.with_ptr_mut(|prof| {
             let dictionaries = prof.dictionaries_mut();
             for i in indexes {
                 dictionaries.swap_remove_index(*i);
             }
         });
-        self.update_options().map_err(|e| DBError::Import(crate::errors::ImportError::ExternalImporter(e.to_string())))?;
+        self.update_options().map_err(|e| {
+            DBError::Import(crate::utils::errors::ImportError::ExternalImporter(
+                e.to_string(),
+            ))
+        })?;
 
         Ok(())
     }
@@ -142,7 +173,11 @@ impl<'a> Yomichan<'a> {
     // 1. Remove from databasel + all profiles in memory
     // 2. Persist updated options to database via
     pub fn remove_dictionary(&self, name: &str) -> Result<(), DBError> {
-        self.db.get_dictionary_summaries().map_err(|e| DBError::Import(crate::errors::ImportError::ExternalImporter(e.to_string())))?;
+        self.db.get_dictionary_summaries().map_err(|e| {
+            DBError::Import(crate::utils::errors::ImportError::ExternalImporter(
+                e.to_string(),
+            ))
+        })?;
 
         {
             let opts_ptr = self.options();
@@ -154,7 +189,11 @@ impl<'a> Yomichan<'a> {
             }
         }
 
-        self.update_options().map_err(|e| DBError::Import(crate::errors::ImportError::ExternalImporter(e.to_string())))?;
+        self.update_options().map_err(|e| {
+            DBError::Import(crate::utils::errors::ImportError::ExternalImporter(
+                e.to_string(),
+            ))
+        })?;
 
         Ok(())
     }

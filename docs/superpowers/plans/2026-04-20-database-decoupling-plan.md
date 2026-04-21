@@ -22,10 +22,10 @@
 
 ```rust
 pub trait DictionaryService: Send + Sync {
-    fn find_tag_meta_bulk(&self, queries: &[crate::database::dictionary_database::GenericQueryRequest]) -> Result<Vec<crate::importer::dictionary_database::DatabaseTagMeta>, crate::errors::DBError>;
+    fn find_tag_meta_bulk(&self, queries: &[crate::database::dictionary_database::GenericQueryRequest]) -> Result<Vec<crate::yomichan_importer::dictionary_database::DatabaseTagMeta>, crate::errors::DBError>;
     fn find_term_meta_bulk(&self, keys: &[String], enabled_dictionaries: &crate::database::dictionary_database::TermEnabledDictionaryMap) -> Result<Vec<crate::database::dictionary_database::DatabaseTermMeta>, crate::errors::DBError>;
-    fn find_terms_exact_bulk(&self, terms: &[crate::database::dictionary_database::TermExactQueryRequest], enabled_dictionaries: &crate::database::dictionary_database::TermEnabledDictionaryMap) -> Result<Vec<crate::importer::dictionary_database::TermEntry>, crate::errors::DBError>;
-    fn find_terms_by_sequence_bulk(&self, queries: Vec<crate::database::dictionary_database::GenericQueryRequest>) -> Result<Vec<crate::importer::dictionary_database::TermEntry>, crate::errors::DBError>;
+    fn find_terms_exact_bulk(&self, terms: &[crate::database::dictionary_database::TermExactQueryRequest], enabled_dictionaries: &crate::database::dictionary_database::TermEnabledDictionaryMap) -> Result<Vec<crate::yomichan_importer::dictionary_database::TermEntry>, crate::errors::DBError>;
+    fn find_terms_by_sequence_bulk(&self, queries: Vec<crate::database::dictionary_database::GenericQueryRequest>) -> Result<Vec<crate::yomichan_importer::dictionary_database::TermEntry>, crate::errors::DBError>;
 }
 ```
 

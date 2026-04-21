@@ -1,9 +1,9 @@
-use crate::{
-    translation_internal::TextProcessorRuleChainCandidate,
-};
+use crate::translator::internal_types::TextProcessorRuleChainCandidate;
 use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
-use importer::{
-    dictionary_database::{DictionaryTag, TermSourceMatchSource, TermSourceMatchType, Pronunciation},
+use yomichan_importer::{
+    dictionary_database::{
+        DictionaryTag, Pronunciation, TermSourceMatchSource, TermSourceMatchType,
+    },
     structured_content::TermGlossaryContentGroup,
 };
 use indexmap::IndexMap;

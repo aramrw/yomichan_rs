@@ -1,15 +1,14 @@
 use crate::database::dictionary_importer::DictionarySummary;
 use crate::dictionary_importer::CHUNKS;
-use crate::settings::{DictionaryOptions, YomichanOptions};
-use crate::translator::TagTargetItem;
-use importer::dictionary_data::{TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
-use importer::dictionary_database::{DictionaryTag, TermEntry, TermMetaPhoneticData};
-use importer::dictionary_database::{TermSourceMatchSource, TermSourceMatchType};
-use importer::structured_content::TermGlossaryGroupType;
+use crate::translator::core::TagTargetItem;
+use yomichan_importer::dictionary_data::{TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
+use yomichan_importer::dictionary_database::{TermEntry, TermMetaPhoneticData};
+use yomichan_importer::dictionary_database::{TermSourceMatchSource, TermSourceMatchType};
+use yomichan_importer::structured_content::TermGlossaryGroupType;
 use serde_with::{serde_as, NoneAsEmptyString};
 
 use indexmap::{IndexMap, IndexSet};
-use native_model::{decode, encode, native_model, Model as NativeModelTrait};
+use native_model::{decode, native_model};
 use parking_lot::Mutex;
 use rusqlite::{params, Connection};
 use std::sync::Arc;
@@ -585,7 +584,6 @@ impl DictionaryDatabase {
                 let data: Vec<u8> = row.get(0)?;
                 let expression: String = row.get(1)?;
                 let reading: String = row.get(2)?;
-                
                 let (db_model, _) = match decode::<DatabaseTermEntry>(data.clone()) {
                     Ok(val) => val,
                     Err(e) => {
@@ -870,14 +868,14 @@ impl crate::database::DictionaryService for DictionaryDatabase {
         &self,
         terms: &[TermExactQueryRequest],
         enabled_dictionaries: &dyn DictionarySet,
-    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
+    ) -> Result<Vec<yomichan_importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
         self.find_terms_exact_bulk(terms, enabled_dictionaries)
     }
 
     fn find_terms_by_sequence_bulk(
         &self,
         queries: Vec<GenericQueryRequest>,
-    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
+    ) -> Result<Vec<yomichan_importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
         self.find_terms_by_sequence_bulk(queries)
     }
 
@@ -913,8 +911,7 @@ pub fn split_string_field(field: String) -> Vec<String> {
 #[cfg(test)]
 mod ycd {
     use super::*;
-    use crate::test_utils;
-    use pretty_assertions::assert_eq;
+    use crate::utils::test_utils;
 
     #[test]
     fn find_terms_sequence_bulk() {

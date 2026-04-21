@@ -2,15 +2,15 @@ use std::{cmp, collections::HashSet, sync::Arc};
 
 use indexmap::IndexMap;
 
-use importer::dictionary_database::TermSourceMatchType;
+use yomichan_importer::dictionary_database::TermSourceMatchType;
 
 use crate::{
     backend::FindTermsDetails,
-    database::{dictionary_database::DictionaryDatabase, DictionaryService},
+    database::DictionaryService,
     // these do not exist in importer
-    dictionary::{TermDictionaryEntry, TermSource},
-    settings::ProfileOptions,
-    translator::{FindTermsMode, FindTermsResult, Translator},
+    models::dictionary::{TermDictionaryEntry, TermSource},
+    settings::core::ProfileOptions,
+    translator::core::{FindTermsMode, FindTermsResult, Translator},
     Yomichan,
 };
 
@@ -66,7 +66,7 @@ impl Yomichan<'_> {
         let profile = self.backend.get_current_profile().ok()?;
         let profile = profile.read();
         let opts = profile.options();
-        let res = self.backend.text_scanner.search_sentence(text, opts)?;
+        let res = self.backend.scanner.search_sentence(text, opts)?;
         Some(SentenceParser::parse(res))
     }
 }
@@ -436,7 +436,7 @@ impl<'a> TextScanner<'a> {
 
         let find_terms_options =
             Translator::_get_translator_find_terms_options(MODE, &details, options);
-        
+
         let find_result = self
             .translator
             .find_terms(MODE, search_text, &find_terms_options);
@@ -559,7 +559,7 @@ impl<'a> TextScanner<'a> {
 
 #[cfg(test)]
 mod textscanner {
-    use crate::test_utils::{self, YCD};
+    use crate::utils::test_utils::{self, YCD};
     use std::{fs::OpenOptions, io::Write};
 
     #[test]
@@ -578,7 +578,7 @@ mod textscanner {
     #[test]
     fn search() {
         let ycd = &YCD;
-        ycd.set_language("ja");
+        ycd.set_language("ja").unwrap();
         let res = ycd.search("晩餐");
         let Some(res) = res else {
             panic!("search test failed");
@@ -612,9 +612,9 @@ mod textscanner {
 
 #[cfg(test)]
 mod dbtests {
-    use crate::{test_utils, Yomichan};
+    use crate::{utils::test_utils, Yomichan};
     use std::fs::remove_dir_all;
-    use tracing_test::traced_test;
+    //use tracing_test::traced_test;
 
     #[test]
     #[ignore]

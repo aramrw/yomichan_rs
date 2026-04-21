@@ -1,9 +1,9 @@
 use deinflector::language_d::FindTermsTextReplacements;
-use importer::dictionary_database::TermSourceMatchType;
+use yomichan_importer::dictionary_database::TermSourceMatchType;
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
-use crate::settings::SearchResolution;
+use crate::settings::core::SearchResolution;
 
 // Kanji
 

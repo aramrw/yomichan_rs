@@ -1,17 +1,15 @@
 use std::ops::Deref;
 use std::ops::DerefMut;
-use std::sync::Arc;
 
-#[cfg(feature = "anki")]
-use crate::anki::DisplayAnki;
+// #[cfg(feature = "anki")]
+// use crate::anki::core::DisplayAnki;
+
 use crate::backend::Backend;
 use crate::Ptr;
 use crate::Yomichan;
-use anki_direct::cache::model::ModelCache;
 use anki_direct::decks::DeckConfig;
 use anki_direct::model::FullModelDetails;
 use better_default::Default;
-use derivative::Derivative;
 use derive_more::derive::Deref;
 use derive_more::derive::DerefMut;
 use derive_more::derive::From;
@@ -23,11 +21,10 @@ use native_db::native_db;
 use native_db::ToKey;
 use native_model::native_model;
 use native_model::Model;
-use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use url::form_urlencoded::Target;
 
-use crate::{translation::FindTermsSortOrder, translator::FindTermsMode};
+use crate::translator::{core::FindTermsMode, types::FindTermsSortOrder};
 
 /// Global application-level options.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]

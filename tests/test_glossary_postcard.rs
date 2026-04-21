@@ -1,5 +1,5 @@
-use yomichan_rs::database::dictionary_database::DatabaseTermEntry;
-use importer::structured_content::{TermGlossaryContentGroup, TermGlossaryGroupType};
+//use yomichan_rs::database::dictionary_database::DatabaseTermEntry;
+use yomichan_importer::structured_content::{TermGlossaryContentGroup, TermGlossaryGroupType};
 
 #[test]
 fn test_glossary_postcard() {

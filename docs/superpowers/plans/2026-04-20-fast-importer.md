@@ -86,10 +86,10 @@ Replace the sequential term insertion loop with a `par_iter` collection.
             rules: t.7.to_string(),
             score: t.8,
             glossary: t.9.into_iter().map(|g| match g {
-                importer::structured_content::TermGlossaryGroupType::Content(c) => {
+                yomichan_importer::structured_content::TermGlossaryGroupType::Content(c) => {
                     TermGlossaryGroupType::Content(TermGlossaryContentGroup { plain_text: c.plain_text, html: c.html })
                 }
-                importer::structured_content::TermGlossaryGroupType::Deinflection(d) => {
+                yomichan_importer::structured_content::TermGlossaryGroupType::Deinflection(d) => {
                     TermGlossaryGroupType::Deinflection(TermGlossaryDeinflection { form_of: d.form_of, rules: d.rules.iter().map(|s| s.to_owned()).collect() })
                 }
             }).collect(),

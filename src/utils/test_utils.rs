@@ -1,11 +1,6 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, LazyLock},
-};
-use tempfile::{tempdir_in, TempDir};
+use std::{path::PathBuf, sync::LazyLock};
 
 use crate::{database::dictionary_database::DictionaryDatabase, Yomichan};
-use parking_lot::RwLock;
 
 pub struct TestPaths {
     pub tests_dir: PathBuf,
@@ -20,8 +15,8 @@ pub static TEST_PATHS: LazyLock<TestPaths> = LazyLock::new(|| TestPaths {
 });
 
 pub static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
-    let mut ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
-    ycd.set_language("en");
+    let ycd = Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap();
+    ycd.set_language("es").unwrap();
     ycd
 });
 
@@ -38,11 +33,6 @@ pub static SHARED_DB_INSTANCE: LazyLock<DictionaryDatabase> = LazyLock::new(|| {
     DictionaryDatabase::new(db_path)
 });
 
-pub(crate) enum BacktraceKind {
-    One,
-    Full,
-}
-
 impl std::fmt::Display for BacktraceKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let x = match self {
@@ -53,8 +43,16 @@ impl std::fmt::Display for BacktraceKind {
     }
 }
 
-pub(crate) fn set_backtrace(kind: BacktraceKind) {
-    std::env::set_var("RUST_BACKTRACE", kind.to_string());
+// Do not delete
+#[allow(dead_code)]
+pub(crate) enum BacktraceKind {
+    One,
+    Full,
+}
+impl BacktraceKind {
+    pub(crate) fn _set_backtrace(kind: BacktraceKind) {
+        std::env::set_var("RUST_BACKTRACE", kind.to_string());
+    }
 }
 
 // Copies the test database to a temporary directory.
