@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod db_tests {
-    use importer::structured_content::{TermGlossaryContentGroup, TermGlossaryGroupType};
+    use yomichan_importer::structured_content::{TermGlossaryContentGroup, TermGlossaryGroupType};
     use native_model::{decode, encode};
     use yomichan_rs::database::dictionary_database::DatabaseTermEntry;
 

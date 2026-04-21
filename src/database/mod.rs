@@ -27,15 +27,15 @@ pub trait DictionaryService: Send + Sync {
         &self,
         terms: &[TermExactQueryRequest],
         enabled_dictionaries: &dyn crate::database::dictionary_database::DictionarySet,
-    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>>;
+    ) -> Result<Vec<yomichan_importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>>;
     fn find_terms_by_sequence_bulk(
         &self,
         queries: Vec<GenericQueryRequest>,
-    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>>;
+    ) -> Result<Vec<yomichan_importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>>;
     fn find_terms_bulk(
         &self,
         term_list: &[String],
         dictionaries: &dyn crate::database::dictionary_database::DictionarySet,
-        match_type: importer::dictionary_database::TermSourceMatchType,
-    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>>;
+        match_type: yomichan_importer::dictionary_database::TermSourceMatchType,
+    ) -> Result<Vec<yomichan_importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>>;
 }

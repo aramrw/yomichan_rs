@@ -2,7 +2,7 @@ use std::{cmp, collections::HashSet, sync::Arc};
 
 use indexmap::IndexMap;
 
-use importer::dictionary_database::TermSourceMatchType;
+use yomichan_importer::dictionary_database::TermSourceMatchType;
 
 use crate::{
     backend::FindTermsDetails,

@@ -1,7 +1,7 @@
 #[cfg(feature = "anki")]
 use crate::anki::core::DisplayAnkiError;
 use crate::settings::core::ProfileError;
-use importer::dictionary_importer::DictionarySummaryError;
+use yomichan_importer::dictionary_importer::DictionarySummaryError;
 use native_db::db_type;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -149,8 +149,8 @@ pub enum ImportError {
     ExternalImporter(String),
 }
 
-impl From<importer::errors::ImportError> for ImportError {
-    fn from(err: importer::errors::ImportError) -> Self {
+impl From<yomichan_importer::errors::ImportError> for ImportError {
+    fn from(err: yomichan_importer::errors::ImportError) -> Self {
         ImportError::ExternalImporter(err.to_string())
     }
 }

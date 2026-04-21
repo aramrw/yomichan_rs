@@ -20,7 +20,7 @@ select option in "dbtests::init_db" "textscanner::search_dbg" "quit"; do
       ;;
     "textscanner::search_dbg")
       echo "🚀 Running text scanner test..."
-      cargo test textscanner::search_dbg $CARGO_ARGS
+      RUSTFLAGS="-Awarnings" cargo test textscanner::search_dbg $CARGO_ARGS
       break # Exit the loop after running
       ;;
     "quit")

@@ -69,7 +69,7 @@ use icu::{
     collator::{options::CollatorOptions, Collator, CollatorBorrowed},
     locale::locale,
 };
-use importer::{
+use yomichan_importer::{
     dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum},
     dictionary_database::{
         DictionaryTag, PhoneticTranscription, PitchAccent, Pronunciation, TermEntry,
@@ -1936,7 +1936,7 @@ impl<'a> Translator<'a> {
     ) {
         // should match result instead of empty vec but
         // this is how yomitan_js does
-        let database_entries: Vec<importer::dictionary_database::TermEntry> = self
+        let database_entries: Vec<yomichan_importer::dictionary_database::TermEntry> = self
             .db
             .find_terms_by_sequence_bulk(sequence_list)
             .unwrap_or_default();
@@ -2571,7 +2571,7 @@ impl<'a> Translator<'a> {
     }
     /// [TermGlossary]
     fn _create_internal_term_dictionary_entry_from_database_entry(
-        database_entry: importer::dictionary_database::TermEntry,
+        database_entry: yomichan_importer::dictionary_database::TermEntry,
         original_text: &str,
         transformed_text: &str,
         deinflected_text: &str,

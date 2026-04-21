@@ -1,10 +1,10 @@
 use crate::database::dictionary_importer::DictionarySummary;
 use crate::dictionary_importer::CHUNKS;
 use crate::translator::core::TagTargetItem;
-use importer::dictionary_data::{TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
-use importer::dictionary_database::{TermEntry, TermMetaPhoneticData};
-use importer::dictionary_database::{TermSourceMatchSource, TermSourceMatchType};
-use importer::structured_content::TermGlossaryGroupType;
+use yomichan_importer::dictionary_data::{TermMetaFreqDataMatchType, TermMetaModeType, TermMetaPitchData};
+use yomichan_importer::dictionary_database::{TermEntry, TermMetaPhoneticData};
+use yomichan_importer::dictionary_database::{TermSourceMatchSource, TermSourceMatchType};
+use yomichan_importer::structured_content::TermGlossaryGroupType;
 use serde_with::{serde_as, NoneAsEmptyString};
 
 use indexmap::{IndexMap, IndexSet};
@@ -868,14 +868,14 @@ impl crate::database::DictionaryService for DictionaryDatabase {
         &self,
         terms: &[TermExactQueryRequest],
         enabled_dictionaries: &dyn DictionarySet,
-    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
+    ) -> Result<Vec<yomichan_importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
         self.find_terms_exact_bulk(terms, enabled_dictionaries)
     }
 
     fn find_terms_by_sequence_bulk(
         &self,
         queries: Vec<GenericQueryRequest>,
-    ) -> Result<Vec<importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
+    ) -> Result<Vec<yomichan_importer::dictionary_database::TermEntry>, Box<DictionaryDatabaseError>> {
         self.find_terms_by_sequence_bulk(queries)
     }
 

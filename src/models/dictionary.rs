@@ -1,6 +1,6 @@
 use crate::translator::internal_types::TextProcessorRuleChainCandidate;
 use deinflector::transformer::{InflectionRuleChainCandidate, InflectionSource};
-use importer::{
+use yomichan_importer::{
     dictionary_database::{
         DictionaryTag, Pronunciation, TermSourceMatchSource, TermSourceMatchType,
     },

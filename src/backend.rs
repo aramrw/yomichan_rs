@@ -28,7 +28,7 @@ impl<'a> Backend<'a> {
     pub fn new(db: Arc<dyn DictionaryService>) -> Result<Self, Box<DictionaryDatabaseError>> {
         let opts_blob = db.get_settings()?;
         let options = match opts_blob {
-            Some(blob) => decode::<YomichanOptions>(blob)
+            Some(blob) => native_model::decode::<YomichanOptions>(blob)
                 .map(|(t, _)| t)
                 .expect("Failed to decode options"),
             None => YomichanOptions::new(),

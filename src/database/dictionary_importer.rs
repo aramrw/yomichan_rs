@@ -8,14 +8,14 @@ use crate::utils::errors::{ImportError, ImportZipError};
 use crate::Ptr;
 use crate::Yomichan;
 
-use importer::dictionary_data::{
+use yomichan_importer::dictionary_data::{
     FreqObjectData, GenericFreqData, Pitch as DictionaryPitch, TermMetaFreqDataMatchType,
     TermMetaFreqDataWithReading, TermMetaModeType, TermMetaPitchData, VecNumOrNum,
 };
-use importer::dictionary_database::{
+use yomichan_importer::dictionary_database::{
     DictionaryTag, PhoneticTranscription, TermMetaPhoneticData, TermPronunciationMatchType,
 };
-use importer::structured_content::{
+use yomichan_importer::structured_content::{
     TermGlossaryContentGroup, TermGlossaryDeinflection, TermGlossaryGroupType,
 };
 use indexmap::IndexMap;
@@ -152,7 +152,7 @@ pub fn import_dictionary<P: AsRef<Path>>(
     db: Arc<DictionaryDatabase>,
     _current_profile: Ptr<YomichanProfile>,
 ) -> Result<DictionaryOptions, ImportError> {
-    let external_data = importer::import_dictionary(&zip_path)?;
+    let external_data = yomichan_importer::import_dictionary(&zip_path)?;
     tracing::info!(
         "Mapping dictionary data for: {}",
         external_data.summary.title
@@ -180,42 +180,42 @@ pub fn import_dictionary<P: AsRef<Path>>(
             id: m.id,
             freq_expression: m.freq_expression,
             mode: match m.mode {
-                importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
-                importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
-                importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
+                yomichan_importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
+                yomichan_importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
+                yomichan_importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
             },
             data: match m.data {
-                importer::dictionary_data::TermMetaFreqDataMatchType::WithReading(wr) => {
+                yomichan_importer::dictionary_data::TermMetaFreqDataMatchType::WithReading(wr) => {
                     TermMetaFreqDataMatchType::WithReading(TermMetaFreqDataWithReading {
                         reading: wr.reading,
                         frequency: match wr.frequency {
-                            importer::dictionary_data::GenericFreqData::Object(obj) => {
+                            yomichan_importer::dictionary_data::GenericFreqData::Object(obj) => {
                                 GenericFreqData::Object(FreqObjectData {
                                     value: obj.value,
                                     display_value: obj.display_value,
                                 })
                             }
-                            importer::dictionary_data::GenericFreqData::Integer(i) => {
+                            yomichan_importer::dictionary_data::GenericFreqData::Integer(i) => {
                                 GenericFreqData::Integer(i)
                             }
-                            importer::dictionary_data::GenericFreqData::String(s) => {
+                            yomichan_importer::dictionary_data::GenericFreqData::String(s) => {
                                 GenericFreqData::String(s)
                             }
                         },
                     })
                 }
-                importer::dictionary_data::TermMetaFreqDataMatchType::Generic(g) => {
+                yomichan_importer::dictionary_data::TermMetaFreqDataMatchType::Generic(g) => {
                     TermMetaFreqDataMatchType::Generic(match g {
-                        importer::dictionary_data::GenericFreqData::Object(obj) => {
+                        yomichan_importer::dictionary_data::GenericFreqData::Object(obj) => {
                             GenericFreqData::Object(FreqObjectData {
                                 value: obj.value,
                                 display_value: obj.display_value,
                             })
                         }
-                        importer::dictionary_data::GenericFreqData::Integer(i) => {
+                        yomichan_importer::dictionary_data::GenericFreqData::Integer(i) => {
                             GenericFreqData::Integer(i)
                         }
-                        importer::dictionary_data::GenericFreqData::String(s) => {
+                        yomichan_importer::dictionary_data::GenericFreqData::String(s) => {
                             GenericFreqData::String(s)
                         }
                     })
@@ -240,33 +240,33 @@ pub fn import_dictionary<P: AsRef<Path>>(
         .collect();
 
     let term_meta_list: Vec<DatabaseMetaMatchType> = external_data.term_meta_list.into_par_iter().map(|m| match m {
-        importer::dictionary_database::DatabaseMetaMatchType::Frequency(f) => DatabaseMetaMatchType::Frequency(DatabaseMetaFrequency {
+        yomichan_importer::dictionary_database::DatabaseMetaMatchType::Frequency(f) => DatabaseMetaMatchType::Frequency(DatabaseMetaFrequency {
             id: f.id, freq_expression: f.freq_expression, mode: match f.mode {
-                importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
-                importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
-                importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
+                yomichan_importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
+                yomichan_importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
+                yomichan_importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
             },
             data: match f.data {
-                importer::dictionary_data::TermMetaFreqDataMatchType::WithReading(wr) => TermMetaFreqDataMatchType::WithReading(TermMetaFreqDataWithReading {
+                yomichan_importer::dictionary_data::TermMetaFreqDataMatchType::WithReading(wr) => TermMetaFreqDataMatchType::WithReading(TermMetaFreqDataWithReading {
                     reading: wr.reading, frequency: match wr.frequency {
-                        importer::dictionary_data::GenericFreqData::Object(obj) => GenericFreqData::Object(FreqObjectData { value: obj.value, display_value: obj.display_value }),
-                        importer::dictionary_data::GenericFreqData::Integer(i) => GenericFreqData::Integer(i),
-                        importer::dictionary_data::GenericFreqData::String(s) => GenericFreqData::String(s),
+                        yomichan_importer::dictionary_data::GenericFreqData::Object(obj) => GenericFreqData::Object(FreqObjectData { value: obj.value, display_value: obj.display_value }),
+                        yomichan_importer::dictionary_data::GenericFreqData::Integer(i) => GenericFreqData::Integer(i),
+                        yomichan_importer::dictionary_data::GenericFreqData::String(s) => GenericFreqData::String(s),
                     },
                 }),
-                importer::dictionary_data::TermMetaFreqDataMatchType::Generic(g) => TermMetaFreqDataMatchType::Generic(match g {
-                    importer::dictionary_data::GenericFreqData::Object(obj) => GenericFreqData::Object(FreqObjectData { value: obj.value, display_value: obj.display_value }),
-                    importer::dictionary_data::GenericFreqData::Integer(i) => GenericFreqData::Integer(i),
-                    importer::dictionary_data::GenericFreqData::String(s) => GenericFreqData::String(s),
+                yomichan_importer::dictionary_data::TermMetaFreqDataMatchType::Generic(g) => TermMetaFreqDataMatchType::Generic(match g {
+                    yomichan_importer::dictionary_data::GenericFreqData::Object(obj) => GenericFreqData::Object(FreqObjectData { value: obj.value, display_value: obj.display_value }),
+                    yomichan_importer::dictionary_data::GenericFreqData::Integer(i) => GenericFreqData::Integer(i),
+                    yomichan_importer::dictionary_data::GenericFreqData::String(s) => GenericFreqData::String(s),
                 }),
             },
             dictionary: f.dictionary,
         }),
-        importer::dictionary_database::DatabaseMetaMatchType::Pitch(p) => DatabaseMetaMatchType::Pitch(DatabaseMetaPitch {
+        yomichan_importer::dictionary_database::DatabaseMetaMatchType::Pitch(p) => DatabaseMetaMatchType::Pitch(DatabaseMetaPitch {
             id: p.id, pitch_expression: p.pitch_expression, mode: match p.mode {
-                importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
-                importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
-                importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
+                yomichan_importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
+                yomichan_importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
+                yomichan_importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
             },
             data: TermMetaPitchData {
                 reading: p.data.reading, pitches: p.data.pitches.into_iter().map(|p| DictionaryPitch {
@@ -277,17 +277,17 @@ pub fn import_dictionary<P: AsRef<Path>>(
             },
             dictionary: p.dictionary,
         }),
-        importer::dictionary_database::DatabaseMetaMatchType::Phonetic(p) => DatabaseMetaMatchType::Phonetic(DatabaseMetaPhonetic {
+        yomichan_importer::dictionary_database::DatabaseMetaMatchType::Phonetic(p) => DatabaseMetaMatchType::Phonetic(DatabaseMetaPhonetic {
             id: p.id, phonetic_expression: p.phonetic_expression, mode: match p.mode {
-                importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
-                importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
-                importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
+                yomichan_importer::dictionary_data::TermMetaModeType::Freq => TermMetaModeType::Freq,
+                yomichan_importer::dictionary_data::TermMetaModeType::Pitch => TermMetaModeType::Pitch,
+                yomichan_importer::dictionary_data::TermMetaModeType::Ipa => TermMetaModeType::Ipa,
             },
             data: TermMetaPhoneticData {
                 reading: p.data.reading, transcriptions: p.data.transcriptions.into_iter().map(|t| PhoneticTranscription {
                     match_type: match t.match_type {
-                        importer::dictionary_database::TermPronunciationMatchType::PitchAccent => TermPronunciationMatchType::PitchAccent,
-                        importer::dictionary_database::TermPronunciationMatchType::PhoneticTranscription => TermPronunciationMatchType::PhoneticTranscription,
+                        yomichan_importer::dictionary_database::TermPronunciationMatchType::PitchAccent => TermPronunciationMatchType::PitchAccent,
+                        yomichan_importer::dictionary_database::TermPronunciationMatchType::PhoneticTranscription => TermPronunciationMatchType::PhoneticTranscription,
                     },
                     ipa: t.ipa, tags: t.tags.into_iter().map(|tag| DictionaryTag {
                         name: tag.name, category: tag.category, order: tag.order, score: tag.score, content: tag.content, dictionaries: tag.dictionaries, redundant: tag.redundant,
@@ -317,13 +317,13 @@ pub fn import_dictionary<P: AsRef<Path>>(
                     .9
                     .into_iter()
                     .map(|g| match g {
-                        importer::structured_content::TermGlossaryGroupType::Content(c) => {
+                        yomichan_importer::structured_content::TermGlossaryGroupType::Content(c) => {
                             TermGlossaryGroupType::Content(TermGlossaryContentGroup {
                                 plain_text: c.plain_text,
                                 html: c.html,
                             })
                         }
-                        importer::structured_content::TermGlossaryGroupType::Deinflection(d) => {
+                        yomichan_importer::structured_content::TermGlossaryGroupType::Deinflection(d) => {
                             TermGlossaryGroupType::Deinflection(TermGlossaryDeinflection {
                                 form_of: d.form_of,
                                 rules: d.rules.iter().map(|s| s.to_owned()).collect(),

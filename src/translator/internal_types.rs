@@ -1,6 +1,6 @@
 use deinflector::language_d::TextProcessorSetting;
 use deinflector::transformer::InternalInflectionRuleChainCandidate;
-use importer::dictionary_database::{TermEntry, TermSourceMatchSource};
+use yomichan_importer::dictionary_database::{TermEntry, TermSourceMatchSource};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
