@@ -42,13 +42,13 @@ impl Yomichan {
     /// # use yomichan_rs::Yomichan;
     /// # use std::sync::{LazyLock, RwLock};
     /// #
-    /// # static YCD: LazyLock<RwLock<Yomichan>> = LazyLock::new(|| {
+    /// # static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
     /// #     let mut ycd = Yomichan::new("path/to/db").unwrap();
     /// #     ycd.set_language("ja").unwrap();
     /// #     RwLock::new(ycd)
     /// # });
     ///
-    /// let mut ycd = YCD.write().unwrap();
+    /// let mut ycd = &YCD;
     /// let text = "美味しいビールを飲む";
     ///
     /// if let Some(segments) = ycd.search(text) {
