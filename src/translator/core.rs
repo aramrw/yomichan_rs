@@ -65,10 +65,6 @@ use deinflector::{
 };
 use derive_more::From;
 use fancy_regex::Regex;
-use icu::{
-    collator::{options::CollatorOptions, Collator, CollatorBorrowed},
-    locale::locale,
-};
 use yomichan_importer::{
     dictionary_data::{GenericFreqData, TermMetaFreqDataMatchType, TermMetaModeType, VecNumOrNum},
     dictionary_database::{
@@ -92,13 +88,10 @@ use std::{
 use parking_lot::RwLock;
 
 /// class which finds term and kanji dictionary entries for text.
-pub struct Translator<'a> {
+pub struct Translator {
     pub db: Arc<dyn DictionaryService>,
     pub mlt: MultiLanguageTransformer,
     pub tag_cache: RwLock<IndexMap<String, TagCache>>,
-    /// Invariant Locale
-    /// Default: "en-US"
-    pub string_comparer: CollatorBorrowed<'a>,
     pub number_regex: &'static Regex,
     pub text_processors: TextProcessorMap,
     pub reading_normalizers: ReadingNormalizerMap,
@@ -107,7 +100,7 @@ pub struct Translator<'a> {
 static TRANSLATOR_NUMBER_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?").unwrap());
 
-impl<'a> Translator<'a> {
+impl Translator {
     pub fn new(db: Arc<dyn DictionaryService>) -> Self {
         let mut translator = Self::init(db);
         translator.prepare();
@@ -118,8 +111,6 @@ impl<'a> Translator<'a> {
             db,
             mlt: MultiLanguageTransformer::default(),
             tag_cache: RwLock::new(IndexMap::new()),
-            string_comparer: Collator::try_new(locale!("en-US").into(), CollatorOptions::default())
-                .unwrap(),
             number_regex: &*TRANSLATOR_NUMBER_REGEX,
             text_processors: IndexMap::new(),
             reading_normalizers: IndexMap::new(),
@@ -640,7 +631,6 @@ impl<'a> Translator<'a> {
         &self,
         dictionary_entries: &mut [InternalTermDictionaryEntry],
     ) {
-        let string_comparer = &self.string_comparer;
 
         dictionary_entries.sort_by(|v1, v2| {
             // 1. Sort by reading match (descending: true comes before false)
@@ -732,7 +722,7 @@ impl<'a> Translator<'a> {
 
                 // Sort by string comparison (ascending)
                 // i = stringComparer.compare(term1, term2);
-                let cmp_str = string_comparer.compare(term1, term2);
+                let cmp_str = term1.cmp(term2);
                 if cmp_str != Ordering::Equal {
                     return cmp_str;
                 }
@@ -826,7 +816,6 @@ impl<'a> Translator<'a> {
     }
 
     fn _group_tags_mut(&self, tag_targets: &mut [TagExpansionTarget]) {
-        let string_comparer: &CollatorBorrowed<'a> = &self.string_comparer;
         for tag_expansion_target in tag_targets.iter_mut() {
             // 1. Skip if tags length is 1 or less
             if tag_expansion_target.tags.len() <= 1 {
@@ -836,7 +825,7 @@ impl<'a> Translator<'a> {
             tag_expansion_target
                 .tags
                 .sort_by(|v1, v2| match v1.order.cmp(&v2.order) {
-                    Ordering::Equal => string_comparer.compare(&v1.name, &v2.name),
+                    Ordering::Equal => v1.name.cmp(&v2.name),
                     non_eq => non_eq,
                 });
         }

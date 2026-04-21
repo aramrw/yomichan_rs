@@ -14,7 +14,7 @@ use crate::{
     Yomichan,
 };
 
-impl Yomichan<'_> {
+impl Yomichan {
     /// Searches for dictionary terms within a given text and returns a structured, display-ready result.
     ///
     /// This is the primary method for performing a "frontend" search. It takes a string of text,
@@ -230,9 +230,9 @@ pub enum BuildNoteError {
 
 /// Scans text to find dictionary terms and sentence context.
 /// Inspired by [YomitanJS's TextScanner](https://github.com/yomidevs/yomitan/blob/2fc09f9b2d2f130ea18ae117be15f5683bc13440/ext/js/language/text-scanner.js#L33)
-pub struct TextScanner<'a> {
+pub struct TextScanner {
     /// A mutable reference to the core translator engine.
-    translator: Translator<'a>,
+    translator: Translator,
 
     /// The max number of characters to scan (initially).
     /// Corresponds to `_scanLength` in JS.
@@ -253,7 +253,7 @@ pub struct TextScanner<'a> {
     // For now, we can start with simpler sentence extraction logic.
 }
 
-impl<'a> TextScanner<'a> {
+impl TextScanner {
     /// Creates a new TextScanner with default or provided configuration.
     pub fn new(db: Arc<dyn DictionaryService>) -> Self {
         TextScanner {
@@ -382,7 +382,7 @@ impl<'a> TextScanner<'a> {
     }
 
     /// Gets the initial chunk of text to be searched.
-    fn get_text_source_content<'b>(&'a self, full_text: &'b str, start_position: usize) -> &'b str {
+    fn get_text_source_content<'b>(&self, full_text: &'b str, start_position: usize) -> &'b str {
         // you cannot just index into the string with "start_position",
         // as that's a character index, not a byte index.
         // `char_indices()` gives an iterator of `(byte_index, char)`.
@@ -628,6 +628,7 @@ mod dbtests {
         tracing::info!("🚀 Test init_db started");
 
         // Start profiling
+        #[cfg(feature = "pprof")]
         let guard = pprof::ProfilerGuard::new(100).unwrap();
 
         let td = &*test_utils::TEST_PATHS.tests_dir;
@@ -675,6 +676,7 @@ mod dbtests {
         }
 
         // Finish profiling and generate flamegraph
+        #[cfg(feature = "pprof")]
         if let Ok(report) = guard.report().build() {
             let file = std::fs::File::create("flamegraph.svg").unwrap();
             report.flamegraph(file).unwrap();

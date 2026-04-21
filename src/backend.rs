@@ -14,16 +14,16 @@ use crate::{
 #[cfg(feature = "anki")]
 use crate::anki::core::{DisplayAnki, DisplayAnkiError};
 
-pub struct Backend<'a> {
+pub struct Backend {
     pub _environment: EnvironmentInfo,
     #[cfg(feature = "anki")]
     pub anki: Ptr<DisplayAnki>,
-    pub scanner: TextScanner<'a>,
+    pub scanner: TextScanner,
     pub db: Arc<dyn DictionaryService>,
     pub options: Ptr<YomichanOptions>,
 }
 
-impl<'a> Backend<'a> {
+impl Backend {
     #[cfg(not(feature = "anki"))]
     pub fn new(db: Arc<dyn DictionaryService>) -> Result<Self, Box<DictionaryDatabaseError>> {
         let opts_blob = db.get_settings()?;
@@ -82,7 +82,7 @@ impl<'a> Backend<'a> {
     }
 }
 
-impl<'a> Yomichan<'a> {
+impl Yomichan {
     /// Saves global options for all profiles to the database;
     /// Meant to be called after you mutate a profile
     /// (ie. via [Self::mod_options_mut().get_current_profile_mut])

@@ -34,7 +34,7 @@ use std::sync::Arc;
 
 pub const CHUNKS: usize = 90;
 
-impl Yomichan<'_> {
+impl Yomichan {
     pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
         &self,
         zip_paths: &[P],
@@ -62,7 +62,7 @@ impl Yomichan<'_> {
     }
 }
 
-impl Backend<'_> {
+impl Backend {
     pub fn import_dictionaries_internal<P: AsRef<Path> + Send + Sync>(
         zip_paths: &[P],
         current_profile: Ptr<YomichanProfile>,

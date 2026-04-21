@@ -66,7 +66,7 @@ pub struct YomichanOptions {
     pub anki: Ptr<GlobalAnkiOptions>,
 }
 
-impl Yomichan<'_> {
+impl Yomichan {
     /// Returns a pointer to the global `YomichanOptions`.
     pub fn options(&self) -> Ptr<YomichanOptions> {
         self.backend.options.clone()
@@ -198,7 +198,7 @@ impl YomichanOptions {
     }
 }
 
-impl Backend<'_> {
+impl Backend {
     /// Retrieves the currently selected `YomichanProfile`.
     ///
     /// # Returns

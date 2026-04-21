@@ -42,12 +42,12 @@ pub use parking_lot;
 
 /// A Yomichan Dictionary instance, providing a comprehensive interface for dictionary lookups,
 /// text processing, and anki integration.
-pub struct Yomichan<'a> {
+pub struct Yomichan {
     db: Arc<DictionaryDatabase>,
-    backend: Backend<'a>,
+    backend: Backend,
 }
 
-impl<'a> Yomichan<'a> {
+impl Yomichan {
     /// Deletes all database files and directories associated with Yomichan in the given path.
     pub fn nuke_database(path: impl AsRef<Path>) -> std::io::Result<()> {
         let path = path.as_ref();
@@ -81,7 +81,7 @@ impl<'a> Yomichan<'a> {
 
 use crate::settings::core::{ProfileResult, YomichanProfile};
 
-impl<'a> Yomichan<'a> {
+impl Yomichan {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, YomichanError> {
         let path = path.as_ref().to_path_buf();
         let db_path = resolve_db_path(path)?;
@@ -119,7 +119,7 @@ impl<'a> Yomichan<'a> {
 }
 
 #[cfg(feature = "anki")]
-impl<'a> Yomichan<'a> {
+impl Yomichan {
     pub fn with_anki_options<F, R>(&self, f: F) -> ProfileResult<R>
     where
         F: FnOnce(&AnkiOptions) -> R,
