@@ -8,3 +8,4 @@ GEMINI.md
 *.txt
 .worktrees/
 *DS_STORE
+*.zip
