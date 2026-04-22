@@ -61,7 +61,10 @@ impl<T> Ptr<T> {
     ///
     /// # Example
     /// ```
-    /// let name = my_ptr.with(|data| data.name.clone());
+    /// # use yomichan_rs::utils::Ptr;
+    /// # struct Data { name: String }
+    /// # let my_ptr = Ptr::new(Data { name: "test".to_string() });
+    /// let name = my_ptr.with_ptr(|data| data.name.clone());
     /// ```
     pub fn with_ptr<F, R>(&self, f: F) -> R
     where
@@ -77,6 +80,9 @@ impl<T> Ptr<T> {
     /// # Example
     ///
     /// ```
+    /// # use yomichan_rs::utils::Ptr;
+    /// # struct Data { counter: i32 }
+    /// # let my_ptr = Ptr::new(Data { counter: 0 });
     /// my_ptr.with_ptr_mut(|data| {
     ///     data.counter += 1;
     /// });

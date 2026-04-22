@@ -189,7 +189,7 @@ impl Translator {
             mut dictionary_entries,
             original_text_length,
         } = self.find_terms_internal(&mut text, opts, &mut tag_aggregator, primary_reading);
-        dbg!(&dictionary_entries.len());
+        // dbg!(&dictionary_entries.len());
         match mode {
             FindTermsMode::Group => {
                 dictionary_entries = self._group_dictionary_entries_by_headword(
@@ -1850,7 +1850,7 @@ impl Translator {
                 eprintln!("Error finding terms exact bulk: {e:?}");
                 Vec::new()
             });
-        dbg!(&database_entries);
+
         // this._sortDatabaseEntriesByIndex(databaseEntries);
         // Assuming TermEntry has an `index` field which is the original index from term_list
         database_entries.sort_by_key(|e| e.index);
@@ -2443,7 +2443,7 @@ impl Translator {
                         primary_reading,
                     );
                 if transformed_text.len() > existing_transformed_len {
-                    dictionary_entries.splice(existing_index..1, iter::once(term_dictionary_entry));
+                    dictionary_entries.splice(existing_index..=existing_index, iter::once(term_dictionary_entry));
                 } else {
                     Translator::_merge_inflection_rule_chains(
                         &mut existing_entry,
@@ -3125,14 +3125,19 @@ impl Translator {
             unique_deinflections_map.into_values().collect();
 
         // Step 3: Query the database.
-        let database_entries = self
+        let database_entries = match self
             .db
             .find_terms_bulk(
                 &unique_deinflection_terms,
                 enabled_dictionary_map,
                 match_type,
-            )
-            .unwrap_or_default();
+            ) {
+            Ok(entries) => entries,
+            Err(e) => {
+                log::error!("Database error in find_terms_bulk: {}", e);
+                Vec::new()
+            }
+        };
         // println!(
         //     "found {} for:\n unique_deinflections_terms: {:#?}, enabled_dictionary_map: {:#?}",
         //     database_entries.len(),
@@ -3158,7 +3163,7 @@ impl Translator {
         enabled_dictionary_map: &FindTermDictionaryMap,
     ) {
         for entry in database_entries {
-            dbg!(&entry);
+
             let entry_dictionary = enabled_dictionary_map
                 .get(&entry.dictionary)
                 .unwrap_or_else(|| {
@@ -3188,6 +3193,8 @@ impl Translator {
                         deinflection.database_entries.push(entry.clone());
                     }
                 }
+            } else {
+                panic!("index {} out of bounds, length {}", entry.index, unique_deinflection_arrays.len());
             }
         }
     }

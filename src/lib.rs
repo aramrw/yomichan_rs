@@ -7,6 +7,7 @@
 //! the database connection, text scanning logic, and user settings into a unified,
 //! thread-safe API.
 
+#[cfg(feature = "anki")]
 pub mod anki;
 pub mod audio;
 mod backend;

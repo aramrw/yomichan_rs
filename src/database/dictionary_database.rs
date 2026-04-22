@@ -571,7 +571,7 @@ impl DictionaryDatabase {
                 "SELECT data, expression, reading FROM terms WHERE ({} IN ({}) OR {} IN ({}))",
                 actual_column, placeholders, actual_reading_column, placeholders
             );
-            dbg!(&query, &chunk);
+            // dbg!(&query, &chunk);
             let mut stmt = conn.prepare(&query)?;
             let mut params_vec: Vec<&dyn rusqlite::ToSql> = Vec::new();
             for term in chunk {
@@ -599,7 +599,7 @@ impl DictionaryDatabase {
             })?;
             for row_result in rows {
                 let (db_model, expression, reading) = row_result?;
-                dbg!(&db_model.dictionary);
+
                 if !dictionaries.has(&db_model.dictionary) {
                     continue;
                 }
@@ -620,6 +620,7 @@ impl DictionaryDatabase {
                                 || reading.starts_with(item_to_query)
                         }
                     };
+
                     if is_match {
                         let mut current_match_type_for_result = match_type;
                         let index_kind_idx = if expression.contains(item_to_query) {
@@ -927,7 +928,7 @@ mod ycd {
                     "Expected entries for sequence bulk search"
                 );
                 entries.into_iter().for_each(|entry| {
-                    dbg!(&entry);
+                    //dbg!(&entry);
                 });
             }
             Err(e) => panic!("find_terms_sequence_bulk_failed: {e}"),

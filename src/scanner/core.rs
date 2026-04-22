@@ -69,13 +69,15 @@ impl SentenceParser {
 
         let sentence_text = &results.sentence.text;
         let mut parsed_sentence: Vec<SearchSegment> = Vec::new();
-        let mut current_pos = 0;
+        let mut char_indices: Vec<(usize, char)> = sentence_text.char_indices().collect();
+        let mut current_idx = 0;
 
         let mut match_keys: Vec<_> = grouped_by_source.keys().cloned().collect();
         match_keys.sort_by_key(|b| std::cmp::Reverse(b.len()));
 
-        while current_pos < sentence_text.len() {
-            let remaining_text = &sentence_text[current_pos..];
+        while current_idx < char_indices.len() {
+            let start_byte = char_indices[current_idx].0;
+            let remaining_text = &sentence_text[start_byte..];
 
             let best_match = match_keys
                 .iter()
@@ -105,14 +107,15 @@ impl SentenceParser {
                     entries: unique_entries,
                 });
 
-                current_pos += found_key.len();
+                let chars_to_skip = found_key.chars().count();
+                current_idx += chars_to_skip;
             } else {
-                let char_str = remaining_text.chars().next().unwrap().to_string();
+                let char_str = char_indices[current_idx].1.to_string();
                 parsed_sentence.push(SearchSegment {
-                    text: char_str.clone(),
+                    text: char_str,
                     entries: vec![],
                 });
-                current_pos += char_str.len();
+                current_idx += 1;
             }
         }
 
@@ -235,7 +238,7 @@ impl TextScanner {
         // Use a language-specific scanning strategy.
         match options.general.language.as_str() {
             // For non-spaced languages, a search must be started from every position.
-            "ja" | "zh" | "ko" => {
+            "ja" | "zh" | "ko" | "es" => {
                 for (i, _) in sentence_text.char_indices() {
                     find_and_extend(&sentence_text[i..], &mut all_entries);
                 }
@@ -577,7 +580,7 @@ mod dbtests {
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let ycd = Yomichan::new(td).unwrap();
         let paths = [
-            /* tdcs.join("kotobankesjp") */ tdcs.join("wty-es-en"),
+            tdcs.join("kotobankesjp"), tdcs.join("wty-es-en"),
             tdcs.join("daijirin_dyb.zip"),
         ];
 

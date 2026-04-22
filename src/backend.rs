@@ -111,7 +111,7 @@ impl Yomichan {
     ///
     /// Returns [ProfileError::SelectedOutOfBounds] if the language len is out of bounds.
     ///
-    /// ```no_run
+    /// ```ignore
     /// fn persist_language() -> Option<()> {
     ///    set_language("es").ok()
     /// }
