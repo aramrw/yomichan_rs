@@ -20,6 +20,10 @@ pub static YCD: LazyLock<Yomichan> = LazyLock::new(|| {
     ycd
 });
 
+pub fn open_test_ycd() -> crate::Yomichan {
+    crate::Yomichan::new(&TEST_PATHS.tests_yomichan_db_path).unwrap()
+}
+
 pub static SHARED_DB_INSTANCE: LazyLock<DictionaryDatabase> = LazyLock::new(|| {
     let db_path = &*TEST_PATHS.tests_yomichan_db_path;
 
