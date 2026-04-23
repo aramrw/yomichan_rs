@@ -86,8 +86,8 @@ impl Backend {
     fn _update_settings_internal(&self) -> Result<(), Box<DictionaryDatabaseError>> {
         let opts = self.options.read();
         let blob = native_model::encode(&*opts)
-            .map_err(|e| DictionaryDatabaseError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
-        self.db.set_settings(&blob).map_err(|e| DictionaryDatabaseError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+            .map_err(|e| DictionaryDatabaseError::Database(Box::new(rusqlite::Error::ToSqlConversionFailure(Box::new(e)))))?;
+        self.db.set_settings(&blob)?;
         Ok(())
     }
 }

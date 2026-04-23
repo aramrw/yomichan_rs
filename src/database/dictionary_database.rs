@@ -519,6 +519,15 @@ impl DictionaryDatabase {
         }
     }
 
+    pub fn set_settings(&self, blob: &[u8]) -> Result<(), Box<DictionaryDatabaseError>> {
+        let conn = self.conn.lock();
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES ('options', ?)",
+            [blob],
+        )?;
+        Ok(())
+    }
+
     pub fn remove_dictionary_by_name(
         &self,
         name: &str,
@@ -842,6 +851,10 @@ impl DictionaryDatabase {
 impl crate::database::DictionaryService for DictionaryDatabase {
     fn get_settings(&self) -> Result<Option<Vec<u8>>, Box<DictionaryDatabaseError>> {
         self.get_settings()
+    }
+
+    fn set_settings(&self, blob: &[u8]) -> Result<(), Box<DictionaryDatabaseError>> {
+        self.set_settings(blob)
     }
 
     fn get_dictionary_summaries(
