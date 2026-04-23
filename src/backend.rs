@@ -1,3 +1,12 @@
+//! # Backend Engine
+//!
+//! The backend handles the coordination between the database, the text scanner,
+//! and user profiles. It provides the internal logic used by the [`Yomichan`](crate::Yomichan)
+//! facade.
+//!
+//! Most users should interact with [`Yomichan`](crate::Yomichan) directly rather than
+//! using the backend.
+
 use std::sync::Arc;
 
 use crate::translator::types::FindTermsMatchType;
@@ -74,10 +83,11 @@ impl Backend {
     ///
     /// * Option<YomichanOptions>: The previous [YomichanOptions] found in the db.
     ///   [None] should only ever happen after [Yomichan] creates a brand new `ycd.db`.
-    fn _update_options_internal(&self) -> Result<(), Box<DictionaryDatabaseError>> {
-        // Options update in SQLite is handled in import_dictionaries or via manual SQL if needed.
-        // For now, since native_db is gone, we don't have RwTransaction here.
-        // This should probably be moved to use rusqlite or the DictionaryService.
+    fn _update_settings_internal(&self) -> Result<(), Box<DictionaryDatabaseError>> {
+        let opts = self.options.read();
+        let blob = native_model::encode(&*opts)
+            .map_err(|e| DictionaryDatabaseError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        self.db.set_settings(&blob).map_err(|e| DictionaryDatabaseError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
         Ok(())
     }
 }
@@ -87,7 +97,7 @@ impl Yomichan {
     /// Meant to be called after you mutate a profile
     /// (ie. via [Self::mod_options_mut().get_current_profile_mut])
     pub fn update_options(&self) -> Result<(), Box<DictionaryDatabaseError>> {
-        self.backend._update_options_internal()?;
+        self.backend._update_settings_internal()?;
         Ok(())
     }
 
