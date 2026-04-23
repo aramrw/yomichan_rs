@@ -71,6 +71,28 @@ impl Yomichan {
     pub fn options(&self) -> Ptr<YomichanOptions> {
         self.backend.options.clone()
     }
+
+    /// Read-only access to the currently active profile.
+    pub fn with_profile<F, R>(&self, f: F) -> ProfileResult<R>
+    where
+        F: FnOnce(&YomichanProfile) -> R,
+    {
+        let opts = self.backend.options.read();
+        let profile_ptr = opts.get_current_profile()?;
+        let profile = profile_ptr.read();
+        Ok(f(&profile))
+    }
+
+    /// Mutably accesses the currently active profile.
+    pub fn with_profile_mut<F, R>(&self, f: F) -> ProfileResult<R>
+    where
+        F: FnOnce(&mut YomichanProfile) -> R,
+    {
+        let opts = self.backend.options.read();
+        let profile_ptr = opts.get_current_profile()?;
+        let mut profile = profile_ptr.write();
+        Ok(f(&mut profile))
+    }
 }
 
 impl YomichanOptions {

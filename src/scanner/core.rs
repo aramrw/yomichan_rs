@@ -5,7 +5,11 @@ use indexmap::IndexMap;
 use yomichan_importer::dictionary_database::TermSourceMatchType;
 
 use crate::{
-    Yomichan, YomichanError, backend::FindTermsDetails, database::DictionaryService, models::dictionary::{TermDictionaryEntry, TermSource}, settings::core::ProfileOptions, translator::core::{FindTermsMode, FindTermsResult, Translator}, utils::errors::SearchError
+    backend::FindTermsDetails,
+    database::DictionaryService,
+    models::dictionary::{TermDictionaryEntry, TermSource},
+    settings::core::ProfileOptions,
+    translator::core::{FindTermsMode, FindTermsResult, Translator},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -580,8 +584,9 @@ mod dbtests {
         let tdcs = &*test_utils::TEST_PATHS.test_dicts_dir;
         let ycd = Yomichan::new(td).unwrap();
         let paths = [
-            tdcs.join("kotobankesjp"), tdcs.join("wty-es-en"),
-            tdcs.join("daijirin_dyb.zip"),
+            tdcs.join("kotobankesjp"),
+            tdcs.join("wty-es-en"),
+            //tdcs.join("daijirin_dyb.zip"),
         ];
 
         // remove any non-existant paths

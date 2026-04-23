@@ -339,6 +339,47 @@ pub struct TermDictionaryEntry {
     pub frequencies: Vec<TermFrequency>,
 }
 
+/// A helper structure that links a specific dictionary definition to the
+/// headwords (written variants) it applies to.
+///
+/// This is a "view" structure designed for easy rendering of search results.
+pub struct LinkedDefinition<'a> {
+    /// The specific definition/meaning.
+    pub definition: &'a TermDefinition,
+    /// The written variants (headwords) that share this meaning.
+    pub headwords: Vec<&'a TermHeadword>,
+}
+
+impl TermDictionaryEntry {
+    /// An ergonomic helper that iterates over the entry's definitions, automatically
+    /// linking each one to its corresponding headwords.
+    ///
+    /// This removes the need for the user to manually perform index lookups.
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// for linked in entry.linked_definitions() {
+    ///     println!("Meaning from {}:", linked.definition.dictionary);
+    ///     for headword in linked.headwords {
+    ///         println!("  Variant: {} ({})", headword.term, headword.reading);
+    ///     }
+    /// }
+    /// ```
+    pub fn linked_definitions(&self) -> impl Iterator<Item = LinkedDefinition<'_>> {
+        self.definitions.iter().map(|def| {
+            let headwords = def
+                .headword_indices
+                .iter()
+                .filter_map(|&idx| self.headwords.get(idx))
+                .collect();
+            LinkedDefinition {
+                definition: def,
+                headwords,
+            }
+        })
+    }
+}
+
 impl TermDictionaryEntry {
     pub fn get_headword_text_joined(&self) -> String {
         self.headwords

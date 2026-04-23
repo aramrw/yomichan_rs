@@ -35,6 +35,20 @@ use std::sync::Arc;
 pub const CHUNKS: usize = 90;
 
 impl Yomichan {
+    /// Imports one or more Yomitan dictionary ZIP files into the database.
+    ///
+    /// This method performs several steps:
+    /// 1. Verifies that all provided paths exist.
+    /// 2. Parses the dictionary data (terms, kanji, tags) from the ZIP files.
+    /// 3. Inserts the data into the library's internal database.
+    /// 4. Automatically updates and persists the engine's configuration to include the new dictionaries.
+    ///
+    /// # Arguments
+    /// * `zip_paths` - A slice of paths to the dictionary `.zip` files.
+    ///
+    /// # Errors
+    /// Returns an [`ImportError`] if any ZIP file is invalid, if a dictionary is already installed,
+    /// or if a database error occurs.
     pub fn import_dictionaries<P: AsRef<Path> + Send + Sync>(
         &self,
         zip_paths: &[P],
