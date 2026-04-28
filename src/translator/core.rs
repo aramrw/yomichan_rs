@@ -172,7 +172,7 @@ impl Translator {
         text: &str,
         opts: &FindTermsOptions,
     ) -> FindTermsResult {
-        dbg!(text, mode, opts);
+        //dbg!(text, mode, opts);
         let mut text = text.to_string();
         let FindTermsOptions {
             enabled_dictionary_map,
