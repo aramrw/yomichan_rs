@@ -86,7 +86,10 @@ impl Backend {
     fn _update_settings_internal(&self) -> Result<(), Box<DictionaryDatabaseError>> {
         let opts = self.options.read();
         let blob = native_model::encode(&*opts)
-            .map_err(|e| DictionaryDatabaseError::Database(Box::new(rusqlite::Error::ToSqlConversionFailure(Box::new(e)))))?;
+            .map_err(|e| {
+                tracing::error!("native_model::encode failed: {:?}. IDs might be mismatched or shared references (Ptr) might be causing issues with postcard.", e);
+                DictionaryDatabaseError::Database(Box::new(rusqlite::Error::ToSqlConversionFailure(Box::new(e))))
+            })?;
         self.db.set_settings(&blob)?;
         Ok(())
     }

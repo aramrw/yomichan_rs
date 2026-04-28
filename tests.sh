@@ -9,7 +9,7 @@ export RUSTFLAGS="-A warnings"
 case $choice in
     1) cargo nextest run ;;
     2) cargo nextest run settings ;;
-    3) cargo nextest --lib init_db -- --ignored --nocapture ;;
+    3) cargo nextest run init_db -- --ignored --nocapture ;;
     *) echo "Invalid option" ;;
 esac
 

@@ -467,6 +467,7 @@ impl DictionaryDatabase {
         let conn = self.conn.lock();
         conn.execute_batch(
             "
+            PRAGMA synchronous = OFF;
             PRAGMA temp_store = MEMORY;
             PRAGMA cache_size = -200000;
         ",
@@ -477,6 +478,7 @@ impl DictionaryDatabase {
         let conn = self.conn.lock();
         conn.execute_batch(
             "
+            PRAGMA synchronous = NORMAL;
             PRAGMA temp_store = DEFAULT;
             PRAGMA cache_size = -2000;
         ",
