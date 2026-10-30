@@ -74,7 +74,7 @@ pub enum DisplayAnkiError {
     #[error("[{}]", 
         error_helpers::fmterr_module(vec!["error", "display-anki", "database"]))
     ]
-    Database(#[from] native_db::db_type::Error),
+    Database(String),
     #[error("AnkiConnect error: {0}")]
     AnkiConnect(#[from] anki_direct::error::AnkiError),
     #[error("Model '{0}' not found")]

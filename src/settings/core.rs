@@ -17,8 +17,6 @@ use getset::Getters;
 use getset::MutGetters;
 use getset::Setters;
 use indexmap::IndexMap;
-use native_db::native_db;
-use native_db::ToKey;
 use native_model::native_model;
 use native_model::Model;
 use serde::{Deserialize, Serialize};
@@ -45,13 +43,11 @@ pub struct GlobalDatabaseOptions {
 /// This struct holds all global configuration options for the Yomichan application,
 /// including user profiles, current profile selection, and global Anki settings.
 #[native_model(id = 20, version = 1, with = native_model::postcard_1_0::PostCard)]
-#[native_db]
 #[derive(
     Clone, Debug, PartialEq, Serialize, Deserialize, Default, Getters, MutGetters, Setters,
 )]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
 pub struct YomichanOptions {
-    #[primary_key]
     id: String,
     /// The version of the Yomichan application.
     pub version: String,

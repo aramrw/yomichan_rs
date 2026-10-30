@@ -2,7 +2,6 @@ pub mod errors;
 pub mod test_utils;
 
 use derive_more::{Deref, DerefMut};
-use native_db::*;
 use parking_lot::{ArcRwLockReadGuard, ArcRwLockWriteGuard, RawRwLock, RwLock};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -39,17 +38,6 @@ pub type PtrWGaurd<T> = ArcRwLockWriteGuard<RawRwLock, T>;
 /// Simple abstraction over [parking_lot::RwLock]
 #[derive(Deref, DerefMut)]
 pub struct Ptr<T>(Arc<RwLock<T>>);
-
-impl<T: ToKey> ToKey for Ptr<T> {
-    fn to_key(&self) -> Key {
-        // get exclusive read & write access before writing to the database
-        let ptr = &*self.clone().write_arc();
-        ptr.to_key()
-    }
-    fn key_names() -> Vec<String> {
-        vec!["Ptr".into(), "YomichanPtr".into()]
-    }
-}
 
 impl<T> Ptr<T> {
     pub fn new(val: T) -> Self {

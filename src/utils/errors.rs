@@ -2,7 +2,6 @@
 use crate::anki::core::DisplayAnkiError;
 use crate::settings::core::ProfileError;
 use yomichan_importer::dictionary_importer::DictionarySummaryError;
-use native_db::db_type;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
@@ -19,7 +18,7 @@ invalid path: {p} | help:
     #[error("path does not have a parent: {p}")]
     MissingParent { p: PathBuf },
     #[error("db conn err: {0}")]
-    DatabaseConnectionFailed(#[from] Box<db_type::Error>),
+    DatabaseConnectionFailed(String),
     #[error("io err: {0}")]
     Io(#[from] std::io::Error),
     #[cfg(feature = "anki")]
@@ -28,7 +27,6 @@ invalid path: {p} | help:
 }
 
 mod init_err_impls {
-    use super::InitError;
     #[cfg(feature = "anki")]
     mod anki {
         use super::super::InitError;
@@ -42,21 +40,6 @@ mod init_err_impls {
             fn from(e: Box<DisplayAnkiError>) -> Self {
                 Box::new(InitError::DisplayAnki(*e))
             }
-        }
-    }
-    impl From<native_db::db_type::Error> for InitError {
-        fn from(e: native_db::db_type::Error) -> Self {
-            InitError::DatabaseConnectionFailed(Box::new(e))
-        }
-    }
-    impl From<native_db::db_type::Error> for Box<InitError> {
-        fn from(e: native_db::db_type::Error) -> Self {
-            Box::new(InitError::DatabaseConnectionFailed(Box::new(e)))
-        }
-    }
-    impl From<Box<native_db::db_type::Error>> for Box<InitError> {
-        fn from(e: Box<native_db::db_type::Error>) -> Self {
-            Box::new(InitError::DatabaseConnectionFailed(e))
         }
     }
 }
@@ -133,7 +116,7 @@ pub enum ImportError {
     #[error("{0}")]
     Zip(#[from] ImportZipError),
     #[error("db err: {0}")]
-    Database(#[from] Box<db_type::Error>),
+    Database(String),
     #[error("io err: {0}")]
     IO(#[from] std::io::Error),
     #[error("json err: {0}")]
@@ -163,12 +146,6 @@ impl From<yomichan_importer::errors::ImportError> for ImportError {
     }
 }
 
-impl From<native_db::db_type::Error> for ImportError {
-    fn from(err: native_db::db_type::Error) -> Self {
-        ImportError::Database(Box::new(err))
-    }
-}
-
 impl From<rusqlite::Error> for ImportError {
     fn from(err: rusqlite::Error) -> Self {
         ImportError::ExternalImporter(err.to_string())
@@ -178,7 +155,7 @@ impl From<rusqlite::Error> for ImportError {
 #[derive(Error, Debug)]
 pub enum DBError {
     #[error("db err: {0}")]
-    Database(#[from] Box<db_type::Error>),
+    Database(String),
     #[error("rusqlite err: {0}")]
     Sqlite(#[from] rusqlite::Error),
     #[error("query err: {0}")]
@@ -196,12 +173,6 @@ pub enum DBError {
 impl From<Box<crate::database::dictionary_database::DictionaryDatabaseError>> for DBError {
     fn from(e: Box<crate::database::dictionary_database::DictionaryDatabaseError>) -> Self {
         DBError::DictionaryDatabase(e)
-    }
-}
-
-impl From<native_db::db_type::Error> for DBError {
-    fn from(err: native_db::db_type::Error) -> Self {
-        DBError::Database(Box::new(err))
     }
 }
 
