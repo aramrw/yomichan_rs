@@ -344,7 +344,6 @@ pub fn import_dictionary<P: AsRef<Path>>(
                             .map(|g| match g {
                                 yomichan_importer::structured_content::TermGlossaryGroupType::Content(c) => {
                                     TermGlossaryGroupType::Content(TermGlossaryContentGroup {
-                                        plain_text: c.plain_text.clone(),
                                         html: c.html.clone(),
                                     })
                                 }

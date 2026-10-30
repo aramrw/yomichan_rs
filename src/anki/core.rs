@@ -350,7 +350,7 @@ impl DisplayAnki {
                         .definitions
                         .iter()
                         .flat_map(|def| &def.entries)
-                        .map(|g| g.plain_text.clone())
+                        .map(|g| g.html.as_str())
                         .collect::<Vec<_>>()
                         .join("<br>");
                     note_builder.field(field_name, &value);

@@ -259,6 +259,20 @@ pub struct TermDefinition {
     pub entries: Vec<TermGlossaryContentGroup>,
 }
 
+impl TermDefinition {
+    /// Returns an iterator over the raw HTML strings for each glossary entry in this definition.
+    #[inline]
+    pub fn html_entries(&self) -> impl Iterator<Item = &str> {
+        self.entries.iter().map(|entry| entry.as_html())
+    }
+
+    /// Strips HTML tags from each glossary entry and returns their plain-text representations.
+    #[inline]
+    pub fn plain_text_entries(&self) -> Vec<compact_str::CompactString> {
+        self.entries.iter().map(|entry| entry.to_plain_text()).collect()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 /// A term pronunciation represents different ways to pronounce one of the headwords.
 pub struct TermPronunciation {
