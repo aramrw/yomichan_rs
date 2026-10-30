@@ -3268,7 +3268,7 @@ dependencies = [
 
 [[package]]
 name = "yomichan_rs"
-version = "0.0.1"
+version = "0.0.14"
 dependencies = [
  "anki_direct",
  "better_default",
